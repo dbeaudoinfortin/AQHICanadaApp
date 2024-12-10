@@ -1,0 +1,8 @@
+{
+  "facewidget": {
+    "type": 0,
+    "menuInSetting": 0,
+    "labelResNameInSetting": "widget_title",
+    "changeCurrentPage": false
+  }
+}

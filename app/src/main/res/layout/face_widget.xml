@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/face_widget_height"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:background="@drawable/face_widget_background"
+    android:contentDescription="@string/app_name"
+    android:focusable="true"
+    android:orientation="horizontal"
+    android:paddingHorizontal="@dimen/face_widget_padding_horizontal">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:textAlignment="center"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:layout_margin="24dp"
+        android:text="duuuude" />
+
+</LinearLayout>
