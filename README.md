@@ -1,4 +1,4 @@
-# AQHIWidget
+# AQHI Widget
 Android widget for displaying Canadian Air Quality Health Index (AQHI)
 
 **COMING SOON!**
