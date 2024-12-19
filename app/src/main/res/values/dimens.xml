@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <dimen name="face_widget_height">144dp</dimen>
-    <dimen name="face_widget_padding_horizontal">10dp</dimen>
-</resources>

@@ -2,7 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <uses-permission android:name="com.samsung.systemui.permission.FACE_WIDGET" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
         android:allowBackup="true"
@@ -10,16 +11,13 @@
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="true"
-        android:theme="@style/Theme.AQHIWidget"
-        tools:targetApi="31">
+        android:theme="@style/Theme.AQHIWidget">
 
+        <!-- MAIN ANDROID APP -->
         <activity
-            android:name=".MainActivity"
+            android:name=".AQHIMainActivity"
             android:exported="true"
-            android:label="@string/app_name"
-            android:theme="@style/Theme.AQHIWidget">
+            android:theme="@style/AppTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -27,16 +25,30 @@
             </intent-filter>
         </activity>
 
-        <meta-data
-            android:name="com.samsung.systemui.facewidget.executable"
-            android:resource="@raw/facewidgets" />
-
+        <!--SMALL ANDROID WIDGET -->
         <receiver
-            android:name=".FaceWidgetReceiver"
+            android:name=".AQHIWidgetProviderSmall"
             android:exported="true">
             <intent-filter>
-                <action android:name="com.samsung.android.intent.action.REQUEST_SERVICEBOX_REMOTEVIEWS" />
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_small" />
+        </receiver>
+
+        <!--LARGE ANDROID WIDGET -->
+        <receiver
+            android:name=".AQHIWidgetProviderLarge"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_large" />
         </receiver>
     </application>
 

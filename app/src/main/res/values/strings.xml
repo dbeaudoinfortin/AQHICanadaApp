@@ -1,4 +1,8 @@
 <resources>
-    <string name="app_name">AQHIWidget</string>
-    <string name="widget_title">AQHIWidget</string>
+    <string name="app_name">AQHI</string>
+
+    <string name="widget_title">AQHI Widget</string>
+    <string name="widget_aqhi_label">AQHI:</string>
+
+    <string name="main_activity_aqhi_title">CANADA AQHI</string>
 </resources>
