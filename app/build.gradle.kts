@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.dbf.aqhiwidget"
+    namespace = "com.dbf.aqhi"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.dbf.aqhiwidget"
+        applicationId = "com.dbf.aqhi"
         minSdk = 34
         targetSdk = 34
         versionCode = 1
@@ -40,7 +40,9 @@ android {
 }
 
 dependencies {
-
+    implementation(libs.okhttp)
+    implementation(libs.gson)
+    implementation(libs.heatmaps)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

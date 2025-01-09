@@ -1,4 +1,4 @@
-package com.dbf.aqhiwidget;
+package com.dbf.aqhi;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationRequest;
