@@ -10,32 +10,19 @@ import android.appwidget.AppWidgetProvider;
 import android.content.Context;
 import android.widget.RemoteViews;
 
-public class AQHIWidgetProvider extends AppWidgetProvider {
+import java.util.concurrent.ScheduledExecutorService;
+
+public abstract class AQHIWidgetProvider extends AppWidgetProvider {
+
+    private ScheduledExecutorService updateScheduler;
 
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
-
-        final FusedLocationProviderClient locationClient = LocationServices.getFusedLocationProviderClient(context);
-        final LocationRequest locationRequest  = new LocationRequest.Builder(Priority.PRIORITY_LOW_POWER, 0)
-                .setWaitForAccurateLocation(false)
-                .setMinUpdateIntervalMillis(0)
-                .setMaxUpdateDelayMillis(0)
-                .setMaxUpdates(1)
-                .build();
-
+        super.onUpdate(context, appWidgetManager, appWidgetIds);
         for (int appWidgetId : appWidgetIds) {
-            updateAppWidget(context, appWidgetManager, appWidgetId);
+            updateWidget(context, appWidgetManager, appWidgetId);
         }
     }
 
-    private void updateAppWidget(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
-        RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_layout_small);
-
-        // Set default AQHI and location
-        views.setTextViewText(R.id.txtLocation, "Location: Updating...");
-        views.setTextViewText(R.id.txtCurrentAQHI, "Current AQHI: Fetching...");
-
-        // Push the update
-        appWidgetManager.updateAppWidget(appWidgetId, views);
-    }
+    protected abstract void updateWidget(Context context, AppWidgetManager appWidgetManager, int appWidgetId);
 }

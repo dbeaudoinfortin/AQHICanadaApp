@@ -2,7 +2,6 @@ package com.dbf.aqhi;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
-import android.location.Location;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.TextView;
@@ -16,22 +15,10 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import com.dbf.aqhi.geomet.GeoMetService;
-import com.dbf.aqhi.geomet.realtime.RealtimeData;
-import com.dbf.aqhi.geomet.station.Station;
 import com.dbf.aqhi.location.LocationService;
 import com.dbf.aqhi.service.AQHIService;
-import com.dbf.heatmaps.HeatMap;
-import com.dbf.heatmaps.HeatMapGradient;
-import com.dbf.heatmaps.HeatMapOptions;
-import com.dbf.heatmaps.axis.IntegerAxis;
-import com.dbf.heatmaps.data.DataRecord;
-import com.google.android.gms.location.LocationCallback;
-import com.google.android.gms.location.LocationResult;
 
 import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -117,9 +104,7 @@ public class AQHIMainActivity extends AppCompatActivity {
             if(checkLocationPermissions()) {
                 //User has already granted the permissions, update the location now.
                 //Otherwise, the location will only be updated after the user accepts the permission request
-                locationService.updateLocation(()->{
-                    updateAQHI();
-                }); //This is async
+                locationService.updateLocation(this::updateAQHI); //This is async
             }
         } catch (Throwable t) {
             Log.e(LOG_TAG, "Failed to update the location for the main activity.", t);
@@ -152,7 +137,7 @@ public class AQHIMainActivity extends AppCompatActivity {
     private void updateAQHI(){
         aqhiService.updateAQHI(()->{
             //Must always run on the UI thread
-            runOnUiThread(() -> updateUI());
+            runOnUiThread(this::updateUI);
         });
     }
 

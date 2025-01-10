@@ -11,6 +11,7 @@ import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 
 import com.dbf.aqhi.Utils;
+import com.dbf.aqhi.service.AQHIService;
 import com.google.android.gms.location.CurrentLocationRequest;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
@@ -50,6 +51,11 @@ public class LocationService {
                     .build();
     }
 
+    /**
+     * Retrieves the most recent saved location latitude and  longitude coordinates.
+     * @return double[] An array of length 2 in the form of double[latitude, longitude].
+     * Only returned if the location coordinates have been updated within the last {@link LocationService#DATA_VALIDITY_DURATION} milliseconds. Otherwise returns null.
+     */
     public double[] getRecentLocation(){
         Long ts = locationPref.getLong(LOCATION_COORDINATES_TS_KEY, Integer.MIN_VALUE);
         if(System.currentTimeMillis() - ts > DATA_VALIDITY_DURATION) return null;
@@ -57,9 +63,12 @@ public class LocationService {
     }
 
     /**
-     * Forces an update to the saved location
+     * Attempts to update to the user's saved location.
+     * This method will first check to see if the user has granted the ACCESS_COARSE_LOCATION permission.
+     * Only changes that result in approximately at least {@link LocationService#MIN_CHANGE_DISTANCE} meters of distance will result in an update.
+     * The location is stored in SharedPreferences and can be retrieved via {@link LocationService#getRecentLocation()}.
      *
-     * @param onChange Optional callback if and only if the location has changed
+     * @param @Nullable onChange Optional callback executed if and only if the location has changed.
      */
     public void updateLocation(Runnable onChange) {
         if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -68,7 +77,7 @@ public class LocationService {
         }
         locationClient.getCurrentLocation(locationRequest, null).addOnSuccessListener(currentLocation -> {
             if(null != currentLocation) {
-                Log.i(LOG_TAG, "Location updated received. Provider: " + currentLocation.getProvider() + ", Latitude: " + currentLocation.getLatitude()  + ", Longitude: " + currentLocation.getLongitude() + ", Accuracy: " + currentLocation.getAccuracy());
+                Log.i(LOG_TAG, "Location update received. Provider: " + currentLocation.getProvider() + ", Latitude: " + currentLocation.getLatitude()  + ", Longitude: " + currentLocation.getLongitude() + ", Accuracy: " + currentLocation.getAccuracy());
 
                 //Extract the previous stored location, if present
                 String previousLocationCoordinates = locationPref.getString(LOCATION_COORDINATES_KEY,"");
@@ -99,8 +108,7 @@ public class LocationService {
                 }
             }
         }).addOnFailureListener(e -> {
-            // Handle failure
-            Log.e("CurrentLocation", "Failed to get location", e);
+            Log.e(LOG_TAG, "Failed to update the current location.", e);
         });
     }
 

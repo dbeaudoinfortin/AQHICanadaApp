@@ -118,7 +118,7 @@ public class GeoMetService {
         if(stations.isEmpty()) return null;
         return stations;
     }
-    private static final Type stationsType = new TypeToken<List<Station>>() {}.getType();
+
     private List<Station> loadStationsCached(boolean forceUpdate){
         List<Station> stations = null;
 
@@ -140,12 +140,12 @@ public class GeoMetService {
             }
         } else {
             //Remote look up succeeded, update the disk cache file
-            writeStationsFromDisk(stations);
+            writeStationsToDisk(stations);
         }
         return stations;
     }
 
-    private void writeStationsFromDisk(List<Station> stations) {
+    private void writeStationsToDisk(List<Station> stations) {
         try (FileWriter writer = new FileWriter(stationCacheFile)) {
             gson.toJson(stations, writer); // Serialize the List<Station> to JSON
             stationCacheFile.setLastModified(System.currentTimeMillis()); // Update the timestamp
@@ -154,6 +154,7 @@ public class GeoMetService {
         }
     }
 
+    private static final Type stationsType = new TypeToken<List<Station>>() {}.getType();
     private List<Station> fetchStationsFromDisk() {
         if (stationCacheFile.exists() && (System.currentTimeMillis() - stationCacheFile.lastModified()) <= STATION_CACHE_DURATION) {
             try (FileReader reader = new FileReader(stationCacheFile)) {
