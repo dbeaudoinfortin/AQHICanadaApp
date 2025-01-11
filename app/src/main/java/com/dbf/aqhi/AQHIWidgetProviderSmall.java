@@ -6,14 +6,14 @@ import android.widget.RemoteViews;
 
 public class AQHIWidgetProviderSmall extends AQHIWidgetProvider {
 
-    protected void updateWidget(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
-        RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_layout_small);
+    protected void updateWidgetUI(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
+        RemoteViews views = getRemoteViews(context);
+        views.setTextViewText(R.id.txtAQHI, getLatestAQHIString());
+        appWidgetManager.updateAppWidget(appWidgetId, views); //Push the update
+    }
 
-        // Set default AQHI and location
-        views.setTextViewText(R.id.txtLocation, "Location: Updating...");
-        views.setTextViewText(R.id.txtCurrentAQHI, "Current AQHI: Fetching...");
-
-        // Push the update
-        appWidgetManager.updateAppWidget(appWidgetId, views);
+    @Override
+    protected int getLayoutId() {
+        return R.layout.widget_layout_small;
     }
 }

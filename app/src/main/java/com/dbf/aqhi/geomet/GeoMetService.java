@@ -49,13 +49,11 @@ public class GeoMetService {
             .callTimeout(HTTP_TIMEOUT, MILLISECONDS)
             .build();
 
-    private final Context context;
     private final File stationCacheFile;
 
     private List<Station> stations; //This is cached
 
     public GeoMetService(Context context) {
-        this.context = context;
         this.stationCacheFile = new File(context.getCacheDir(), STATION_CACHE_FILE_NAME);
     }
 
@@ -86,6 +84,7 @@ public class GeoMetService {
                 .url(url)
                 .build();
 
+        Log.i(LOG_TAG, "Calling GeoMet. URL: " + REALTIME_URL);
         try (Response response = client. newCall(request).execute()) {
             if (response.isSuccessful()) {
                 try {
@@ -120,7 +119,7 @@ public class GeoMetService {
     }
 
     private List<Station> loadStationsCached(boolean forceUpdate){
-        List<Station> stations = null;
+        List<Station> stations;
 
         if(!forceUpdate) {
             //Determine if the station definitions have been previously cached to disk to avoid fetching them from the API again
@@ -157,6 +156,7 @@ public class GeoMetService {
     private static final Type stationsType = new TypeToken<List<Station>>() {}.getType();
     private List<Station> fetchStationsFromDisk() {
         if (stationCacheFile.exists() && (System.currentTimeMillis() - stationCacheFile.lastModified()) <= STATION_CACHE_DURATION) {
+            Log.i(LOG_TAG, "Loading station list from disk cache.");
             try (FileReader reader = new FileReader(stationCacheFile)) {
                 return gson.fromJson(reader, stationsType);
             } catch (Exception e) {
@@ -172,6 +172,7 @@ public class GeoMetService {
                 .build();
 
         //This needs to be a blocking call since we can't move on without a list of stations
+        Log.i(LOG_TAG, "Calling GeoMet. URL: " + STATION_URL);
         try (Response response = client. newCall(request).execute()) {
             if (response.isSuccessful()) {
                 try {

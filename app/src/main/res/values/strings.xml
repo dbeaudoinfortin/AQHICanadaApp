@@ -5,4 +5,6 @@
     <string name="widget_aqhi_label">AQHI:</string>
 
     <string name="main_activity_aqhi_title">CANADA AQHI</string>
+    <string name="Location_perm_required">Location permission is required.</string>
+    <string name="Location_perm_required_full">Location permission is required to determine the nearest AQHI observation station.</string>
 </resources>

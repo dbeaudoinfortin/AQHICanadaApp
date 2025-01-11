@@ -1,5 +1,10 @@
 package com.dbf.aqhi;
 
+import android.content.Context;
+import android.content.pm.PackageManager;
+
+import androidx.core.app.ActivityCompat;
+
 public class Utils {
     /**
      * Calculates the magnitude of the distance between two points latitude and longitude.

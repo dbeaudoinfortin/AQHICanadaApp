@@ -12,10 +12,11 @@ public class RealtimeData {
         public Double aqhi;
         public Boolean latest;
         public String observation_datetime_text_en;
+        public String observation_datetime;
 
         public Date getDate() {
             //ISO 8601 by default
-            return Date.from(Instant.parse(observation_datetime_text_en));
+            return Date.from(Instant.parse(observation_datetime));
         }
     }
 }
