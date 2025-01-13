@@ -129,6 +129,15 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider {
         }
     }
 
+    protected String getCurrentStationName() {
+        //For widgets, we want to allow stale values since the update are only guaranteed to happen once per 30 minutes
+        String recentStation = backgroundWorker.getAqhiService().getStationName(true);
+        if(null == recentStation) {
+            return "Unknown";
+        }
+        return recentStation;
+    }
+
     protected RemoteViews getRemoteViews(Context context) {
         return new RemoteViews(context.getPackageName(), getLayoutId());
     }

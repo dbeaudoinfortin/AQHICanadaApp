@@ -115,7 +115,7 @@ public class AQHIService {
     /**
      * Updates both the latest and historical AQHI readings based on the user's current location. The user's closest station will be first updated if necessary.
      * These updates are done via external API calls to the GeoMet service. The data is stored in SharedPreferences and can be retrieved
-     * via {@link AQHIService#getLatestAQHI}, {@link AQHIService#getStation}, and {@link AQHIService#getHistoricalAQHI}.
+     * via {@link AQHIService#getLatestAQHI}, {@link AQHIService#getStationName}, and {@link AQHIService#getHistoricalAQHI}.
      * The update is executed asynchronously in a new thread and may take several minutes to complete depending on the internet connection quality.
      *
      * @param @Nullable onChange An optional callback to be executed if the update results in potential data changes.
@@ -193,12 +193,25 @@ public class AQHIService {
 
     /**
      * Retrieves the station code of the station closest to the most recently updated user location.
-     * @return Station code if it has been validated during the last {@link AQHIService#DATA_VALIDITY_DURATION} milliseconds. Otherwise returns null.
+     *
+     * @param allowStale boolean, if false only return the Station value if it has been validated during the last {@link AQHIService#DATA_VALIDITY_DURATION} milliseconds.
+     *
+     * @return String, station name.
      */
-    public String getStation(){
-        Long ts = aqhiPref.getLong(STATION_TS_KEY, Integer.MIN_VALUE);
-        if(System.currentTimeMillis() - ts > DATA_VALIDITY_DURATION) return null;
+    public String getStationName(boolean allowStale){
+        if(!allowStale) {
+            Long ts = aqhiPref.getLong(STATION_TS_KEY, Integer.MIN_VALUE);
+            if (System.currentTimeMillis() - ts > DATA_VALIDITY_DURATION) return null;
+        }
         return aqhiPref.getString(STATION_NAME_KEY, null);
+    }
+
+    /**
+     * Retrieves the station code of the station closest to the most recently updated user location.
+     * @return String, station name, if it has been validated during the last {@link AQHIService#DATA_VALIDITY_DURATION} milliseconds. Otherwise returns null.
+     */
+    public String getStationName(){
+        return getStationName(false);
     }
 
     /**
@@ -222,7 +235,7 @@ public class AQHIService {
     /**
      * Retrieves the last saved AQHI value for the current station.
      *
-     * @param allowStale boolean, if false only a value updated within the last {@link AQHIService#DATA_VALIDITY_DURATION} milliseconds will be returned.
+     * @param allowStale boolean, if false only return the AQHI value if it has been updated within the last {@link AQHIService#DATA_VALIDITY_DURATION} milliseconds.
      * @return Double, AQHI value.
      */
     public Double getLatestAQHI(boolean allowStale){

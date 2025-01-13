@@ -1,14 +1,7 @@
 package com.dbf.aqhi;
 
 import android.Manifest;
-import android.annotation.SuppressLint;
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
-import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.TextView;
@@ -18,7 +11,6 @@ import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
-import androidx.core.app.NotificationCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -118,7 +110,7 @@ public class AQHIMainActivity extends AppCompatActivity {
 
     private void updateUI() {
         Log.i(LOG_TAG, "Updating AQHI Main Activity UI.");
-        String recentStation = backgroundWorker.getAqhiService().getStation();
+        String recentStation = backgroundWorker.getAqhiService().getStationName();
         Double recentAQHI = backgroundWorker.getAqhiService().getLatestAQHI();
 
         TextView locationText = findViewById(R.id.txtLocation);
