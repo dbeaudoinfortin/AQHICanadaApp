@@ -1,4 +1,4 @@
-package com.dbf.aqhi;
+package com.dbf.aqhi.widgets;
 
 import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
@@ -10,16 +10,17 @@ import android.os.Bundle;
 import android.util.Log;
 import android.widget.RemoteViews;
 
+import com.dbf.aqhi.AQHIFeature;
+import com.dbf.aqhi.AQHIMainActivity;
+import com.dbf.aqhi.R;
 import com.dbf.aqhi.permissions.PermissionService;
 import com.dbf.aqhi.service.AQHIBackgroundWorker;
 
 import java.text.DecimalFormat;
 
-public abstract class AQHIWidgetProvider extends AppWidgetProvider {
+public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQHIFeature {
 
     private static final String LOG_TAG = "AQHIWidgetProvider";
-
-    private static final String AQHI_DIGIT_FORMAT = "0.00";
 
     protected AQHIBackgroundWorker backgroundWorker;
 
@@ -143,21 +144,11 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider {
         }
     }
 
-    protected String getLatestAQHIString() {
+    @Override
+    public String getLatestAQHIString() {
         //For widgets, we want to allow stale values since the update are only guaranteed to happen once per 30 minutes
         Double recentAQHI = backgroundWorker.getAqhiService().getLatestAQHI(true);
-
-        if(null == recentAQHI) {
-            return "…"; //Still fetching the value
-        } else if( recentAQHI < 0.0) {
-            return "?"; //Unknown
-        } else if(recentAQHI % 1 == 0) {
-            //No fraction
-            return recentAQHI.toString();
-        }
-        //2-digit fractional number
-        DecimalFormat df = new DecimalFormat(AQHI_DIGIT_FORMAT); // Not thread safe
-        return df.format(recentAQHI);
+        return formatAQHIValue(recentAQHI);
     }
 
     protected Double getLatestAQHI() {
@@ -180,6 +171,11 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider {
 
     protected RemoteViews getRemoteViews(Context context) {
         return new RemoteViews(context.getPackageName(), getLayoutId());
+    }
+
+    @Override
+    public AQHIBackgroundWorker getBackgroundWorker() {
+        return backgroundWorker;
     }
 
     protected int getWidgetRoot() {

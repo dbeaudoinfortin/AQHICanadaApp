@@ -20,11 +20,8 @@ import com.dbf.aqhi.service.AQHIBackgroundWorker;
 
 import java.text.DecimalFormat;
 
-public class AQHIMainActivity extends AppCompatActivity {
+public class AQHIMainActivity extends AppCompatActivity implements AQHIFeature {
     private static final String LOG_TAG = "AQHIMainActivity";
-
-    private static final String AQHI_DIGIT_FORMAT = "0.##";
-
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
 
     private AQHIBackgroundWorker backgroundWorker;
@@ -111,23 +108,20 @@ public class AQHIMainActivity extends AppCompatActivity {
     private void updateUI() {
         Log.i(LOG_TAG, "Updating AQHI Main Activity UI.");
         String recentStation = backgroundWorker.getAqhiService().getStationName();
-        Double recentAQHI = backgroundWorker.getAqhiService().getLatestAQHI();
 
         TextView locationText = findViewById(R.id.txtLocation);
         if(null == recentStation || recentStation.isEmpty()) {
-            locationText.setText("Location: Unknown");
+            locationText.setText("Unknown");
         } else {
-            locationText.setText("Location: " + recentStation);
+            locationText.setText(recentStation);
         }
 
-        TextView aqhiText = findViewById(R.id.txtCurrentAQHI);
-        if(null == recentAQHI) {
-            aqhiText.setText("Current AQHI: …");
-        } else if( recentAQHI < 0.0) {
-            aqhiText.setText("Current AQHI: Unknown");
-        } else {
-            DecimalFormat df = new DecimalFormat(AQHI_DIGIT_FORMAT); // Not thread safe
-            aqhiText.setText("Current AQHI: " + df.format(recentAQHI));
-        }
+        TextView aqhiText = findViewById(R.id.txtAQHIValue);
+        aqhiText.setText(this.getLatestAQHIString());
+    }
+
+    @Override
+    public AQHIBackgroundWorker getBackgroundWorker() {
+        return backgroundWorker;
     }
 }

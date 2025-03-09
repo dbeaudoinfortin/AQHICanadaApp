@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="widget_background_color">#f2f2f233</color>
+    <color name="widget_background_color">#F2F2F2F2</color>
     <color name="ic_launcher_background">#FFFFFD</color>
     <color name="main_activity_background">#FFFFFD</color>
+    <color name="main_activity_header_background">#F2F2F2</color>
+    <color name="main_activity_header_text">#953735</color>
+    <color name="main_activity_action_text">#953735</color>
 </resources>

@@ -27,7 +27,7 @@
 
         <!--SMALL ANDROID WIDGET -->
         <receiver
-            android:name=".AQHIWidgetProviderSmall"
+            android:name=".widgets.AQHIWidgetProviderSmall"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -41,7 +41,7 @@
 
         <!--LARGE ANDROID WIDGET -->
         <receiver
-            android:name=".AQHIWidgetProviderLarge"
+            android:name=".widgets.AQHIWidgetProviderLarge"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />

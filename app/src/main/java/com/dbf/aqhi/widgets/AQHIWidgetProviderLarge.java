@@ -1,4 +1,4 @@
-package com.dbf.aqhi;
+package com.dbf.aqhi.widgets;
 
 import static android.view.View.INVISIBLE;
 import static android.view.View.VISIBLE;
@@ -9,6 +9,9 @@ import android.content.Context;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.widget.RemoteViews;
+
+import com.dbf.aqhi.R;
+import com.dbf.aqhi.service.AQHIBackgroundWorker;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;

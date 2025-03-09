@@ -4,11 +4,19 @@
     <string name="widget_title">AQHI Widget</string>
     <string name="widget_aqhi_label">AQHI:</string>
 
-    <string name="main_activity_aqhi_title">CANADA AQHI</string>
+    <string name="main_activity_aqhi_title">Canada AQHI Lookup</string>
     <string name="Location_perm_required">Location permission is required.</string>
     <string name="Location_perm_required_full">Location permission is required to determine the nearest AQHI observation station.</string>
     <string name="aqhi_widget_logo">AQHI Widget Logo</string>
     <string name="unknown">Unknown</string>
     <string name="the_current_aqhi_value">The current AQHI value.</string>
     <string name="aqhi_linear_scale">AQHI linear scale.</string>
+    <string name="copyright_notice">Copyright (c) 2024 David Fortin</string>
+    <string name="aqhi_historical_trend">AQHI Historical Trend:</string>
+    <string name="historical_trend_heatmap">Historical Trend Heatmap</string>
+    <string name="aqhi_forecast_maximums">AQHI Forecast Maximums:</string>
+    <string name="aqhi_meter_graph">Current AQHI Meter Graph</string>
+    <string name="current_aqhi">Current AQHI:</string>
+    <string name="change_location">Change Location</string>
+    <string name="location">Location:</string>
 </resources>

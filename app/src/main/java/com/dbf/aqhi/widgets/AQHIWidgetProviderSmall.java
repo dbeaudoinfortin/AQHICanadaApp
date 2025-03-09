@@ -1,8 +1,10 @@
-package com.dbf.aqhi;
+package com.dbf.aqhi.widgets;
 
 import android.appwidget.AppWidgetManager;
 import android.content.Context;
 import android.widget.RemoteViews;
+
+import com.dbf.aqhi.R;
 
 public class AQHIWidgetProviderSmall extends AQHIWidgetProvider {
 

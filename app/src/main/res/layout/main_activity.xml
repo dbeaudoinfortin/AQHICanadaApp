@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
@@ -8,81 +9,256 @@
     android:background="@color/main_activity_background"
     tools:context=".AQHIMainActivity">
 
-    <TextView
-        android:id="@+id/txtLocation"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="5dp"
-        android:layout_marginEnd="8dp"
-        android:text="Location: "
-        android:textSize="16sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.498"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/linearLayout" />
-
-    <ImageView
-        android:id="@+id/imgHeatMap"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginBottom="8dp"
-        android:contentDescription="Heat map of the last 24 hours"
-        android:src="@drawable/outline_bar_chart_24"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/txtCurrentAQHI" />
-
-
-    <TextView
-        android:id="@+id/txtCurrentAQHI"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="5dp"
-        android:layout_marginEnd="8dp"
-        android:text="Current AQHI: "
-        android:textSize="16sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.501"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/txtLocation" />
-
+    <!-- Header with title and icon -->
     <LinearLayout
-        android:id="@+id/linearLayout"
-        android:layout_width="wrap_content"
+        android:id="@+id/header_bar"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="8dp"
-        android:gravity="center"
         android:orientation="horizontal"
-        app:layout_constraintEnd_toEndOf="parent"
+        android:padding="10dp"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintEnd_toEndOf="parent"
+        android:background="@color/main_activity_header_background">
+
+        <TextView
+            android:id="@+id/lblTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="0dp"
+            android:layout_marginEnd="5dp"
+            android:gravity="start|center_vertical"
+            android:text="@string/main_activity_aqhi_title"
+            android:textSize="30sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:layout_weight="1"
+            android:textColor="@color/main_activity_header_text"/>
 
         <ImageView
             android:id="@+id/imgLogo"
             android:layout_width="50dp"
             android:layout_height="50dp"
+            android:layout_marginStart="5dp"
+            android:layout_marginEnd="0dp"
+            android:gravity="end|center_vertical"
             android:importantForAccessibility="no"
-            app:srcCompat="@drawable/logo"
-            tools:layout_editor_absoluteX="-69dp"
-            tools:layout_editor_absoluteY="139dp" />
+            app:srcCompat="@drawable/logo"/>
+    </LinearLayout>
+
+    <!-- BODY -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/body_content"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_margin="10dp"
+        app:layout_constraintTop_toBottomOf="@id/header_bar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/footer_bar">
+
+        <!-- Location Section -->
 
         <TextView
-            android:id="@+id/lblTitle"
+            android:id="@+id/lblLocation"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="3dp"
-            android:layout_marginEnd="3dp"
-            android:text="@string/main_activity_aqhi_title"
-            android:textAlignment="center"
-            android:textSize="30sp"
-            android:textStyle="bold" />
+            android:text="@string/location"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"/>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/location_section"
+            android:layout_width="match_parent"
+            android:padding="8dp"
+            android:layout_marginTop="10dp"
+            android:layout_height="0dp"
+            app:layout_constraintTop_toBottomOf="@id/lblLocation"
+            app:layout_constraintStart_toStartOf="parent"
+            android:background="@drawable/soft_border"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <TextView
+                android:id="@+id/txtLocation"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Unknown"
+                android:paddingStart="8dp"
+                android:textSize="20sp"
+                app:layout_constraintTop_toTopOf="@id/location_section"
+                app:layout_constraintStart_toStartOf="parent" />
+
+            <TextView
+                android:id="@+id/change_location"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/change_location"
+                android:textColor="@color/main_activity_action_text"
+                android:textSize="12sp"
+                app:layout_constraintTop_toBottomOf="@id/txtLocation"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:paddingEnd="8dp"/>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <!-- Current AQHI -->
+
+        <TextView
+            android:id="@+id/lblCurrentAQHI"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/current_aqhi"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            app:layout_constraintTop_toBottomOf="@id/location_section"
+            app:layout_constraintStart_toStartOf="parent"
+            android:paddingTop="10dp"/>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/current_aqhi_section"
+            android:layout_width="match_parent"
+            android:padding="8dp"
+            android:layout_marginTop="10dp"
+            android:layout_height="0dp"
+            app:layout_constraintTop_toBottomOf="@id/lblCurrentAQHI"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:background="@drawable/soft_border">
+
+            <LinearLayout
+                android:id="@+id/current_aqhi_bar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="5dp"
+                app:layout_constraintTop_toTopOf="@id/current_aqhi_section">
+
+                <TextView
+                    android:id="@+id/txtAQHIValue"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:gravity="start|center_vertical"
+                    android:text="5.0"
+                    android:maxLines="1"
+                    android:layout_weight="1"
+                    android:textSize="24sp"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"/>
+
+                <ImageView
+                    android:id="@+id/imgAQHIMeter"
+                    android:layout_width="100dp"
+                    android:layout_height="60dp"
+                    android:gravity="end|center_vertical"
+                    android:src="@drawable/outline_bar_chart_24"
+                    android:contentDescription="@string/aqhi_meter_graph"/>
+            </LinearLayout>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <!-- AQHI Forecast -->
+        <TextView
+            android:id="@+id/lblForecast"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/aqhi_forecast_maximums"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            app:layout_constraintTop_toBottomOf="@id/current_aqhi_section"
+            app:layout_constraintStart_toStartOf="parent"
+            android:paddingTop="10dp"/>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/aqhi_forecast_section"
+            android:layout_width="match_parent"
+            android:padding="8dp"
+            android:layout_marginTop="10dp"
+            android:layout_height="0dp"
+            app:layout_constraintTop_toBottomOf="@id/lblForecast"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:background="@drawable/soft_border" >
+
+            <TextView
+                android:id="@+id/txtForecast"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="3.0 - Low Risk"
+                app:layout_constraintTop_toTopOf="@id/aqhi_forecast_section"
+                app:layout_constraintStart_toStartOf="parent"
+                android:padding="8dp"/>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <!-- Historical AQHI Heatmap -->
+        <TextView
+            android:id="@+id/lblHistorical"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/aqhi_historical_trend"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            app:layout_constraintTop_toBottomOf="@id/aqhi_forecast_section"
+            app:layout_constraintStart_toStartOf="parent"
+            android:paddingTop="16dp"/>
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/aqhi_historical_section"
+            android:layout_width="match_parent"
+            android:padding="8dp"
+            android:layout_marginTop="10dp"
+            android:layout_height="0dp"
+            app:layout_constraintTop_toBottomOf="@id/lblHistorical"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:background="@drawable/soft_border">
+            <ImageView
+                android:id="@+id/imgHistoricalHeatMap"
+                android:layout_width="0dp"
+                android:layout_height="100dp"
+                android:src="@drawable/outline_bar_chart_24"
+                android:contentDescription="@string/historical_trend_heatmap"
+                app:layout_constraintTop_toTopOf="@id/aqhi_historical_section"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:padding="8dp"/>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+    <!-- Footer -->
+    <LinearLayout
+        android:id="@+id/footer_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="5dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:background="@color/main_activity_header_background">
+
+        <TextView
+            android:id="@+id/lblFooter"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="5dp"
+            android:layout_marginEnd="5dp"
+            android:gravity="start|bottom"
+            android:text="@string/copyright_notice"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:layout_weight="1"
+            android:textColor="@color/main_activity_action_text"/>
+
+        <TextView
+            android:id="@+id/lblNotices"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="5dp"
+            android:layout_marginEnd="5dp"
+            android:gravity="end|bottom"
+            android:text="..."
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:textColor="@color/main_activity_action_text"/>
     </LinearLayout>
+
 </androidx.constraintlayout.widget.ConstraintLayout>
