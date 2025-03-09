@@ -79,7 +79,7 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider {
         //Note: backgroundWorker will be created in the onUpdate() event, called right after.
     }
 
-    private synchronized void initBackgroundWorker(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
+    protected synchronized void initBackgroundWorker(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
         //Initialize a background thread that will periodically refresh the user's location and the latest AQHI data.
         if(null == backgroundWorker) {
             backgroundWorker = new AQHIBackgroundWorker(context, ()->{
@@ -127,6 +127,15 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider {
             DecimalFormat df = new DecimalFormat(AQHI_DIGIT_FORMAT); // Not thread safe
             return df.format(recentAQHI);
         }
+    }
+
+    protected Double getLatestAQHI() {
+        //For widgets, we want to allow stale values since the update are only guaranteed to happen once per 30 minutes
+        Double recentAQHI = backgroundWorker.getAqhiService().getLatestAQHI(true);
+        if(null == recentAQHI || recentAQHI < 0.0) {
+            return null;
+        }
+        return recentAQHI;
     }
 
     protected String getCurrentStationName() {

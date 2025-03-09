@@ -1,63 +1,105 @@
-<?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_background"
-    android:gravity="center"
-    android:orientation="vertical"
-    android:padding="5dp"
-    android:id="@+id/widget_root">
+    android:orientation="vertical">
 
-
-
+    <!-- TOP PORTION, INFO -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:padding="0dp">
 
     <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal">
+
+        <!-- AQHI VALUE -->
+        <TextView
+            android:id="@+id/txtAQHI"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_marginStart="5dp"
+            android:layout_marginEnd="2dp"
+            android:gravity="left|center"
+            android:fontFamily="@font/roboto"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+
+            android:text="…"
+            android:textColor="@android:color/black"
+            android:textSize="38dp"
+            android:textStyle="bold" />
+
+        <!-- STATION NAME -->
+        <TextView
+            android:id="@+id/lblStation"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="10dp"
+            android:gravity="center|right"
+            android:fontFamily="@font/roboto"
+            android:textColor="@android:color/black"
+            android:text="Unknown"
+            android:textSize="18dp"
+            android:layout_weight="1"
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:breakStrategy="simple"
+            android:singleLine="false"
+            android:textStyle="bold" />
+
+        <!-- AQHI APP LOGO -->
+        <ImageView
+            android:id="@+id/imgAQHILogo"
+            android:layout_gravity="center|right"
+            android:layout_width="40dp"
+            android:layout_height="match_parent"
+            android:src="@drawable/logo" />
+    </LinearLayout>
+    </LinearLayout>
+
+    <!-- BOTTOM PORTION, SCALE -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="50dp">
+
+    <!-- AQHI SCALE BAR IMAGE  -->
+        <ImageView
+            android:id="@+id/imgBar"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:orientation="horizontal">
+            android:layout_height="20dp"
+            android:layout_marginStart="5dp"
+            android:layout_marginEnd="5dp"
+            android:scaleType="fitXY"
+            android:src="@drawable/simple_chart" />
 
-            <TextView
-                android:id="@+id/txtAQHI"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:layout_gravity="top|left"
-                android:gravity="left"
-                android:fontFamily="@font/roboto"
-                android:includeFontPadding="false"
-                android:layout_weight="1"
-                android:text="…"
-                android:textColor="@android:color/black"
-                android:textSize="28dp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/lblStation"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="5dp"
-                android:layout_marginEnd="5dp"
-                android:gravity="right"
-                android:text="Unknown"
-                android:textSize="18dp"
-                android:textStyle="bold" />
-
-            <ImageView
-                android:id="@+id/imgAQHILogo"
-                android:layout_gravity="top|right"
-                android:layout_width="50dp"
-                android:layout_height="match_parent"
-                android:src="@drawable/logo" />
-        </LinearLayout>
-
-
-    <ImageView
-        android:id="@+id/imageView"
+    <!-- ARROW  -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:srcCompat="@drawable/simple_chart" />
+        android:orientation="horizontal">
 
+        <FrameLayout
+            android:layout_width="30dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1">
 
-
-</LinearLayout>
+            <ImageView
+                android:id="@+id/imgArrow"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_gravity="left|top"
+                android:src="@drawable/arrow"
+                android:visibility="visible"
+                android:layout_marginTop="10dp"/>
+        </FrameLayout>
+    </LinearLayout>
+    </FrameLayout>
+    </LinearLayout>
