@@ -8,33 +8,24 @@ import android.appwidget.AppWidgetManager;
 import android.content.Context;
 import android.os.Bundle;
 import android.util.TypedValue;
-import android.view.View;
 import android.widget.RemoteViews;
 
-import java.util.List;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 
 public class AQHIWidgetProviderLarge extends AQHIWidgetProvider {
+
+    private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("h:mm a", Locale.ENGLISH);
 
     protected void updateWidgetUI(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
         RemoteViews views = getRemoteViews(context);
         views.setTextViewText(R.id.txtAQHI, getLatestAQHIString());
         views.setTextViewText(R.id.lblStation, getCurrentStationName());
         updateArrowPosition(context, views, appWidgetManager, appWidgetId);
+
+        views.setTextViewText(R.id.lblTimestamp, LocalTime.now().format(TIMESTAMP_FORMAT));
         appWidgetManager.updateAppWidget(appWidgetId, views); //Push the update
-    }
-
-    @Override
-    public void onAppWidgetOptionsChanged(Context context, AppWidgetManager appWidgetManager, int appWidgetId, Bundle newOptions) {
-        super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions);
-        //Initialize a background thread that will periodically refresh the user's location and the latest AQHI data.
-        int[] ids = {appWidgetId};
-        initBackgroundWorker(context, appWidgetManager, ids);
-        backgroundWorker.updateNow();
-
-        RemoteViews views = getRemoteViews(context);
-        updateArrowPosition(context, views, appWidgetManager, appWidgetId);
-        appWidgetManager.updateAppWidget(appWidgetId, views); //Push the update
-
     }
 
     private void updateArrowPosition(Context context, RemoteViews views, AppWidgetManager appWidgetManager, int appWidgetId) {
@@ -47,7 +38,7 @@ public class AQHIWidgetProviderLarge extends AQHIWidgetProvider {
             // Retrieve the widget's current options to get the width in dp:
             Bundle options = appWidgetManager.getAppWidgetOptions(appWidgetId);
             int minWidthDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH);
-            float leftOffset = getLeftOffset(context, minWidthDp, aqhi);
+            float leftOffset = getArrowPositionOffset(context, minWidthDp, aqhi);
 
             // Now update the arrow's left padding (assuming no additional padding on top/right/bottom)
             views.setViewVisibility(R.id.imgArrow, VISIBLE);
@@ -57,7 +48,7 @@ public class AQHIWidgetProviderLarge extends AQHIWidgetProvider {
 
     private static final int ARROW_WIDTH_DP = 30;
     private static final int BAR_PADDING_DP = 5;
-    private static float getLeftOffset(Context context, int minWidthDp, Double aqhi) {
+    private static float getArrowPositionOffset(Context context, int minWidthDp, Double aqhi) {
         final float density = context.getResources().getDisplayMetrics().density;
 
         //Determine all the dimensions in pixels
@@ -67,8 +58,7 @@ public class AQHIWidgetProviderLarge extends AQHIWidgetProvider {
 
         //Calculate the relative position of our arrow
         double fraction = ((aqhi-1) / 10d);
-        float leftOffset = barPaddingPx + ((int) (barWidthPx * fraction)) - (arrowWidthPx / 2);
-        return leftOffset;
+        return (float) (barPaddingPx + ((int) ((barWidthPx * fraction) - (arrowWidthPx / 2.0))));
     }
 
     @Override

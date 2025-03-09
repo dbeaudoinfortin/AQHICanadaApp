@@ -3,8 +3,10 @@ package com.dbf.aqhi;
 import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Bundle;
 import android.util.Log;
 import android.widget.RemoteViews;
 
@@ -17,7 +19,7 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider {
 
     private static final String LOG_TAG = "AQHIWidgetProvider";
 
-    private static final String AQHI_DIGIT_FORMAT = "0.##";
+    private static final String AQHI_DIGIT_FORMAT = "0.00";
 
     protected AQHIBackgroundWorker backgroundWorker;
 
@@ -55,6 +57,32 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider {
         //Don't wait for the data to be fetched to update the UI.
         //We can still show the old values if the data is not too stale.
         updateWidgetUIs(context, appWidgetManager, appWidgetIds);
+    }
+
+    @Override
+    public void onAppWidgetOptionsChanged(Context context, AppWidgetManager appWidgetManager, int appWidgetId, Bundle newOptions) {
+        Log.i(LOG_TAG, "AQHI widget options changed.");
+        super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions);
+        //Initialize a background thread that will periodically refresh the user's location and the latest AQHI data.
+        int[] ids = {appWidgetId};
+        initBackgroundWorker(context, appWidgetManager, ids);
+        backgroundWorker.updateNow();
+        updateWidgetUIs(context, appWidgetManager, ids);
+    }
+
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        Log.d(LOG_TAG, "AQHI widget event received: " + intent.getAction());
+        super.onReceive(context, intent);
+        if (Intent.ACTION_MY_PACKAGE_REPLACED.equals(intent.getAction())) {
+            Log.i(LOG_TAG, "AQHI widget package replaced.");
+            AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
+            ComponentName thisWidget = new ComponentName(context, this.getClass());
+            int[] ids = appWidgetManager.getAppWidgetIds(thisWidget);
+            initBackgroundWorker(context, appWidgetManager, ids);
+            backgroundWorker.updateNow();
+            updateWidgetUIs(context, appWidgetManager, ids);
+        }
     }
 
     @Override
@@ -123,10 +151,13 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider {
             return "…"; //Still fetching the value
         } else if( recentAQHI < 0.0) {
             return "?"; //Unknown
-        } else {
-            DecimalFormat df = new DecimalFormat(AQHI_DIGIT_FORMAT); // Not thread safe
-            return df.format(recentAQHI);
+        } else if(recentAQHI % 1 == 0) {
+            //No fraction
+            return recentAQHI.toString();
         }
+        //2-digit fractional number
+        DecimalFormat df = new DecimalFormat(AQHI_DIGIT_FORMAT); // Not thread safe
+        return df.format(recentAQHI);
     }
 
     protected Double getLatestAQHI() {

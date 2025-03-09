@@ -1,5 +1,6 @@
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -11,12 +12,6 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:orientation="vertical"
-        android:padding="0dp">
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
         android:orientation="horizontal">
 
         <!-- AQHI VALUE -->
@@ -26,15 +21,16 @@
             android:layout_height="match_parent"
             android:layout_marginStart="5dp"
             android:layout_marginEnd="2dp"
-            android:gravity="left|center"
+            android:gravity="start|center"
             android:fontFamily="@font/roboto"
             android:includeFontPadding="false"
             android:maxLines="1"
 
-            android:text="…"
+            android:text="---"
             android:textColor="@android:color/black"
             android:textSize="38dp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            tools:ignore="HardcodedText,SpUsage" />
 
         <!-- STATION NAME -->
         <TextView
@@ -43,11 +39,11 @@
             android:layout_height="match_parent"
             android:layout_marginStart="2dp"
             android:layout_marginEnd="10dp"
-            android:gravity="center|right"
+            android:gravity="center|end"
             android:fontFamily="@font/roboto"
             android:textColor="@android:color/black"
-            android:text="Unknown"
-            android:textSize="18dp"
+            android:text="@string/unknown"
+            android:textSize="18sp"
             android:layout_weight="1"
             android:maxLines="2"
             android:ellipsize="end"
@@ -58,11 +54,11 @@
         <!-- AQHI APP LOGO -->
         <ImageView
             android:id="@+id/imgAQHILogo"
-            android:layout_gravity="center|right"
+            android:layout_gravity="center|end"
             android:layout_width="40dp"
             android:layout_height="match_parent"
+            android:contentDescription="@string/aqhi_widget_logo"
             android:src="@drawable/logo" />
-    </LinearLayout>
     </LinearLayout>
 
     <!-- BOTTOM PORTION, SCALE -->
@@ -77,19 +73,16 @@
             android:layout_height="20dp"
             android:layout_marginStart="5dp"
             android:layout_marginEnd="5dp"
+            android:contentDescription="@string/aqhi_linear_scale"
             android:scaleType="fitXY"
-            android:src="@drawable/simple_chart" />
+            android:src="@drawable/simple_chart"
+            tools:ignore="ImageContrastCheck" />
 
     <!-- ARROW  -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
-
-        <FrameLayout
-            android:layout_width="30dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1">
 
             <ImageView
                 android:id="@+id/imgArrow"
@@ -98,8 +91,21 @@
                 android:layout_gravity="left|top"
                 android:src="@drawable/arrow"
                 android:visibility="visible"
-                android:layout_marginTop="10dp"/>
-        </FrameLayout>
+                android:layout_marginTop="10dp"
+                android:contentDescription="@string/the_current_aqhi_value"
+                tools:ignore="RtlHardcoded" />
     </LinearLayout>
+        <!-- Floating timestamp -->
+        <TextView
+            android:id="@+id/lblTimestamp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="@android:color/black"
+            android:textSize="10dp"
+            android:layout_gravity="bottom|end"
+            android:layout_marginEnd="10dp"
+            android:layout_marginBottom="5dp"
+            tools:ignore="SpUsage" />
     </FrameLayout>
     </LinearLayout>
