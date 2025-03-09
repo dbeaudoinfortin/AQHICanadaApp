@@ -4,6 +4,18 @@ Android widget for displaying Canadian Air Quality Health Index (AQHI)
 
 **COMING SOON!**
 
+## Widgets
+
+Two widgets are provided: a small widget that displays the most recent AQHI reading at your location, and a larger, wider widget that shows the AQHI reading on a relative scale.
+
+![widget_small_preview](https://github.com/user-attachments/assets/fbf4306c-1aaa-408e-9ac9-44a6876de35a)
+![widget_large_preview_2](https://github.com/user-attachments/assets/e3dbb23d-6a0d-44bb-a27d-07b3fa2a09d3)
+
+
+## How it works
+
+AQHI Data is pulled from Environment and Climate Change Canada's public API using the closest active monitoring station to your current location. The station definitions, current location, and current AQHI readings are all cached to prevent excessive calls to the API.
+
 ## Legal Stuff
 
 Copyright (c) 2024 David Fortin
