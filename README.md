@@ -1,6 +1,6 @@
 # AQHI Canada Android App <img src="https://github.com/user-attachments/assets/2aa9f5e2-b4b7-4dc5-a3df-0d04fb6171a7" height="35"/>
 
-Android widget for displaying Canadian Air Quality Health Index (AQHI)
+Android app and widgets for displaying Canadian Air Quality Health Index (AQHI) conditions, forecast and historical readings.
 
 **COMING SOON!**
 
