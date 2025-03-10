@@ -40,6 +40,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.commonsio)
     implementation(libs.okhttp)
     implementation(libs.gson)
     implementation(libs.heatmaps)

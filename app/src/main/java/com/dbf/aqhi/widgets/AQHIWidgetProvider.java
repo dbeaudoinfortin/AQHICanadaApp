@@ -64,8 +64,13 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQ
     public void onAppWidgetOptionsChanged(Context context, AppWidgetManager appWidgetManager, int appWidgetId, Bundle newOptions) {
         Log.i(LOG_TAG, "AQHI widget options changed.");
         super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions);
-        //Initialize a background thread that will periodically refresh the user's location and the latest AQHI data.
+
         int[] ids = {appWidgetId};
+        //Open the main activity when you click on the widget
+        //We need to do this every time the widget is updated
+        addClickListeners(context, appWidgetManager, ids);
+
+        //Initialize a background thread that will periodically refresh the user's location and the latest AQHI data.
         initBackgroundWorker(context, appWidgetManager, ids);
         backgroundWorker.updateNow();
         updateWidgetUIs(context, appWidgetManager, ids);

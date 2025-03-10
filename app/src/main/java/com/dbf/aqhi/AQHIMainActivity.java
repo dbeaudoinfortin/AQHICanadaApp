@@ -4,10 +4,15 @@ import static android.view.View.INVISIBLE;
 import static android.view.View.VISIBLE;
 
 import android.Manifest;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.text.Html;
+import android.text.method.LinkMovementMethod;
 import android.util.Log;
 import android.util.TypedValue;
+import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -24,7 +29,11 @@ import androidx.core.view.WindowInsetsCompat;
 import com.dbf.aqhi.permissions.PermissionService;
 import com.dbf.aqhi.service.AQHIBackgroundWorker;
 
-import java.text.DecimalFormat;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.Charset;
+
+import org.apache.commons.io.IOUtils;
 
 public class AQHIMainActivity extends AppCompatActivity implements AQHIFeature {
     private static final String LOG_TAG = "AQHIMainActivity";
@@ -122,8 +131,6 @@ public class AQHIMainActivity extends AppCompatActivity implements AQHIFeature {
                 arrowImage.getViewTreeObserver().removeOnPreDrawListener(this);
                 arrowImage.setPivotX(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,6, getResources().getDisplayMetrics()));
                 arrowImage.setPivotY(arrowImage.getHeight() / 2f);
-                arrowImage.setRotation(calculateGaugeArrowRotation(1d));
-                arrowImage.setVisibility(INVISIBLE);
                 return true;
             }
         });
@@ -168,5 +175,29 @@ public class AQHIMainActivity extends AppCompatActivity implements AQHIFeature {
     @Override
     public AQHIBackgroundWorker getBackgroundWorker() {
         return backgroundWorker;
+    }
+
+    public void showLegalNotices(View view) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Legal Notices");
+
+        // Create a TextView to show the message
+        TextView messageTextView = new TextView(this);
+        messageTextView.setText(Html.fromHtml(loadNotices(),Html.FROM_HTML_MODE_LEGACY));
+        messageTextView.setMovementMethod(LinkMovementMethod.getInstance());
+        int padding = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 16, getResources().getDisplayMetrics());
+        messageTextView.setPadding(padding, padding, padding, padding);
+        builder.setView(messageTextView);
+        builder.setPositiveButton("OK", (dialog, which) -> dialog.dismiss());
+        builder.show();
+    }
+
+    private String loadNotices(){
+        try {
+            return IOUtils.toString(getResources().openRawResource(R.raw.legal_notices), Charset.defaultCharset());
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "Failed to load legal notices.", e);
+            return "<p>Failed to load legal notices.</p>";
+        }
     }
 }
