@@ -151,7 +151,8 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQ
         return formatAQHIValue(recentAQHI);
     }
 
-    protected Double getLatestAQHI() {
+    @Override
+    public Double getLatestAQHI() {
         //For widgets, we want to allow stale values since the update are only guaranteed to happen once per 30 minutes
         Double recentAQHI = backgroundWorker.getAqhiService().getLatestAQHI(true);
         if(null == recentAQHI || recentAQHI < 0.0) {

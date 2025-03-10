@@ -1,9 +1,15 @@
 package com.dbf.aqhi;
 
+import static android.view.View.INVISIBLE;
+import static android.view.View.VISIBLE;
+
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.TypedValue;
+import android.view.ViewTreeObserver;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -41,6 +47,8 @@ public class AQHIMainActivity extends AppCompatActivity implements AQHIFeature {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+
+        initUI();
 
         //Initialize a background thread that will periodically refresh the
         //user's location and the latest AQHI data.
@@ -104,11 +112,33 @@ public class AQHIMainActivity extends AppCompatActivity implements AQHIFeature {
             }
         }
     }
+    private void initUI() {
+        Log.i(LOG_TAG, "Initializing AQHI Main Activity UI.");
+
+        ImageView arrowImage = findViewById(R.id.imgAQHIGaugeArrow);
+        arrowImage.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
+            @Override
+            public boolean onPreDraw() {
+                arrowImage.getViewTreeObserver().removeOnPreDrawListener(this);
+                arrowImage.setPivotX(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,6, getResources().getDisplayMetrics()));
+                arrowImage.setPivotY(arrowImage.getHeight() / 2f);
+                arrowImage.setRotation(calculateGaugeArrowRotation(1d));
+                arrowImage.setVisibility(INVISIBLE);
+                return true;
+            }
+        });
+    }
+
+    private float calculateGaugeArrowRotation(Double aqhi) {
+        aqhi = Math.max(Math.min(aqhi,11d),1d);
+        return (float) ((((11-aqhi) / 10) * (-163.636)) -8.182);
+    }
 
     private void updateUI() {
         Log.i(LOG_TAG, "Updating AQHI Main Activity UI.");
         String recentStation = backgroundWorker.getAqhiService().getStationName();
 
+        //UPDATE LOCATION TEXT
         TextView locationText = findViewById(R.id.txtLocation);
         if(null == recentStation || recentStation.isEmpty()) {
             locationText.setText("Unknown");
@@ -116,8 +146,23 @@ public class AQHIMainActivity extends AppCompatActivity implements AQHIFeature {
             locationText.setText(recentStation);
         }
 
+        //UPDATE AQHI TEXT
         TextView aqhiText = findViewById(R.id.txtAQHIValue);
         aqhiText.setText(this.getLatestAQHIString());
+
+        //UPDATE GAUGE ANGLE
+        ImageView arrowImage = findViewById(R.id.imgAQHIGaugeArrow);
+        Double aqhi = this.getLatestAQHI();
+        if(null == aqhi) {
+            arrowImage.setVisibility(INVISIBLE);
+        } else {
+            aqhi = Math.max(Math.min(aqhi,11d),1d);
+            arrowImage.setPivotX(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,6, getResources().getDisplayMetrics()));
+            arrowImage.setPivotY(arrowImage.getHeight() / 2f);
+            float angle = (float) ((((11-aqhi) / 10) * (-163.636)) -8.182);
+            arrowImage.setRotation(angle);
+            arrowImage.setVisibility(VISIBLE);
+        }
     }
 
     @Override

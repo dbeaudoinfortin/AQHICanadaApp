@@ -19,6 +19,15 @@ public interface AQHIFeature {
         return formatAQHIValue(recentAQHI);
     }
 
+    public default Double getLatestAQHI() {
+        //For widgets, we want to allow stale values since the update are only guaranteed to happen once per 30 minutes
+        Double recentAQHI = getBackgroundWorker().getAqhiService().getLatestAQHI(true);
+        if(null == recentAQHI || recentAQHI < 0.0) {
+            return null;
+        }
+        return recentAQHI;
+    }
+
     public default String formatAQHIValue(Double recentAQHI){
         if(null == recentAQHI) {
             return "…"; //Still fetching the value
