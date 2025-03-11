@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".widgets.AQHIWidgetConfigActivity">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <LinearLayout
+            android:padding="16dp"
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <!-- Transparency -->
+            <TextView
+                android:id="@+id/lblTransparency"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Background Transparency:" />
+
+            <SeekBar
+                android:id="@+id/sbTransparency"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:max="100"
+                android:progress="30" />
+
+            <TextView
+                android:id="@+id/lblTransparencyValue"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="30%" />
+
+            <!-- Mode selection -->
+            <TextView
+                android:id="@+id/lblLightDark"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="Light/Dark Mode:" />
+
+            <RadioGroup
+                android:id="@+id/rgMode"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <RadioButton
+                    android:id="@+id/rbLight"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Light" />
+                <RadioButton
+                    android:id="@+id/rbDark"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Dark" />
+
+                <RadioButton
+                    android:id="@+id/rbAutomatic"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    android:text="Automatic" />
+            </RadioGroup>
+            <TextView
+                android:id="@+id/lblPreview"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Preview:" />
+            <FrameLayout
+                android:id="@+id/preview_container"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"/>
+
+        </LinearLayout>
+    </ScrollView>
+    <!-- Save Button -->
+    <Button
+        android:id="@+id/btnSave"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Save Settings"
+        android:layout_marginTop="10dp"
+        app:layout_constraintBottom_toBottomOf="parent"/>
+</androidx.constraintlayout.widget.ConstraintLayout>

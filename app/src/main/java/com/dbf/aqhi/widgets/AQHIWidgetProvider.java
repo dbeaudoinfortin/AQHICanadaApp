@@ -13,13 +13,20 @@ import android.widget.RemoteViews;
 import com.dbf.aqhi.AQHIFeature;
 import com.dbf.aqhi.AQHIMainActivity;
 import com.dbf.aqhi.R;
+import com.dbf.aqhi.config.WidgetConfig;
 import com.dbf.aqhi.permissions.PermissionService;
 import com.dbf.aqhi.service.AQHIBackgroundWorker;
 import com.dbf.aqhi.service.AQHIService;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+
 public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQHIFeature {
 
     private static final String LOG_TAG = "AQHIWidgetProvider";
+
+    private final Map<Integer, WidgetConfig> widgetConfigs = new HashMap<Integer, WidgetConfig>();
 
     private AQHIService aqhiService;
 
@@ -80,6 +87,7 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQ
     @Override
     public void onDeleted(Context context, int[] appWidgetIds) {
         Log.i(LOG_TAG, "AQHI widget deleted.");
+        clearConfigs(appWidgetIds);
     }
 
     @Override
@@ -95,33 +103,59 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQ
     public void onRestored(Context context, int[] oldWidgetIds, int[] newWidgetIds) {
         Log.i(LOG_TAG, "AQHI widget restored.");
         //Note: The UI will be updated in the onUpdate() event, called right after.
+        clearConfigs(oldWidgetIds);
     }
 
-    private void refreshWidgets(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds){
+    private void addConfigs(int[] appWidgetIds) {
+
+    }
+
+    private void clearConfigs(int[] appWidgetIds) {
+        Arrays.stream(appWidgetIds)
+                .mapToObj(id->widgetConfigs.get(id))
+                .filter(conf->conf != null)
+                .forEach(conf->{
+                    conf.clearConfigs();
+                    widgetConfigs.remove(conf);
+                });
+    }
+
+    public void refreshWidgets(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
         initAQHIService(context, appWidgetManager, appWidgetIds);
 
-        //Manually update the widget UI using stale data
-        updateWidgetUIs(context, appWidgetManager, appWidgetIds);
+        //Manually update the widget UIs using stale data
+        for (int appWidgetId : appWidgetIds) {
+            updateWidgetUI(context, getRemoteViews(context), appWidgetManager, appWidgetId);
+        }
 
-        //Asynchronously update the widget UI using fresh data when it's ready
+        //Asynchronously update the widget UIs using fresh data when it's ready
+        getAQHIService().update();
+    }
+
+    public void refreshWidget(Context context, RemoteViews view, AppWidgetManager appWidgetManager, int appWidgetId) {
+        initAQHIService(context, appWidgetManager, new int[] {appWidgetId});
+
+        //Manually update the widget UI using stale data
+        updateWidgetUI(context, view, appWidgetManager, appWidgetId);
+
+        //Asynchronously update the widget UIs using fresh data when it's ready
         getAQHIService().update();
     }
 
     private synchronized void initAQHIService(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
-        //Initialize a background thread that will periodically refresh the user's location and the latest AQHI data.
         if(null == aqhiService) {
             aqhiService = new AQHIService(context, ()->{
-                updateWidgetUIs(context, appWidgetManager, appWidgetIds);
+                for (int appWidgetId : appWidgetIds) {
+                    updateWidgetUIs(context, appWidgetManager, appWidgetId);
+                }
             });
             aqhiService.setAllowStaleLocation(true);
         }
     }
 
-    private void updateWidgetUIs(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
-        Log.i(LOG_TAG, "Updating AQHI widget UIs.");
-        for (int appWidgetId : appWidgetIds) {
-            updateWidgetUI(context, appWidgetManager, appWidgetId);
-        }
+    private void updateWidgetUIs(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
+        Log.i(LOG_TAG, "Updating AQHI widget UI.");
+        updateWidgetUI(context, getRemoteViews(context), appWidgetManager, appWidgetId);
     }
 
     private void addClickListeners(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
@@ -177,7 +211,7 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQ
         return R.id.widget_root;
     }
 
-    protected abstract void updateWidgetUI(Context context, AppWidgetManager appWidgetManager, int appWidgetId);
+    protected abstract void updateWidgetUI(Context context, RemoteViews views, AppWidgetManager appWidgetManager, int appWidgetId);
 
     protected abstract int getLayoutId();
 }

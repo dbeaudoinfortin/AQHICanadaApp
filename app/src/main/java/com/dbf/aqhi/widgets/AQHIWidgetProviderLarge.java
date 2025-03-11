@@ -20,8 +20,7 @@ public class AQHIWidgetProviderLarge extends AQHIWidgetProvider {
 
     private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("h:mm a", Locale.ENGLISH);
 
-    protected void updateWidgetUI(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
-        RemoteViews views = getRemoteViews(context);
+    protected void updateWidgetUI(Context context, RemoteViews views, AppWidgetManager appWidgetManager, int appWidgetId) {
         views.setTextViewText(R.id.txtAQHI, getLatestAQHIString());
         views.setTextViewText(R.id.lblStation, getCurrentStationName());
         updateArrowPosition(context, views, appWidgetManager, appWidgetId);

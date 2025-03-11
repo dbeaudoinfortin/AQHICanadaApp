@@ -17,18 +17,20 @@
         <!-- MAIN ANDROID APP -->
         <activity
             android:name=".AQHIMainActivity"
-            android:launchMode="singleTop"
             android:exported="true"
+            android:launchMode="singleTop"
             android:theme="@style/Theme.AQHIWidget">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <!--SMALL ANDROID WIDGET -->
+        <!-- SMALL ANDROID WIDGET -->
         <receiver
             android:name=".widgets.AQHIWidgetProviderSmall"
+            android:theme="@style/Theme.AQHIWidget"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -40,9 +42,10 @@
                 android:resource="@xml/widget_info_small" />
         </receiver>
 
-        <!--LARGE ANDROID WIDGET -->
+        <!-- LARGE ANDROID WIDGET -->
         <receiver
             android:name=".widgets.AQHIWidgetProviderLarge"
+            android:theme="@style/Theme.AQHIWidget"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -53,6 +56,17 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_info_large" />
         </receiver>
+
+        <!-- WIDGET CONFIG -->
+        <activity
+            android:name=".widgets.AQHIWidgetConfigActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AQHIWidget" >
+
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
+            </intent-filter>
+        </activity>
     </application>
 
 </manifest>

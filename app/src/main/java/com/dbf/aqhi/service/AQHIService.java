@@ -63,6 +63,7 @@ public class AQHIService {
     private boolean allowStaleLocation = false;
 
     public AQHIService(Context context, Runnable onChange) {
+        Log.i(LOG_TAG, "Initializing AQHI service.");
         locationService = new LocationService(context);
         this.geoMetService = new GeoMetService(context);
         this.context = context;

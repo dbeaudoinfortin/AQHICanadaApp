@@ -8,8 +8,7 @@ import com.dbf.aqhi.R;
 
 public class AQHIWidgetProviderSmall extends AQHIWidgetProvider {
 
-    protected void updateWidgetUI(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
-        RemoteViews views = getRemoteViews(context);
+    protected void updateWidgetUI(Context context, RemoteViews views, AppWidgetManager appWidgetManager, int appWidgetId) {
         views.setTextViewText(R.id.txtAQHI, getLatestAQHIString());
         appWidgetManager.updateAppWidget(appWidgetId, views); //Push the update
     }
