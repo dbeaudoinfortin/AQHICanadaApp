@@ -11,7 +11,6 @@ import android.util.TypedValue;
 import android.widget.RemoteViews;
 
 import com.dbf.aqhi.R;
-import com.dbf.aqhi.service.AQHIBackgroundWorker;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;

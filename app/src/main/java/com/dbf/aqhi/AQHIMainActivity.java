@@ -28,6 +28,7 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.dbf.aqhi.permissions.PermissionService;
 import com.dbf.aqhi.service.AQHIBackgroundWorker;
+import com.dbf.aqhi.service.AQHIService;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -78,8 +79,8 @@ public class AQHIMainActivity extends AppCompatActivity implements AQHIFeature {
         backgroundWorker.resume();
 
         //Ask the user to accept the location permission when the app loads
-        boolean isStationAuto = backgroundWorker.getAqhiService().isStationAuto();
-        if(!isStationAuto || (isStationAuto && requestPermissions())) {
+        boolean isStationAuto = backgroundWorker.getAQHIService().isStationAuto();
+        if(!isStationAuto || requestPermissions()) {
             //User has already granted the permissions, update the location and data right now.
             //Otherwise, the data will only be updated after the user accepts the permission request.
             backgroundWorker.updateNow(); //Updates will be done async.
@@ -143,7 +144,7 @@ public class AQHIMainActivity extends AppCompatActivity implements AQHIFeature {
 
     private void updateUI() {
         Log.i(LOG_TAG, "Updating AQHI Main Activity UI.");
-        String recentStation = backgroundWorker.getAqhiService().getStationName();
+        String recentStation = backgroundWorker.getAQHIService().getStationName();
 
         //UPDATE LOCATION TEXT
         TextView locationText = findViewById(R.id.txtLocation);
@@ -173,8 +174,8 @@ public class AQHIMainActivity extends AppCompatActivity implements AQHIFeature {
     }
 
     @Override
-    public AQHIBackgroundWorker getBackgroundWorker() {
-        return backgroundWorker;
+    public AQHIService getAQHIService() {
+        return backgroundWorker.getAQHIService();
     }
 
     public void showLegalNotices(View view) {

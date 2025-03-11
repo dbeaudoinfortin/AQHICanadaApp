@@ -50,7 +50,7 @@ public class AQHIBackgroundWorker {
         }
     }
 
-    public AQHIService getAqhiService() {
+    public AQHIService getAQHIService() {
         return aqhiService;
     }
 

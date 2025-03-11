@@ -17,6 +17,7 @@
         <!-- MAIN ANDROID APP -->
         <activity
             android:name=".AQHIMainActivity"
+            android:launchMode="singleTop"
             android:exported="true"
             android:theme="@style/Theme.AQHIWidget">
             <intent-filter>

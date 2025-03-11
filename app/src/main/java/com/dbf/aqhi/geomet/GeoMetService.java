@@ -32,7 +32,7 @@ public class GeoMetService {
     private static final int  HTTP_TRIES = 3;
 
     //Some stations will offline briefly, so we want to refresh this at least once per day
-    private static final long STATION_CACHE_DURATION = 24 * 60 * 60 * 1000; //1 days in milliseconds
+    private static final long STATION_CACHE_DURATION = 24 * 60 * 60 * 1000; //1 day in milliseconds
     private static final String STATION_CACHE_FILE_NAME = "stationCache.json";
 
     private static final String LOG_TAG = "GeoMetService";
