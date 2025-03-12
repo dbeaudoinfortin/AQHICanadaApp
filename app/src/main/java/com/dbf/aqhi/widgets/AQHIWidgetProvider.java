@@ -10,29 +10,23 @@ import android.os.Bundle;
 import android.util.Log;
 import android.widget.RemoteViews;
 
-import androidx.work.ExistingPeriodicWorkPolicy;
 import androidx.work.ExistingWorkPolicy;
 import androidx.work.OneTimeWorkRequest;
-import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
 import com.dbf.aqhi.AQHIFeature;
 import com.dbf.aqhi.AQHIMainActivity;
 import com.dbf.aqhi.R;
-import com.dbf.aqhi.config.WidgetConfig;
+import com.dbf.aqhi.widgets.config.WidgetConfig;
 import com.dbf.aqhi.permissions.PermissionService;
 import com.dbf.aqhi.service.AQHIService;
 
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQHIFeature {
 
     private static final String LOG_TAG = "AQHIWidgetProvider";
-
-    private final Map<Integer, WidgetConfig> widgetConfigs = new HashMap<Integer, WidgetConfig>();
 
     private AQHIService aqhiService;
 
@@ -52,15 +46,16 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQ
         checkPermissions(context); //Requires AQHI Service
         rebuildRemoteViews(context, appWidgetManager, appWidgetIds);
         scheduleForcedUpdates(context);
-        Log.i(LOG_TAG, "AQHI widget update complete. Duration: " + (System.currentTimeMillis() - startTime) + ", Widget IDs: " +  widgetIdsString);
+        Log.i(LOG_TAG, "AQHI widget update complete. Duration: " + (System.currentTimeMillis() - startTime) + "ms, Widget IDs: " +  widgetIdsString);
     }
 
     @Override
     public void onAppWidgetOptionsChanged(Context context, AppWidgetManager appWidgetManager, int appWidgetId, Bundle newOptions) {
         Log.i(LOG_TAG, "AQHI widget options changed. Widget ID: " + appWidgetId);
         super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions);
-        initAQHIService(context, appWidgetManager, new int[] {appWidgetId});
-        rebuildRemoteView(context, appWidgetManager, appWidgetId);
+        int[] appWidgetIds = new int[] {appWidgetId};
+        initAQHIService(context, appWidgetManager, appWidgetIds);
+        rebuildRemoteViews(context, appWidgetManager, appWidgetIds);
         scheduleForcedUpdates(context);
     }
 
@@ -81,7 +76,7 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQ
     @Override
     public void onDeleted(Context context, int[] appWidgetIds) {
         Log.i(LOG_TAG, "AQHI widget deleted.");
-        clearConfigs(appWidgetIds);
+        clearConfigs(context, appWidgetIds);
     }
 
     @Override
@@ -112,7 +107,7 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQ
     public void onRestored(Context context, int[] oldWidgetIds, int[] newWidgetIds) {
         Log.i(LOG_TAG, "AQHI widget restored. Old widget IDs: " +  Arrays.toString(oldWidgetIds) + ", new widget IDs: " +  Arrays.toString(newWidgetIds));
         //Note: The UI will be updated in the onUpdate() event, called right after.
-        clearConfigs(oldWidgetIds);
+        clearConfigs(context, oldWidgetIds);
     }
 
     private void checkPermissions(Context context) {
@@ -137,31 +132,28 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQ
     }
 
     private void rebuildRemoteViews(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
+        Log.i(LOG_TAG, "Immediately Updating UIs with stale data for widget IDs: " +  Arrays.toString(appWidgetIds));
         for (int appWidgetId : appWidgetIds) {
-            rebuildRemoteView(context, appWidgetManager, appWidgetId);
+            //Create the new remote view that will replace the existing one
+            RemoteViews views = createRemoteViews(context);
+            //Attach a Click Listener that will open the main activity when you click on the widget
+            addClickListeners(context, views, appWidgetManager);
+            //Manually update the widget UI using stale data
+            updateWidgetUI(context, views, appWidgetManager, appWidgetId);
+        }
+        //Asynchronously update all the widget UIs at once using fresh data when it's ready
+        getAQHIService().update();
+    }
+
+    private void clearConfigs(Context context, int[] appWidgetIds) {
+        for (int appWidgetId : appWidgetIds) {
+            clearConfig(context, appWidgetId);
         }
     }
 
-    private void rebuildRemoteView(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
-        //Create the new remote view that will replace the existing one
-        RemoteViews views = createRemoteViews(context);
-        //Attach a Click Listener that will open the main activity when you click on the widget
-        addClickListeners(context, views, appWidgetManager);
-        refreshWidget(context, views, appWidgetManager, appWidgetId); //This will push the update
-    }
-
-    private void addConfigs(int[] appWidgetIds) {
-
-    }
-
-    private void clearConfigs(int[] appWidgetIds) {
-        Arrays.stream(appWidgetIds)
-                .mapToObj(id->widgetConfigs.get(id))
-                .filter(conf->conf != null)
-                .forEach(conf->{
-                    conf.clearConfigs();
-                    widgetConfigs.remove(conf);
-                });
+    private void clearConfig(Context context, int appWidgetId) {
+        WidgetConfig widgetConfig = new WidgetConfig(context, appWidgetId);
+        widgetConfig.clearConfigs();
     }
 
     public void refreshWidget(Context context, RemoteViews view, AppWidgetManager appWidgetManager, int appWidgetId) {
@@ -174,6 +166,7 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQ
     public synchronized void initAQHIService(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
         if(null == aqhiService) {
             aqhiService = new AQHIService(context, ()->{
+                Log.i(LOG_TAG, "AQHI Service update complete. Updating UIs for widget IDs: " +  Arrays.toString(appWidgetIds));
                 for (int appWidgetId : appWidgetIds) {
                     //Create the new remote view that will replace the existing one
                     RemoteViews view = createRemoteViews(context);
@@ -182,7 +175,8 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQ
                     updateWidgetUI(context, view, appWidgetManager, appWidgetId);
                 }
             });
-            aqhiService.setAllowStaleLocation(true); //True for widgets
+            //True for widgets because they may not have background location updates enabled
+            aqhiService.setAllowStaleLocation(true);
         }
     }
 
@@ -233,7 +227,11 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQ
         return aqhiService;
     }
 
-    public abstract void updateWidgetUI(Context context, RemoteViews views, AppWidgetManager appWidgetManager, int appWidgetId);
+    public void updateWidgetUI(Context context, RemoteViews views, AppWidgetManager appWidgetManager, int appWidgetId) {
+        WidgetConfig widgetConfig = new WidgetConfig(context, appWidgetId);
+        //Background transparency
+        views.setInt(R.id.widget_background, "setAlpha", (int) (widgetConfig.getAlpha() * 2.55f));
+    }
 
     protected abstract int getLayoutId();
 }

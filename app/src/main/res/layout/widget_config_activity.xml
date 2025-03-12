@@ -7,7 +7,7 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".widgets.AQHIWidgetConfigActivity">
+    tools:context=".widgets.config.AQHIWidgetConfigActivity">
 
     <ScrollView
         android:layout_width="match_parent"

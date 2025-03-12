@@ -1,112 +1,123 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/widget_root"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/widget_background"
-    android:orientation="vertical">
+    android:id="@+id/widget_root">
 
-    <!-- TOP PORTION, INFO -->
+    <!-- Background Image -->
+    <ImageView
+        android:id="@+id/widget_background"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/widget_background"
+        android:scaleType="centerCrop" />
+
     <LinearLayout
+        xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="horizontal">
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
-        <!-- AQHI VALUE -->
-        <TextView
-            android:id="@+id/txtAQHI"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_marginStart="5dp"
-            android:layout_marginEnd="2dp"
-            android:gravity="start|center"
-            android:fontFamily="@font/roboto"
-            android:includeFontPadding="false"
-            android:maxLines="1"
-
-            android:text="---"
-            android:textColor="@color/widget_text_color"
-            android:textSize="38dp"
-            android:textStyle="bold"
-            tools:ignore="HardcodedText,SpUsage" />
-
-        <!-- STATION NAME -->
-        <TextView
-            android:id="@+id/lblStation"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_marginStart="2dp"
-            android:layout_marginEnd="10dp"
-            android:gravity="center|end"
-            android:fontFamily="@font/roboto"
-            android:textColor="@color/widget_text_color"
-            android:text="@string/unknown"
-            android:textSize="18sp"
-            android:layout_weight="1"
-            android:maxLines="2"
-            android:ellipsize="end"
-            android:breakStrategy="simple"
-            android:singleLine="false"
-            android:textStyle="bold" />
-
-        <!-- AQHI APP LOGO -->
-        <ImageView
-            android:id="@+id/imgAQHILogo"
-            android:layout_gravity="center|end"
-            android:layout_width="40dp"
-            android:layout_height="match_parent"
-            android:contentDescription="@string/aqhi_widget_logo"
-            android:src="@drawable/logo" />
-    </LinearLayout>
-
-    <!-- BOTTOM PORTION, SCALE -->
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="50dp">
-
-    <!-- AQHI SCALE BAR IMAGE  -->
-        <ImageView
-            android:id="@+id/imgBar"
+        <!-- TOP PORTION, INFO -->
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="20dp"
-            android:layout_marginStart="5dp"
-            android:layout_marginEnd="5dp"
-            android:contentDescription="@string/aqhi_linear_scale"
-            android:scaleType="fitXY"
-            android:src="@drawable/simple_chart"
-            tools:ignore="ImageContrastCheck" />
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal">
 
-    <!-- ARROW  -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
+            <!-- AQHI VALUE -->
+            <TextView
+                android:id="@+id/txtAQHI"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_marginStart="5dp"
+                android:layout_marginEnd="2dp"
+                android:gravity="start|center"
+                android:fontFamily="@font/roboto"
+                android:includeFontPadding="false"
+                android:maxLines="1"
 
+                android:text="---"
+                android:textColor="@color/widget_text_color"
+                android:textSize="38dp"
+                android:textStyle="bold"
+                tools:ignore="HardcodedText,SpUsage" />
+
+            <!-- STATION NAME -->
+            <TextView
+                android:id="@+id/lblStation"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="2dp"
+                android:layout_marginEnd="10dp"
+                android:gravity="center|end"
+                android:fontFamily="@font/roboto"
+                android:textColor="@color/widget_text_color"
+                android:text="@string/unknown"
+                android:textSize="18sp"
+                android:layout_weight="1"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:breakStrategy="simple"
+                android:singleLine="false"
+                android:textStyle="bold" />
+
+            <!-- AQHI APP LOGO -->
             <ImageView
-                android:id="@+id/imgArrow"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:layout_gravity="left|top"
-                android:src="@drawable/arrow"
-                android:visibility="visible"
-                android:layout_marginTop="10dp"
-                android:contentDescription="@string/the_current_aqhi_value"
-                tools:ignore="RtlHardcoded" />
-    </LinearLayout>
-        <!-- Floating timestamp -->
-        <TextView
-            android:id="@+id/lblTimestamp"
-            android:layout_width="wrap_content"
+                android:id="@+id/imgAQHILogo"
+                android:layout_gravity="center|end"
+                android:layout_width="40dp"
+                android:layout_height="match_parent"
+                android:contentDescription="@string/aqhi_widget_logo"
+                android:src="@drawable/logo" />
+        </LinearLayout>
+
+        <!-- BOTTOM PORTION, SCALE -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="50dp">
+
+        <!-- AQHI SCALE BAR IMAGE  -->
+            <ImageView
+                android:id="@+id/imgBar"
+                android:layout_width="match_parent"
+                android:layout_height="20dp"
+                android:layout_marginStart="5dp"
+                android:layout_marginEnd="5dp"
+                android:contentDescription="@string/aqhi_linear_scale"
+                android:scaleType="fitXY"
+                android:src="@drawable/simple_chart"
+                tools:ignore="ImageContrastCheck" />
+
+        <!-- ARROW  -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text=""
-            android:textColor="@color/widget_text_color"
-            android:textSize="10dp"
-            android:layout_gravity="bottom|end"
-            android:layout_marginEnd="10dp"
-            android:layout_marginBottom="5dp"
-            tools:ignore="SpUsage" />
-    </FrameLayout>
+            android:orientation="horizontal">
+
+                <ImageView
+                    android:id="@+id/imgArrow"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:layout_gravity="left|top"
+                    android:src="@drawable/arrow"
+                    android:visibility="visible"
+                    android:layout_marginTop="10dp"
+                    android:contentDescription="@string/the_current_aqhi_value"
+                    tools:ignore="RtlHardcoded" />
+        </LinearLayout>
+            <!-- Floating timestamp -->
+            <TextView
+                android:id="@+id/lblTimestamp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="@color/widget_text_color"
+                android:textSize="10dp"
+                android:layout_gravity="bottom|end"
+                android:layout_marginEnd="10dp"
+                android:layout_marginBottom="5dp"
+                tools:ignore="SpUsage" />
+        </FrameLayout>
     </LinearLayout>
+</FrameLayout>

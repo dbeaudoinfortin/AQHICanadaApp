@@ -1,12 +1,10 @@
-package com.dbf.aqhi.widgets;
+package com.dbf.aqhi.widgets.config;
 
 import android.app.Activity;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProviderInfo;
 import android.content.Intent;
-import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
-import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.widget.RadioGroup;
 import android.view.View;
@@ -19,10 +17,11 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 
 import com.dbf.aqhi.R;
+import com.dbf.aqhi.widgets.AQHIWidgetProvider;
+import com.dbf.aqhi.widgets.AQHIWidgetProviderLarge;
+import com.dbf.aqhi.widgets.AQHIWidgetProviderSmall;
 
 public class AQHIWidgetConfigActivity extends AppCompatActivity {
-
-    private static final int DEFAULT_TRANSPARENCY = 30;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,6 +73,7 @@ public class AQHIWidgetConfigActivity extends AppCompatActivity {
         //Size it correctly and place it in its container
         FrameLayout previewContainer = findViewById(R.id.preview_container);
         View widgetPreview = widgetRemoteViews.apply(this, previewContainer);
+        widgetPreview.setClipToOutline(true); //Rounded corners
         float density = getResources().getDisplayMetrics().density*0.6f;
         widgetPreview.setLayoutParams(new FrameLayout.LayoutParams((int) (info.minWidth*density), (int) (info.minHeight*density)));
         previewContainer.addView(widgetPreview);
@@ -87,13 +87,17 @@ public class AQHIWidgetConfigActivity extends AppCompatActivity {
         provider.refreshWidget(this, widgetRemoteViews, appWidgetManager, widgetRemoteViews.getViewId());
         widgetRemoteViews.reapply(this, widgetPreview);
 
+        //Load the Widget configs, if there are any
+        WidgetConfig widgetConfig = new WidgetConfig(this, appWidgetId);
+
         //Set the defaults for transparency
+        int defaultAlpha = widgetConfig.getAlpha();
         SeekBar sbTransparency = findViewById(R.id.sbTransparency);
-        sbTransparency.setProgress(DEFAULT_TRANSPARENCY);
+        sbTransparency.setProgress(defaultAlpha);
 
         TextView lblTransparencyValue = findViewById(R.id.lblTransparencyValue);
-        lblTransparencyValue.setText(DEFAULT_TRANSPARENCY + "%");
-        setPreviewBackground(widgetPreview, DEFAULT_TRANSPARENCY);
+        lblTransparencyValue.setText(defaultAlpha + "%");
+        setPreviewBackground(widgetPreview, defaultAlpha);
 
         //Update the transparency label when the bar value changes
         sbTransparency.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -101,7 +105,9 @@ public class AQHIWidgetConfigActivity extends AppCompatActivity {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 lblTransparencyValue.setText(progress + "%");
                 setPreviewBackground(widgetPreview, progress);
+                widgetConfig.setAlpha(progress);
             }
+
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) { }
 
@@ -111,6 +117,7 @@ public class AQHIWidgetConfigActivity extends AppCompatActivity {
 
         //Set the default dark/light mode to automatic
         RadioGroup rgMode = findViewById(R.id.rgMode);
+        updateModeCheckBoxes(rgMode, widgetConfig.getNightMode());
 
         //Changes to dark/light mode
         rgMode.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
@@ -124,6 +131,7 @@ public class AQHIWidgetConfigActivity extends AppCompatActivity {
                 } else {
                     newMode = AppCompatDelegate.MODE_NIGHT_NO;
                 }
+                widgetConfig.setNightMode(newMode);
 
                 //TODO: Apply theme to the preview image only not everything
                 //Apply theme to the current activity
@@ -131,24 +139,27 @@ public class AQHIWidgetConfigActivity extends AppCompatActivity {
                     getDelegate().setLocalNightMode(newMode);
                     recreate();
                 }
-
             }
         });
     }
 
-    private void setPreviewBackground(View widgetPreview, int percentage) {
-        int baseColor = 0;
-        if(widgetPreview.getBackground() instanceof ColorDrawable) {
-            baseColor = ((ColorDrawable) widgetPreview.getBackground()).getColor();
-        } else if (widgetPreview.getBackground() instanceof GradientDrawable) {
-            GradientDrawable gradientDrawable = (GradientDrawable) widgetPreview.getBackground();
-            baseColor = gradientDrawable.getColor().getDefaultColor();
+    private void updateModeCheckBoxes(RadioGroup rgMode, int mode) {
+        if(mode == AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM) {
+            rgMode.check(R.id.rbAutomatic);
+        } else if (mode == AppCompatDelegate.MODE_NIGHT_YES) {
+            rgMode.check(R.id.rbDark);
+        } else {
+            rgMode.check(R.id.rbLight);
         }
-        int newColor = Color.argb((int) (percentage * 2.55f), Color.red(baseColor), Color.green(baseColor), Color.blue(baseColor));
-        widgetPreview.setBackgroundColor(newColor);
     }
 
-    private void updatePreferences(){
-
+    private void setPreviewBackground(View widgetPreview, int percentage) {
+        Drawable background = widgetPreview.getBackground();
+        if (background != null) {
+            //Make the background mutable
+            background = background.mutate();
+            int newAlpha = (int) (percentage * 2.55f);
+            background.setAlpha(newAlpha);
+        }
     }
 }

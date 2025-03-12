@@ -59,7 +59,7 @@
 
         <!-- WIDGET CONFIG -->
         <activity
-            android:name=".widgets.AQHIWidgetConfigActivity"
+            android:name=".widgets.config.AQHIWidgetConfigActivity"
             android:exported="false"
             android:theme="@style/Theme.AQHIWidget" >
 

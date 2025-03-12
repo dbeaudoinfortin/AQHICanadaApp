@@ -31,6 +31,8 @@ public class AQHIWidgetUpdateWorker extends Worker {
 
         //Only create one AQHI service so we update only once for all widgets of all types
         AQHIService aqhiService = new AQHIService(context,null);
+        //True for widgets because they may not have background location updates enabled
+        aqhiService.setAllowStaleLocation(true);
         aqhiService.setOnChange(()->{
             updateWidgets(context, new AQHIWidgetProviderLarge(aqhiService), appWidgetManager, appWidgetManager.getAppWidgetIds(new ComponentName(context, AQHIWidgetProviderLarge.class)));
             updateWidgets(context, new AQHIWidgetProviderSmall(aqhiService), appWidgetManager, appWidgetManager.getAppWidgetIds(new ComponentName(context, AQHIWidgetProviderSmall.class)));

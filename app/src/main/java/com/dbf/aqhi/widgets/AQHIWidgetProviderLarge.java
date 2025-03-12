@@ -30,6 +30,8 @@ public class AQHIWidgetProviderLarge extends AQHIWidgetProvider {
     }
 
     public void updateWidgetUI(Context context, RemoteViews views, AppWidgetManager appWidgetManager, int appWidgetId) {
+        super.updateWidgetUI(context, views, appWidgetManager, appWidgetId);
+
         views.setTextViewText(R.id.txtAQHI, getLatestAQHIString());
         views.setTextViewText(R.id.lblStation, getCurrentStationName());
         updateArrowPosition(context, views, appWidgetManager, appWidgetId);

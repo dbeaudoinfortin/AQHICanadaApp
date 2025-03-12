@@ -18,6 +18,7 @@ public class AQHIWidgetProviderSmall extends AQHIWidgetProvider {
     }
 
     public void updateWidgetUI(Context context, RemoteViews views, AppWidgetManager appWidgetManager, int appWidgetId) {
+        super.updateWidgetUI(context, views, appWidgetManager, appWidgetId);
         views.setTextViewText(R.id.txtAQHI, getLatestAQHIString());
         appWidgetManager.updateAppWidget(appWidgetId, views); //Push the update
     }
