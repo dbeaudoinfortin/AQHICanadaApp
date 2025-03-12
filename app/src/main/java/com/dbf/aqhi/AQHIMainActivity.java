@@ -5,7 +5,6 @@ import static android.view.View.VISIBLE;
 
 import android.Manifest;
 import android.app.AlertDialog;
-import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.text.Html;
@@ -30,8 +29,6 @@ import com.dbf.aqhi.permissions.PermissionService;
 import com.dbf.aqhi.service.AQHIBackgroundWorker;
 import com.dbf.aqhi.service.AQHIService;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.Charset;
 
 import org.apache.commons.io.IOUtils;
@@ -92,6 +89,8 @@ public class AQHIMainActivity extends AppCompatActivity implements AQHIFeature {
         super.onDestroy();
         Log.i(LOG_TAG, "AQHI Main Activity destroyed.");
         backgroundWorker.stop();
+
+        //TODO: Force a widget update so the widgets aren't out of sync.
     }
 
     @Override

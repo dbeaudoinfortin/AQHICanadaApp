@@ -81,6 +81,9 @@ public class AQHIWidgetConfigActivity extends AppCompatActivity {
         //Now update the preview widget UI
         AQHIWidgetProvider provider = (info.initialLayout == R.layout.widget_layout_large) ?
                 new AQHIWidgetProviderLarge() : new AQHIWidgetProviderSmall();
+
+        //AQHIService is not initialized automatically since it needs a context
+        provider.initAQHIService(this, appWidgetManager, new int[] {appWidgetId});
         provider.refreshWidget(this, widgetRemoteViews, appWidgetManager, widgetRemoteViews.getViewId());
         widgetRemoteViews.reapply(this, widgetPreview);
 
@@ -122,6 +125,7 @@ public class AQHIWidgetConfigActivity extends AppCompatActivity {
                     newMode = AppCompatDelegate.MODE_NIGHT_NO;
                 }
 
+                //TODO: Apply theme to the preview image only not everything
                 //Apply theme to the current activity
                 if (newMode != getDelegate().getLocalNightMode()) {
                     getDelegate().setLocalNightMode(newMode);

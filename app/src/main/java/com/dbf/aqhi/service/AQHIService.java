@@ -54,7 +54,7 @@ public class AQHIService {
     private final Context context;
 
     //Callback to make when the data changes.
-    private final Runnable onChange;
+    private Runnable onChange;
 
     //Cheap in-memory cache, fall-back to preferences if null
     private double[] lastLatLong = null;
@@ -83,71 +83,79 @@ public class AQHIService {
     }
 
     /**
-     * Updates both the latest and historical AQHI readings based on the user's current location. The user's closest station will be first updated if necessary.
-     * These updates are done via external API calls to the GeoMet service. The data is stored in SharedPreferences and can be retrieved
-     * via {@link AQHIService#getLatestAQHI}, {@link AQHIService#getStationName}, and {@link AQHIService#getHistoricalAQHI}.
-     * The update is executed asynchronously in a new thread and may take several minutes to complete depending on the internet connection quality.
-     *
-     * @param @Nullable onChange An optional callback to be executed if the update results in potential data changes.
+     * Updates AQHI data asynchronously by executing {@link AQHIService#updateAQHISync} in a new thread.
+     * This may take several minutes to complete depending on the internet connection quality.
+     * The optional callback onChange will be executed after the update is complete.
      */
     public void updateAQHI(){
         //We want to perform these calls not on the main thread
         new Thread(() -> {
-            Log.i(LOG_TAG, "Attempting to update the AQHI data for the current location.");
-
             try {
-                //This code is stateful, we don't want to run multiple updates at the same time
-                synchronized (GLOBAL_SYNC_OBJECT) {
-                    final boolean stationAuto = isStationAuto();
-                    final String previousStationCode = aqhiPref.getString(STATION_CODE_KEY, null);
-                    String currentStationCode;
-                    if(stationAuto) {
-                        //Station is set manually by the user
-                        currentStationCode = this.getStationCode(true);
-                    } else {
-                        //Station is determined automatically based on the user's location
-                        currentStationCode = determineCurrentLocation(previousStationCode, false);
-                    }
-
-                    if(null == currentStationCode || !currentStationCode.equals(previousStationCode)) {
-                        //We have changed stations, all of our current data is invalid
-                        Log.i(LOG_TAG, "Station has changed. Old station: " + previousStationCode + " New station: " + currentStationCode);
-                        clearAllData();
-                    }
-
-                    //Get the latest AQHI reading for the station.
-                    if(null != currentStationCode && fetchLatestAQHIData(currentStationCode)) {
-                        Log.i(LOG_TAG, "Fresh data found for station " + currentStationCode);
-                    } else if (stationAuto) {
-                        //It's possible there is no data available for the station
-                        //Some stations don't have data from time-to-time.
-                        //In this case, we need to force a station list update and pick another closest station.
-                        Log.i(LOG_TAG, "Could not fetch fresh data for station " + currentStationCode);
-                        currentStationCode = determineCurrentLocation(previousStationCode, true);
-                        if(currentStationCode == null) {
-                            Log.w(LOG_TAG, "Cannot determine the closest station. Clearing preferences.");
-                            //If the station is still null after forcing an update, then the API must be broken, we need wipe the preferences.
-                            clearAllPreferences();
-                        } else {
-                            //We have a new, valid, station. Update the AQHI once more
-                            if (fetchLatestAQHIData(currentStationCode)) {
-                                Log.i(LOG_TAG, "Fresh data found for station " + currentStationCode);
-                            } else {
-                                //At this point, we may legitimately have no data.
-                                //For example, it's possible we were not able to update the station list and the current station has no data
-                                Log.e(LOG_TAG, "Could not fetch fresh data for station " + currentStationCode);
-                            }
-                        }
-                    } else {
-                        Log.i(LOG_TAG, "Could not fetch fresh data for manually set station: " + currentStationCode);
-                    }
-                }
+                updateAQHISync();
                 //Always consider this a change in data. The latest AQHI number may be the same but the station may have changed, or the historical data may have changed.
                 if(null != onChange) onChange.run();
             } catch (Throwable t) { //Catch all
                 Log.e(LOG_TAG, "Failed to update AQHI data.", t);
             }
         }).start();
+    }
+
+    /**
+     * Updates both the latest, historical and forecast AQHI readings based on the user's current location. The user's closest station will be first updated if necessary.
+     * These updates are done via external API calls to the GeoMet service. The data is stored in SharedPreferences and can be retrieved
+     * via {@link AQHIService#getLatestAQHI}, {@link AQHIService#getStationName}, {@link AQHIService#getHistoricalAQHI}, and {@link AQHIService#getForecastAQHI}.
+     * The update is executed synchronously and may take several minutes to complete depending on the internet connection quality.
+     *
+     */
+    private void updateAQHISync() {
+        Log.i(LOG_TAG, "Attempting to update the AQHI data for the current location.");
+
+        //This code is stateful, we don't want to run multiple updates at the same time
+        synchronized (GLOBAL_SYNC_OBJECT) {
+            final boolean stationAuto = isStationAuto();
+            final String previousStationCode = aqhiPref.getString(STATION_CODE_KEY, null);
+            String currentStationCode;
+            if (stationAuto) {
+                //Station is determined automatically based on the user's location
+                currentStationCode = determineCurrentLocation(previousStationCode, false);
+            } else {
+                //Station is set manually by the user
+                currentStationCode = this.getStationCode(true);
+            }
+
+            if (null == currentStationCode || !currentStationCode.equals(previousStationCode)) {
+                //We have changed stations, all of our current data is invalid
+                Log.i(LOG_TAG, "Station has changed. Old station: " + previousStationCode + " New station: " + currentStationCode);
+                clearAllData();
+            }
+
+            //Get the latest AQHI reading for the station.
+            if (null != currentStationCode && fetchLatestAQHIData(currentStationCode)) {
+                Log.i(LOG_TAG, "Fresh data found for station " + currentStationCode);
+            } else if (stationAuto) {
+                //It's possible there is no data available for the station
+                //Some stations don't have data from time-to-time.
+                //In this case, we need to force a station list update and pick another closest station.
+                Log.i(LOG_TAG, "Could not fetch fresh data for station " + currentStationCode);
+                currentStationCode = determineCurrentLocation(previousStationCode, true);
+                if (currentStationCode == null) {
+                    Log.w(LOG_TAG, "Cannot determine the closest station. Clearing preferences.");
+                    //If the station is still null after forcing an update, then the API must be broken, we need wipe the preferences.
+                    clearAllPreferences();
+                } else {
+                    //We have a new, valid, station. Update the AQHI once more
+                    if (fetchLatestAQHIData(currentStationCode)) {
+                        Log.i(LOG_TAG, "Fresh data found for station " + currentStationCode);
+                    } else {
+                        //At this point, we may legitimately have no data.
+                        //For example, it's possible we were not able to update the station list and the current station has no data
+                        Log.e(LOG_TAG, "Could not fetch fresh data for station " + currentStationCode);
+                    }
+                }
+            } else {
+                Log.i(LOG_TAG, "Could not fetch fresh data for manually set station: " + currentStationCode);
+            }
+        }
     }
 
     private void clearAllData() {
@@ -281,7 +289,7 @@ public class AQHIService {
     }
 
     /**
-     * Retrieves the station name of the station either selected by the suer or closest to the most recently updated user location.
+     * Retrieves the station name of the station either selected by the user or closest to the most recently updated user location.
      * @return String, station name, if it has been validated during the last {@link AQHIService#DATA_VALIDITY_DURATION} milliseconds. Otherwise returns null.
      */
     public String getStationName(){
@@ -289,7 +297,7 @@ public class AQHIService {
     }
 
     /**
-     * Retrieves the station code of the station either selected by the suer or closest to the most recently updated user location.
+     * Retrieves the station code of the station either selected by the user or closest to the most recently updated user location.
      *
      * @param allowStale boolean, if false only return the Station value if it has been validated during the last {@link AQHIService#DATA_VALIDITY_DURATION} milliseconds.
      *
@@ -414,5 +422,13 @@ public class AQHIService {
 
     public void setAllowStaleLocation(boolean allowStaleLocation) {
         this.allowStaleLocation = allowStaleLocation;
+    }
+
+    public LocationService getLocationService() {
+        return locationService;
+    }
+
+    public void setOnChange(Runnable onChange) {
+        this.onChange = onChange;
     }
 }

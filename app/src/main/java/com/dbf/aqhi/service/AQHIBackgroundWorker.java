@@ -57,7 +57,7 @@ public class AQHIBackgroundWorker {
     /**
      * Forces an update to run immediately.
      */
-    public void updateNow(){
+    public void updateNow() {
         Log.i(LOG_TAG, "Forcing manual AQHI update.");
         aqhiService.update();
     }

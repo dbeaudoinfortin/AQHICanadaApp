@@ -11,6 +11,7 @@ import android.util.TypedValue;
 import android.widget.RemoteViews;
 
 import com.dbf.aqhi.R;
+import com.dbf.aqhi.service.AQHIService;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -20,7 +21,15 @@ public class AQHIWidgetProviderLarge extends AQHIWidgetProvider {
 
     private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("h:mm a", Locale.ENGLISH);
 
-    protected void updateWidgetUI(Context context, RemoteViews views, AppWidgetManager appWidgetManager, int appWidgetId) {
+    public AQHIWidgetProviderLarge() {
+        super();
+    }
+
+    public AQHIWidgetProviderLarge(AQHIService aqhiService) {
+        super(aqhiService);
+    }
+
+    public void updateWidgetUI(Context context, RemoteViews views, AppWidgetManager appWidgetManager, int appWidgetId) {
         views.setTextViewText(R.id.txtAQHI, getLatestAQHIString());
         views.setTextViewText(R.id.lblStation, getCurrentStationName());
         updateArrowPosition(context, views, appWidgetManager, appWidgetId);
