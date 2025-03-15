@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.AQHIWidget" parent="Theme.Material3.DayNight.NoActionBar" >
+    <style name="Theme.AQHI" parent="Theme.Material3.DayNight.NoActionBar" >
         <item name="android:statusBarColor">@color/main_activity_header_background</item>
         <item name="colorPrimaryVariant">@color/main_activity_header_background</item>
     </style>
+    <style name="Theme.AQHIWidgetLight" parent="Theme.Material3.Light.NoActionBar"/>
+    <style name="Theme.AQHIWidgetDark" parent="Theme.Material3.Dark.NoActionBar"/>
+    <style name="Theme.AQHIWidgetLightDark" parent="Theme.Material3.DayNight.NoActionBar"/>
 </resources>

@@ -60,7 +60,8 @@ public class AQHIService {
     private double[] lastLatLong = null;
 
     //This is mainly needed for widgets that run in the background.
-    private boolean allowStaleLocation = false;
+    //May also be needed is the background location permission is not set
+    private boolean allowStaleLocation = true;
 
     public AQHIService(Context context, Runnable onChange) {
         Log.i(LOG_TAG, "Initializing AQHI service.");

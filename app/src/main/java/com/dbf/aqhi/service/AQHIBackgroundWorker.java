@@ -11,7 +11,7 @@ public class AQHIBackgroundWorker {
 
     private static final String LOG_TAG = "AQHIBackgroundWorker";
 
-    private static final long UPDATE_INTERVAL = 300; //In seconds, 5 minutes
+    private static final long UPDATE_INTERVAL = 600; //In seconds, 5 minutes
 
     private final AQHIService aqhiService;
 
@@ -38,7 +38,7 @@ public class AQHIBackgroundWorker {
                         Log.e(LOG_TAG, "Failed to run scheduled AQHI update.", t);
                     }
                 }
-                //Update every 5 minutes, starting 5 minutes from now
+                //Update every 10 minutes, starting 10 minutes from now
             }, UPDATE_INTERVAL, UPDATE_INTERVAL, TimeUnit.SECONDS);
         }
     }

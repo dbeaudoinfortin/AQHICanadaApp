@@ -6,6 +6,8 @@ import static android.view.View.VISIBLE;
 import android.Manifest;
 import android.app.AlertDialog;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.text.Html;
 import android.text.method.LinkMovementMethod;
@@ -28,8 +30,14 @@ import androidx.core.view.WindowInsetsCompat;
 import com.dbf.aqhi.permissions.PermissionService;
 import com.dbf.aqhi.service.AQHIBackgroundWorker;
 import com.dbf.aqhi.service.AQHIService;
+import com.dbf.heatmaps.android.HeatMap;
+import com.dbf.heatmaps.android.HeatMapOptions;
+import com.dbf.heatmaps.axis.IntegerAxis;
+import com.dbf.heatmaps.data.BasicDataRecord;
+import com.dbf.heatmaps.data.DataRecord;
 
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 
 import org.apache.commons.io.IOUtils;
 
@@ -170,7 +178,45 @@ public class AQHIMainActivity extends AppCompatActivity implements AQHIFeature {
             arrowImage.setRotation(angle);
             arrowImage.setVisibility(VISIBLE);
         }
+
+        ArrayList<DataRecord> records = new ArrayList<DataRecord>(values.length);
+        int arrayIndex = 0;
+        for (int x = 1; x <= 11; x++ ) {
+            records.add(new BasicDataRecord(x,1, values[arrayIndex]));
+            arrayIndex++;
+        }
+
+        Bitmap b = HeatMap.builder()
+                .withTitle("Wacky Bad Air Dude")
+                .withXAxis(IntegerAxis.instance()
+                        .withTitle("")
+                        .addEntries(1, 11))
+                .withYAxis(IntegerAxis.instance()
+                        .withTitle("")
+                        .addEntries(1,1))
+                .withOptions(HeatMapOptions.builder()
+                        .withCellWidth(100)
+                        .withCellHeight(50)
+                        .withShowGridlines(false)
+                        .withShowGridValues(false)
+                        .withHeatMapTitlePadding(0)
+                        .withOutsidePadding(0)
+                        .withBackgroundColour(Color.valueOf(Color.WHITE))
+                        .withShowLegend(false)
+                        .withShowGridlines(false)
+                        .withShowXAxisLabels(false)
+                        .withShowYAxisLabels(false)
+                        .withLegendTextFormat("0.#")
+                        .withColourScaleLowerBound(0.0)
+                        .withColourScaleUpperBound(11.0)
+                        .build())
+                .build().render(records);
+
+        ImageView imgHistoricalHeatMap = findViewById(R.id.imgHistoricalHeatMap);
+        imgHistoricalHeatMap.setImageBitmap(b);
     }
+
+    private static final double[] values = { 1,2,3,4,5,6,7,8,9,10,11 };
 
     @Override
     public AQHIService getAQHIService() {
