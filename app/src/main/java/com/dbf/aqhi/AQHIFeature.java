@@ -30,7 +30,7 @@ public interface AQHIFeature {
             return "…"; //Still fetching the value
         } else if( recentAQHI < 0.0) {
             return "?"; //Unknown
-        } else if(recentAQHI % 1 == 0) {
+        } else if(recentAQHI % 1.0 == 0.0) {
             //No fraction
             return recentAQHI.toString();
         }

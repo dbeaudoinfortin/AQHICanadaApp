@@ -5,10 +5,13 @@ import android.content.SharedPreferences;
 import android.util.Log;
 
 import com.dbf.aqhi.geomet.GeoMetService;
-import com.dbf.aqhi.geomet.realtime.RealtimeData;
+import com.dbf.aqhi.geomet.data.Data;
+import com.dbf.aqhi.geomet.data.forecast.ForecastData;
+import com.dbf.aqhi.geomet.data.realtime.RealtimeData;
 import com.dbf.aqhi.geomet.station.Station;
 import com.dbf.aqhi.location.LocationService;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import java.lang.reflect.Type;
@@ -16,7 +19,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.TreeMap;
 
 public class AQHIService {
@@ -25,7 +27,7 @@ public class AQHIService {
     private static final Object GLOBAL_SYNC_OBJECT = new Object();
 
     //Used for Gson conversion
-    private static final Type historicalAQHIType = new TypeToken<Map<Date, Double>>() {}.getType();
+    private static final Type gsonAQHIType = new TypeToken<Map<Date, Double>>(){}.getType();
 
     //How long we can display the data on screen before we throw it out because its too old
     private static final long DATA_VALIDITY_DURATION = 30 * 60 * 1000; //30 minutes in milliseconds
@@ -46,7 +48,10 @@ public class AQHIService {
     private static final String FORECAST_AQHI_VAL_KEY = "AQHI_FORE";
     private static final String FORECAST_AQHI_TS_KEY = "AQHI_FORE_TS";
 
-    private static final Gson gson = new Gson();
+    private static final Gson gson = new GsonBuilder()
+            .setDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX") // ISO 8601 format
+            .enableComplexMapKeySerialization() //Wow! https://github.com/google/gson/issues/1328
+            .create();
 
     private final GeoMetService geoMetService;
     private final LocationService locationService;
@@ -104,7 +109,7 @@ public class AQHIService {
     /**
      * Updates both the latest, historical and forecast AQHI readings based on the user's current location. The user's closest station will be first updated if necessary.
      * These updates are done via external API calls to the GeoMet service. The data is stored in SharedPreferences and can be retrieved
-     * via {@link AQHIService#getLatestAQHI}, {@link AQHIService#getStationName}, {@link AQHIService#getHistoricalAQHI}, and {@link AQHIService#getForecastAQHI}.
+     * via {@link AQHIService#getLatestAQHI}, {@link AQHIService#getStationName}, {@link AQHIService#getHistoricalAQHI}, and
      * The update is executed synchronously and may take several minutes to complete depending on the internet connection quality.
      *
      */
@@ -237,14 +242,21 @@ public class AQHIService {
 
         //We need to fetch fresh data.
         //Get the latest AQHI reading for the station.
-        List<RealtimeData> dataPoints = geoMetService.getRealtimeData(stationCode); //station may be null at this time
-        Double latestAQHI = extractLatestAQHIValue(dataPoints);
+        List<RealtimeData> realtimeData = geoMetService.getRealtimeData(stationCode); //station may be null at this time
+        Double latestAQHI = extractLatestAQHIValue(realtimeData);
 
         if(null != latestAQHI) {
             //We have a legitimate updated AQHI value, save it.
             setLatestAQHI(latestAQHI);
+
             //We know we have at least one data point at this time, so we can update the historical data
-            setHistoricalAQHI(extractHistoricalAQHIValues(dataPoints));
+            setHistoricalAQHI(extractPerDateAQHIValues(realtimeData));
+
+            //Try to fetch the forecast as well
+            List<ForecastData> forecastData = geoMetService.getForecastData(stationCode);
+            if(null != forecastData) {
+                setForecastAQHI(extractPerDateAQHIValues(forecastData));
+            }
             return true;
         }
         return false; //We could not get any valid data
@@ -263,13 +275,13 @@ public class AQHIService {
         return null;
     }
 
-    private static Map<Date, Double> extractHistoricalAQHIValues(List<RealtimeData> data) {
+    private static <D extends Data> Map<Date, Double> extractPerDateAQHIValues(List<D> data) {
         if (null == data || data.isEmpty()) return Collections.EMPTY_MAP;
 
         Map<Date, Double> sortedMap = new TreeMap<Date, Double>();
-        for(RealtimeData dataPoint : data) {
-            if(null == dataPoint.properties) continue;
-            sortedMap.put(dataPoint.properties.getDate(), dataPoint.properties.aqhi);
+        for(Data dataPoint : data) {
+            if(null == dataPoint.getProperties()) continue;
+            sortedMap.put(dataPoint.getProperties().getDate(), dataPoint.getProperties().aqhi);
         }
         return sortedMap;
     }
@@ -358,14 +370,41 @@ public class AQHIService {
      * @return Map<Date, Double> of historical AQHI values if they have been updated within the last {@link AQHIService#DATA_VALIDITY_DURATION} milliseconds. Otherwise returns null.
      */
     public Map<Date, Double> getHistoricalAQHI(){
-        Long ts = aqhiPref.getLong(HISTORICAL_AQHI_TS_KEY, Integer.MIN_VALUE);
+        final Long ts = aqhiPref.getLong(HISTORICAL_AQHI_TS_KEY, Integer.MIN_VALUE);
         if(System.currentTimeMillis() - ts > DATA_VALIDITY_DURATION) return null;
         String historicalAQHI = aqhiPref.getString(HISTORICAL_AQHI_VAL_KEY, null);
         if (null == historicalAQHI || historicalAQHI.isEmpty()) return Collections.EMPTY_MAP;
         try {
-            return gson.fromJson(historicalAQHI, historicalAQHIType);
+            return gson.fromJson(historicalAQHI, gsonAQHIType);
         } catch (Exception e) {
-            Log.e(LOG_TAG, "Failed to read saved historical AQHI data: " + historicalAQHI, e);
+            Log.e(LOG_TAG, "Failed to read the saved historical AQHI data: " + historicalAQHI, e);
+            //No point continuing to save this data
+            aqhiPref.edit()
+                    .remove(HISTORICAL_AQHI_TS_KEY)
+                    .remove(HISTORICAL_AQHI_VAL_KEY)
+                    .apply();
+            return null;
+        }
+    }
+
+    /**
+     * Retrieves the most recent AQHI forecast values for the current station.
+     * @return Map<Date, Double> of forecast AQHI values if they have been updated within the last {@link AQHIService#DATA_VALIDITY_DURATION} milliseconds. Otherwise returns null.
+     */
+    public Map<Date, Double> getForecastAQHI(){
+        final Long ts = aqhiPref.getLong(FORECAST_AQHI_TS_KEY, Integer.MIN_VALUE);
+        if(System.currentTimeMillis() - ts > DATA_VALIDITY_DURATION) return null;
+        String forecastAQHI = aqhiPref.getString(FORECAST_AQHI_VAL_KEY, null);
+        if (null == forecastAQHI || forecastAQHI.isEmpty()) return Collections.EMPTY_MAP;
+        try {
+            return gson.fromJson(forecastAQHI, gsonAQHIType);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "Failed to read the saved forecast AQHI data: " + forecastAQHI, e);
+            //No point continuing to save this data
+            aqhiPref.edit()
+                    .remove(FORECAST_AQHI_TS_KEY)
+                    .remove(FORECAST_AQHI_VAL_KEY)
+                    .apply();
             return null;
         }
     }
@@ -378,8 +417,21 @@ public class AQHIService {
      */
     private void setHistoricalAQHI(Map<Date, Double> val) {
         aqhiPref.edit()
-                .putString(HISTORICAL_AQHI_VAL_KEY, gson.toJson(val))
+                .putString(HISTORICAL_AQHI_VAL_KEY, gson.toJson(val, gsonAQHIType))
                 .putLong(HISTORICAL_AQHI_TS_KEY, System.currentTimeMillis())
+                .apply();
+    }
+
+    /**
+     * Saves the forecast AQHI data to the shared preferences.
+     * Only updates the timestamp when the value is null.
+     *
+     * @param val Map<Date, Double> forecast AQHI data
+     */
+    private void setForecastAQHI(Map<Date, Double> val) {
+        aqhiPref.edit()
+                .putString(FORECAST_AQHI_VAL_KEY, gson.toJson(val, gsonAQHIType))
+                .putLong(FORECAST_AQHI_TS_KEY, System.currentTimeMillis())
                 .apply();
     }
 

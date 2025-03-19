@@ -1,11 +1,21 @@
 package com.dbf.aqhi;
 
 import android.content.Context;
-import android.content.pm.PackageManager;
+import android.graphics.Color;
 
-import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
 
 public class Utils {
+    public static Color getColor(Context context, String colourResourceName) {
+        int colourId = context.getResources().getIdentifier(colourResourceName, "color", context.getPackageName());
+        if (colourId != 0) {
+            return Color.valueOf(ContextCompat.getColor(context, colourId)); //Fetch color from resources
+        } else {
+            throw new IllegalArgumentException("Color resource not found: " + colourResourceName);
+        }
+    }
+
     /**
      * Calculates the magnitude of the distance between two points latitude and longitude.
      * This value does not represent the actual distance, only a magnitude value that can be used for comparison purposes.

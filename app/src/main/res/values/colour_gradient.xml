@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="gradient_colour_01">#91d5a6</color>
+    <color name="gradient_colour_02">#65c1a5</color>
+    <color name="gradient_colour_03">#c9e89a</color>
+    <color name="gradient_colour_04">#eaf79b</color>
+    <color name="gradient_colour_05">#fcffba</color>
+    <color name="gradient_colour_06">#fffbba</color>
+    <color name="gradient_colour_07">#fee492</color>
+    <color name="gradient_colour_08">#fdc771</color>
+    <color name="gradient_colour_09">#fda159</color>
+    <color name="gradient_colour_10">#f46c43</color>
+    <color name="gradient_colour_11">#d53e4f</color>
+</resources>

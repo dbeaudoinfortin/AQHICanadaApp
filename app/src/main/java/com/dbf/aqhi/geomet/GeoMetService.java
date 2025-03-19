@@ -7,8 +7,12 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import android.content.Context;
 import android.util.Log;
 
-import com.dbf.aqhi.geomet.realtime.RealtimeData;
-import com.dbf.aqhi.geomet.realtime.RealtimeResponse;
+import com.dbf.aqhi.geomet.data.Data;
+import com.dbf.aqhi.geomet.data.DataResponse;
+import com.dbf.aqhi.geomet.data.forecast.ForecastData;
+import com.dbf.aqhi.geomet.data.forecast.ForecastResponse;
+import com.dbf.aqhi.geomet.data.realtime.RealtimeData;
+import com.dbf.aqhi.geomet.data.realtime.RealtimeResponse;
 import com.dbf.aqhi.geomet.station.Station;
 import com.dbf.aqhi.geomet.station.StationResponse;
 import com.dbf.aqhi.http.RetryInterceptor;
@@ -20,6 +24,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.util.Date;
 import java.util.List;
 
 import okhttp3.OkHttpClient;
@@ -41,8 +46,9 @@ public class GeoMetService {
     //Not all stations have data, so use only the stations that provide the latest observations.
     //Don't use "aqhi-stations/items"
     private static final String STATION_URL = BASE_URL + "aqhi-observations-realtime/items?latest=true";
-    private static final String REALTIME_URL = BASE_URL + "aqhi-observations-realtime/items";
-    private static final String REALTIME_LOCATION_ID = "location_id";
+    private static final String REALTIME_URL = BASE_URL + "aqhi-observations-realtime/items?skipGeometry=true";
+    private static final String FORECAST_URL = BASE_URL + "aqhi-forecasts-realtime/items?skipGeometry=true";
+    private static final String URL_LOCATION_ID = "location_id";
     private static final Gson gson = new Gson();
     private static final OkHttpClient client = new OkHttpClient.Builder()
             .addInterceptor(new RetryInterceptor(HTTP_TRIES, LOG_TAG))
@@ -75,32 +81,43 @@ public class GeoMetService {
         return nearestStation;
     }
 
-    public List<RealtimeData> getRealtimeData(String stationID) {
+    private <D extends Data, R extends DataResponse<D>> List<D>  getData(String stationID, String baseURL, Class<R> responseClass) {
         if(null == stationID || stationID.isEmpty()) return null;
 
-        String url = REALTIME_URL + '?' + REALTIME_LOCATION_ID + '=' + stationID;
-
         Request request = new Request.Builder()
-                .url(url)
+                .url(baseURL + '&' + URL_LOCATION_ID + '=' + stationID)
                 .build();
 
-        Log.i(LOG_TAG, "Calling GeoMet. URL: " + REALTIME_URL);
+        Log.i(LOG_TAG, "Calling GeoMet. URL: " + baseURL);
         try (Response response = client. newCall(request).execute()) {
             if (response.isSuccessful()) {
                 try {
-                    RealtimeResponse realtimeResponse = gson.fromJson(response.body().string(), RealtimeResponse.class);
-                    if(null != realtimeResponse) {
-                        Log.i(LOG_TAG, realtimeResponse.numberReturned + " Data points were returned from GeoMet. URL: " + REALTIME_URL);
-                        return realtimeResponse.data;
+                    DataResponse dataResponse = gson.fromJson(response.body().string(), responseClass);
+                    if(null != dataResponse) {
+                        Log.i(LOG_TAG, dataResponse.numberReturned + " Data points were returned from GeoMet. URL: " + baseURL);
+                        return dataResponse.getData();
                     }
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "Failed to parse response for GeoMet. URL: " + REALTIME_URL + ". Response body: " + response.body().string(), e);
+                    Log.e(LOG_TAG, "Failed to parse response for GeoMet. URL: " + baseURL + ". Response body: " + response.body().string(), e);
                 }
             } else {
-                Log.e(LOG_TAG, "Call to GeoMet failed. URL: " + REALTIME_URL + ". HTTP Code: " + response.code() + ". Message: " + (response.body() == null ? "null" : response.body().string()));
+                Log.e(LOG_TAG, "Call to GeoMet failed. URL: " + baseURL + ". HTTP Code: " + response.code() + ". Message: " + (response.body() == null ? "null" : response.body().string()));
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "Failed to call GeoMet. URL: " + REALTIME_URL, e);
+            Log.e(LOG_TAG, "Failed to call GeoMet. URL: " + baseURL, e);
+        }
+        return null;
+    }
+
+    public List<RealtimeData> getRealtimeData(String stationID) {
+        return getData(stationID, REALTIME_URL, RealtimeResponse.class);
+    }
+
+    public List<ForecastData> getForecastData(String stationID) {
+        List<ForecastData> data = getData(stationID, FORECAST_URL, ForecastResponse.class);
+        if(null != data) {
+            final Date now = new Date();
+            return data.stream().filter(d->d.getProperties().getDate().after(now)).toList();
         }
         return null;
     }
