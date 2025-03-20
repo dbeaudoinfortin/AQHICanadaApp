@@ -7,6 +7,11 @@ import androidx.core.content.ContextCompat;
 
 
 public class Utils {
+
+    public static int to12Hour(int hour_24) {
+        return (hour_24 % 12 == 0) ? 12 : hour_24 % 12;
+    }
+
     public static Color getColor(Context context, String colourResourceName) {
         int colourId = context.getResources().getIdentifier(colourResourceName, "color", context.getPackageName());
         if (colourId != 0) {

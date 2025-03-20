@@ -5,7 +5,7 @@ import static android.view.View.VISIBLE;
 
 import android.Manifest;
 import android.app.AlertDialog;
-import android.content.Context;
+
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
@@ -16,9 +16,11 @@ import android.text.Html;
 import android.text.method.LinkMovementMethod;
 import android.util.Log;
 import android.util.TypedValue;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -26,7 +28,7 @@ import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
+
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -45,11 +47,9 @@ import com.dbf.heatmaps.data.DataRecord;
 import java.nio.charset.Charset;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
-import java.time.format.DateTimeFormatter;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.LinkedHashMap;
-import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -61,6 +61,8 @@ public class AQHIMainActivity extends AppCompatActivity implements AQHIFeature {
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
 
     private AQHIBackgroundWorker backgroundWorker;
+    private boolean showHistoricalGridData = false;
+    private boolean showForecastGridData = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -158,6 +160,7 @@ public class AQHIMainActivity extends AppCompatActivity implements AQHIFeature {
     private void initUI() {
         Log.i(LOG_TAG, "Initializing AQHI Main Activity UI.");
 
+        //Align the arrow to the correct center position of the gauge
         ImageView arrowImage = findViewById(R.id.imgAQHIGaugeArrow);
         arrowImage.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
             @Override
@@ -166,6 +169,27 @@ public class AQHIMainActivity extends AppCompatActivity implements AQHIFeature {
                 arrowImage.setPivotX(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,6, getResources().getDisplayMetrics()));
                 arrowImage.setPivotY(arrowImage.getHeight() / 2f);
                 return true;
+            }
+        });
+
+        //Add a click listener to the heatmaps that will render them with data
+        ImageView imgHistoricalHeatMap = findViewById(R.id.imgHistoricalHeatMap);
+        imgHistoricalHeatMap.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showHistoricalGridData = !showHistoricalGridData;
+                Map<Date, Double> histData = backgroundWorker.getAQHIService().getHistoricalAQHI();
+                renderHistoricalHeatMap(histData);
+            }
+        });
+
+        ImageView imgForecastHeatMap = findViewById(R.id.imgForecastHeatMap);
+        imgForecastHeatMap.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showForecastGridData = !showForecastGridData;
+                Map<Date, Double> forecastData = backgroundWorker.getAQHIService().getForecastAQHI();
+                renderForecastHeatMap(forecastData);
             }
         });
     }
@@ -212,38 +236,56 @@ public class AQHIMainActivity extends AppCompatActivity implements AQHIFeature {
 
         //UPDATE FORECAST
         Map<Date, Double> forecastData = backgroundWorker.getAQHIService().getForecastAQHI();
-        TextView forecastText = findViewById(R.id.txtForecast);
-        forecastText.setText(getDataMaximums(forecastData));
-
-        ImageView imgForecastHeatMap = findViewById(R.id.imgForecastHeatMap);
-        if(null != forecastData && !forecastData.isEmpty()) {
-            imgForecastHeatMap.setImageBitmap(generateHeatMap(forecastData));
-        } else {
-            imgForecastHeatMap.setImageResource(R.drawable.outline_bar_chart_24);
-        }
+        LinearLayout dailyForecastList = findViewById(R.id.daily_forecast_list);
+        updateDailyList(forecastData, dailyForecastList, false);
+        renderForecastHeatMap(forecastData);
 
         //UPDATE HISTORICAL
         Map<Date, Double> histData = backgroundWorker.getAQHIService().getHistoricalAQHI();
-        TextView historicalText = findViewById(R.id.txtHistorical);
-        historicalText.setText(getDataMaximums(histData));
+        LinearLayout dailyHistoricalList = findViewById(R.id.daily_historical_list);
+        updateDailyList(histData, dailyHistoricalList, true);
+        renderHistoricalHeatMap(histData);
+    }
 
+    private void renderForecastHeatMap(Map<Date, Double> forecastData) {
+        ImageView imgForecastHeatMap = findViewById(R.id.imgForecastHeatMap);
+        if(null != forecastData && !forecastData.isEmpty()) {
+            imgForecastHeatMap.setImageBitmap(generateHeatMap(forecastData, showForecastGridData));
+        } else {
+            imgForecastHeatMap.setImageResource(R.drawable.outline_bar_chart_24);
+        }
+    }
+
+    private void renderHistoricalHeatMap(Map<Date, Double> histData) {
         ImageView imgHistoricalHeatMap = findViewById(R.id.imgHistoricalHeatMap);
         if(null != histData && !histData.isEmpty()) {
-            imgHistoricalHeatMap.setImageBitmap(generateHeatMap(histData));
+            imgHistoricalHeatMap.setImageBitmap(generateHeatMap(histData, showHistoricalGridData));
         } else {
             imgHistoricalHeatMap.setImageResource(R.drawable.outline_bar_chart_24);
         }
     }
 
-    private Bitmap generateHeatMap(Map<Date, Double> data) {
-        float fontScale = this.getResources().getConfiguration().fontScale;
+    private Bitmap generateHeatMap(Map<Date, Double> data, boolean showGridValues) {
         //TODO: support daylight savings
         //TODO: support timezone changes
-        final SimpleDateFormat formatter = new SimpleDateFormat("MMM d"); // Not thread safe
+        float fontScale = this.getResources().getConfiguration().fontScale;
+        final SimpleDateFormat formatter = new SimpleDateFormat("MMM d a", Locale.CANADA); // Not thread safe
         return HeatMap.builder()
                 .withXAxis(IntegerAxis.instance()
-                        .withTitle("Hour")
-                        .addEntries(0, 23))
+                        .withTitle("")
+                        .addEntry(12,"12")
+                        .addEntry(1,"1")
+                        .addEntry(2,"2")
+                        .addEntry(3,"3")
+                        .addEntry(4,"4")
+                        .addEntry(5,"5")
+                        .addEntry(6,"6")
+                        .addEntry(7,"7")
+                        .addEntry(8,"8")
+                        .addEntry(9,"9")
+                        .addEntry(10,"10")
+                        .addEntry(11,"11")
+                )
                 .withYAxis(new StringAxis("",
                         data.keySet()//We need to sort these by date, then convert to string, then remove dupes!
                                 .stream()
@@ -267,17 +309,18 @@ public class AQHIMainActivity extends AppCompatActivity implements AQHIFeature {
                                         getColour("gradient_colour_10"),
                                         getColour("gradient_colour_11")
                                 }).build())
-                        .withCellWidth(40)
-                        .withCellHeight(40)
+                        .withCellWidth(65)
+                        .withCellHeight(65)
                         .withShowGridlines(false)
-                        .withShowGridValues(false)
+                        .withShowGridValues(showGridValues)
                         .withOutsidePadding(0)
                         .withShowLegend(false)
                         .withShowXAxisLabels(true)
                         .withShowYAxisLabels(true)
-                        .withAxisTitleFontSize(32f*fontScale)
-                        .withAxisTitleFontTypeface(Typeface.create("Roboto", Typeface.BOLD))
-                        .withAxisLabelFontSize(24f*fontScale)
+                        .withAxisLabelFontColour(getSystemDefaultTextColor())
+                        .withAxisLabelFontSize(38f*fontScale)
+                        .withGridValuesFontSize(28f)
+                        .withAxisLabelPadding(15)
                         .withAxisLabelFontTypeface(Typeface.create("Roboto", Typeface.NORMAL))
                         .withColourScaleLowerBound(1.0)
                         .withColourScaleUpperBound(11.0)
@@ -285,34 +328,50 @@ public class AQHIMainActivity extends AppCompatActivity implements AQHIFeature {
                 .build().render(data.entrySet()
                         .stream()
                         .map(entry->{
-                            return (DataRecord) new BasicDataRecord(Integer.valueOf(entry.getKey().getHours()),
+                            return (DataRecord) new BasicDataRecord(Integer.valueOf(Utils.to12Hour(entry.getKey().getHours())),
                                     formatter.format(entry.getKey()),Math.max(Math.min(entry.getValue(),11d),1d));
                         }).toList());
     }
 
-    private String getDataMaximums(Map<Date, Double> data) {
-        if (null == data || data.isEmpty()) return "";
+    private Color getSystemDefaultTextColor() {
+        //Bit of a hack, steal the colour form a random text box
+        final TextView aqhiRiskText = findViewById(R.id.txtLocation);
+        return Color.valueOf(aqhiRiskText.getCurrentTextColor());
+    }
 
-        final DecimalFormat decimalFormatter = new DecimalFormat(AQHI_DIGIT_FORMAT);
-        final SimpleDateFormat textFormatter = new SimpleDateFormat("MMMM d");
-        final StringBuilder sb = new StringBuilder();
+    private void updateDailyList(Map<Date, Double> data, LinearLayout dailyList, boolean decimals) {
+        //Clear any old values
+        dailyList.removeAllViews();
+
+        if (null == data || data.isEmpty()) return;
+
+        final DecimalFormat decimalFormatter = new DecimalFormat(decimals ? AQHI_DIGIT_FORMAT : AQHI_NO_DIGIT_FORMAT);
+        final SimpleDateFormat dateDisplayFormat = new SimpleDateFormat("MMM d");//MAR 3
+        final SimpleDateFormat dayDisplayFormat  = new SimpleDateFormat("E");
+
         data.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
                 .collect(Collectors.toMap(
-                    entry -> textFormatter.format(entry.getKey()),
-                    Map.Entry::getValue,
-                    Math::max,
-                    LinkedHashMap::new
+                        entry -> dateDisplayFormat.format(entry.getKey()),
+                        entry -> Map.entry(entry.getKey(), entry.getValue()),
+                        (entry1, entry2) -> entry1.getValue() >= entry2.getValue() ? entry1 : entry2,
+                        LinkedHashMap::new
                 )).forEach((day, value) -> {
-                    sb.append(day);
-                    sb.append(" - ");
-                    sb.append(decimalFormatter.format(value));
-                    sb.append(" - ");
-                    sb.append(getRiskFactor(value));
-                    sb.append("\n");
+                    View itemView = LayoutInflater.from(this)
+                            .inflate(R.layout.forecast_layout, dailyList, false);
+
+                    final TextView txtDay = itemView.findViewById(R.id.txtDay);
+                    final TextView txtMonth = itemView.findViewById(R.id.txtMonth);
+                    final TextView txtForecastRisk = itemView.findViewById(R.id.txtForecastRisk);
+                    final TextView txtForecastValue = itemView.findViewById(R.id.txtForecastValue);
+
+                    txtDay.setText(dayDisplayFormat.format(value.getKey()));    //MON
+                    txtMonth.setText(dateDisplayFormat.format(value.getKey())); //MAR 3
+                    txtForecastRisk.setText(getRiskFactor(value.getValue())); //Low Risk
+                    txtForecastValue.setText(decimalFormatter.format(value.getValue())); //3.00 or 3
+
+                    dailyList.addView(itemView);
                 });
-        sb.setLength(sb.length() -1); //Remove trailing line break
-        return sb.toString();
     }
 
     private String getRiskFactor(Double aqhi) {

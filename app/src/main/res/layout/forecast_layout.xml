@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="8dp"
+    android:gravity="center_vertical"
+    android:orientation="horizontal">
+
+    <!-- Date Box -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginRight="16dp"
+        android:background="@drawable/soft_border"
+        android:minWidth="70dp"
+        android:orientation="vertical"
+        android:padding="5dp">
+
+        <TextView
+            android:id="@+id/txtDay"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:text="19"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/txtMonth"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:text="MAR"
+            android:textSize="16sp" />
+    </LinearLayout>
+
+    <!-- Forecast Text -->
+    <LinearLayout
+        android:id="@+id/aqhi_forecast_day"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingStart="0dp"
+        android:paddingEnd="0dp"
+        android:layout_gravity="center">
+        <TextView
+            android:id="@+id/txtForecastValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:paddingEnd="12dp"
+            android:text="3"
+            android:textSize="32sp"
+            android:textStyle="bold" />
+        <TextView
+            android:id="@+id/txtForecastRisk"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:text="Low Risk"
+            android:textSize="16sp"/>
+    </LinearLayout>
+</LinearLayout>

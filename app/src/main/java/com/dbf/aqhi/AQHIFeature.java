@@ -7,6 +7,7 @@ import java.text.DecimalFormat;
 public interface AQHIFeature {
 
     public static final String AQHI_DIGIT_FORMAT = "0.00";
+    public static final String AQHI_NO_DIGIT_FORMAT = "0";
 
     public AQHIService getAQHIService();
 

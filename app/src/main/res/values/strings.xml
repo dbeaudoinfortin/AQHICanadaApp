@@ -11,13 +11,15 @@
     <string name="unknown">Unknown</string>
     <string name="the_current_aqhi_value">The current AQHI value.</string>
     <string name="aqhi_linear_scale">AQHI linear scale.</string>
-    <string name="copyright_notice">© 2024 David Fortin</string>
-    <string name="aqhi_historical_trend">AQHI Historical Trend:</string>
+    <string name="copyright_notice">© 2025 David Fortin</string>
+    <string name="aqhi_historical_trend">AQHI History</string>
     <string name="historical_trend_heatmap">Historical Trend Heatmap</string>
-    <string name="aqhi_forecast_maximums">AQHI Forecast:</string>
+    <string name="aqhi_forecast_maximums">AQHI Forecast</string>
     <string name="aqhi_meter_graph">Current AQHI Meter Graph</string>
-    <string name="current_aqhi">Current AQHI:</string>
+    <string name="current_aqhi">Current AQHI</string>
     <string name="change_location">Change Location</string>
-    <string name="location">Location:</string>
+    <string name="location">Location</string>
     <string name="forecast_heat_map">Forecast Heat Map</string>
+    <string name="daily_maximums">Daily Maximums:</string>
+    <string name="hourly_forecast">Hourly Forecast:</string>
 </resources>
