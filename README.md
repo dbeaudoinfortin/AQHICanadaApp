@@ -26,8 +26,15 @@ Android app and widgets for displaying Canadian Air Quality Health Index (AQHI) 
 
 Two widgets are provided: a small widget that displays the most recent AQHI reading at your location, and a larger, wider widget that shows the AQHI reading on a relative scale.
 
-![widget_small_preview](https://github.com/user-attachments/assets/fbf4306c-1aaa-408e-9ac9-44a6876de35a)
-![widget_large_preview_2](https://github.com/user-attachments/assets/e3dbb23d-6a0d-44bb-a27d-07b3fa2a09d3)
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/a27f71ca-6110-43d9-9bfe-3b1914a128e6" />
+  <img src="https://github.com/user-attachments/assets/8b34092d-ea5a-4c4e-b08a-ac57d15c4eee" />
+</p>
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/7e22940d-4ab8-4e21-9f03-9f397eb8dbc3" />
+  <img src="https://github.com/user-attachments/assets/742c6ad0-ecdb-46c8-81be-d08509e88693" />
+</p>
 
 Widgets are configurable: you can set the background transparency as well the Light/Dark mode.
 
