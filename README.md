@@ -36,7 +36,7 @@ Two widgets are provided: a small widget that displays the most recent AQHI read
   <img src="https://github.com/user-attachments/assets/742c6ad0-ecdb-46c8-81be-d08509e88693" width="400"/>
 </p>
 
-Widgets are configurable: you can set the background transparency as well the light/dark mode. A preview of the widget is shows as you configure it.
+Widgets are configurable: you can set the background transparency as well as the light/dark mode. A preview of the widget is shown as you configure it.
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/e3b143b1-a41f-4182-b6f3-8d8c42e5924f" width="400"/>
