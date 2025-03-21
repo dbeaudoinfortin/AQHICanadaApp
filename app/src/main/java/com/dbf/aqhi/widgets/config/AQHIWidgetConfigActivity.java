@@ -14,14 +14,12 @@ import android.widget.FrameLayout;
 
 import androidx.appcompat.app.AppCompatDelegate;
 
-import com.dbf.aqhi.AQHIFeature;
 import com.dbf.aqhi.R;
-import com.dbf.aqhi.service.AQHIService;
 import com.dbf.aqhi.widgets.AQHIWidgetProvider;
 import com.dbf.aqhi.widgets.AQHIWidgetProviderLarge;
 import com.dbf.aqhi.widgets.AQHIWidgetProviderSmall;
 
-public class AQHIWidgetConfigActivity extends Activity implements AQHIFeature {
+public class AQHIWidgetConfigActivity extends Activity  {
 
     private View widgetPreview;
 
@@ -64,7 +62,7 @@ public class AQHIWidgetConfigActivity extends Activity implements AQHIFeature {
         });
     }
 
-    private void initUI (int appWidgetId) {
+    protected void initUI (int appWidgetId) {
 
         //Load the Widget configs, if there are any
         WidgetConfig widgetConfig = new WidgetConfig(this, appWidgetId);
@@ -172,10 +170,5 @@ public class AQHIWidgetConfigActivity extends Activity implements AQHIFeature {
         } else {
             rgMode.check(R.id.rbLight);
         }
-    }
-
-    @Override
-    public AQHIService getAQHIService() {
-        return null; //Handled by the provider instead
     }
 }

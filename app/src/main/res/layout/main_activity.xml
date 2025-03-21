@@ -7,48 +7,10 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/main_activity_header_background"
-    tools:context=".AQHIMainActivity">
+    tools:context=".main.AQHIMainActivity">
 
-    <!-- Header with title and icon -->
-    <LinearLayout
-        android:id="@+id/header_bar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:paddingTop="5dp"
-        android:paddingBottom="5dp"
-        android:paddingStart="10dp"
-        android:paddingEnd="10dp"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:background="@color/main_activity_header_background">
+    <include layout="@layout/header_layout"/>
 
-        <TextView
-            android:id="@+id/lblTitle"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_marginStart="0dp"
-            android:layout_marginEnd="5dp"
-            android:gravity="start|center_vertical"
-            android:text="@string/main_activity_aqhi_title"
-            android:textSize="28sp"
-            android:textStyle="bold"
-            android:fontFamily="@font/roboto"
-            android:maxLines="1"
-            android:layout_weight="1"
-            android:textColor="@color/main_activity_header_text"/>
-
-        <ImageView
-            android:id="@+id/imgLogo"
-            android:layout_width="45dp"
-            android:layout_height="45dp"
-            android:layout_marginStart="5dp"
-            android:layout_marginEnd="0dp"
-            android:gravity="end|center_vertical"
-            android:importantForAccessibility="no"
-            app:srcCompat="@drawable/logo"/>
-    </LinearLayout>
     <ScrollView
         android:id="@+id/body_outer_scroll"
         android:layout_width="match_parent"
@@ -386,50 +348,5 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
     </ScrollView>
 
-    <!-- Footer -->
-    <LinearLayout
-        android:id="@+id/footer_bar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:paddingTop="0dp"
-        android:paddingStart="5dp"
-        android:paddingEnd="5dp"
-        android:paddingBottom="0dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:background="@color/main_activity_header_background">
-
-        <TextView
-            android:id="@+id/lblFooter"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_marginTop="5dp"
-            android:layout_marginStart="5dp"
-            android:layout_marginEnd="5dp"
-            android:layout_marginBottom="5dp"
-            android:gravity="start|center"
-
-            android:text="@string/copyright_notice"
-            android:fontFamily="@font/roboto"
-            android:textSize="11sp"
-            android:layout_weight="1"
-            android:textColor="@color/main_activity_action_text"/>
-
-        <TextView
-            android:id="@+id/lblNotices"
-            android:layout_width="48dp"
-            android:layout_height="32dp"
-            android:layout_marginStart="5dp"
-            android:layout_marginEnd="5dp"
-            android:gravity="end|center"
-            android:fontFamily="@font/roboto"
-            android:text="About"
-            android:textSize="11sp"
-            android:maxLines="1"
-            android:textColor="@color/main_activity_action_text"
-            android:onClick="showLegalNotices"/>
-    </LinearLayout>
-
+    <include layout="@layout/footer_layout"/>
 </androidx.constraintlayout.widget.ConstraintLayout>

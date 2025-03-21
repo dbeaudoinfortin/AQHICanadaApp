@@ -16,7 +16,7 @@
 
         <!-- MAIN ANDROID APP -->
         <activity
-            android:name=".AQHIMainActivity"
+            android:name=".main.AQHIMainActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:theme="@style/Theme.AQHI">

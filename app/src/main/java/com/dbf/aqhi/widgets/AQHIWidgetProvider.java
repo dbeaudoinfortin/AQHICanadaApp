@@ -16,7 +16,7 @@ import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
 
 import com.dbf.aqhi.AQHIFeature;
-import com.dbf.aqhi.AQHIMainActivity;
+import com.dbf.aqhi.main.AQHIMainActivity;
 import com.dbf.aqhi.R;
 import com.dbf.aqhi.widgets.config.WidgetConfig;
 import com.dbf.aqhi.permissions.PermissionService;
