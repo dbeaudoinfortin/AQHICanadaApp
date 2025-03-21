@@ -32,15 +32,15 @@ Two widgets are provided: a small widget that displays the most recent AQHI read
 </p>
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/7e22940d-4ab8-4e21-9f03-9f397eb8dbc3" />
-  <img src="https://github.com/user-attachments/assets/742c6ad0-ecdb-46c8-81be-d08509e88693" />
+  <img src="https://github.com/user-attachments/assets/7e22940d-4ab8-4e21-9f03-9f397eb8dbc3" width="400"/>
+  <img src="https://github.com/user-attachments/assets/742c6ad0-ecdb-46c8-81be-d08509e88693" width="400"/>
 </p>
 
 Widgets are configurable: you can set the background transparency as well the light/dark mode. A preview of the widget is shows as you configure it.
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/e3b143b1-a41f-4182-b6f3-8d8c42e5924f" />
-  <img src="https://github.com/user-attachments/assets/1d7829cb-10e0-4435-bdda-74062d95af6e" />
+  <img src="https://github.com/user-attachments/assets/e3b143b1-a41f-4182-b6f3-8d8c42e5924f" width="400"/>
+  <img src="https://github.com/user-attachments/assets/1d7829cb-10e0-4435-bdda-74062d95af6e" width="400"/>
 </p>
 
 > [!TIP]
