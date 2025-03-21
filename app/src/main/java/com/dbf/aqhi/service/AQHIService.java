@@ -56,7 +56,6 @@ public class AQHIService {
     private final GeoMetService geoMetService;
     private final LocationService locationService;
     private final SharedPreferences aqhiPref;
-    private final Context context;
 
     //Callback to make when the data changes.
     private Runnable onChange;
@@ -72,7 +71,6 @@ public class AQHIService {
         Log.i(LOG_TAG, "Initializing AQHI service.");
         locationService = new LocationService(context);
         this.geoMetService = new GeoMetService(context);
-        this.context = context;
         this.onChange = onChange;
         this.aqhiPref = context.getSharedPreferences(AQHI_PREF_KEY, Context.MODE_PRIVATE);
     }
@@ -234,9 +232,9 @@ public class AQHIService {
     private boolean fetchLatestAQHIData(String stationCode) {
         //First determine if the data we have now is new enough to use as-is
         //This avoids excessive calls to the API.
-        Long ts = aqhiPref.getLong(LATEST_AQHI_TS_KEY, Integer.MIN_VALUE);
+        long ts = aqhiPref.getLong(LATEST_AQHI_TS_KEY, Integer.MIN_VALUE);
         if(System.currentTimeMillis() - ts <= DATA_REFRESH_MIN_DURATION) {
-            Float currentAQHIValue = aqhiPref.getFloat(LATEST_AQHI_VAL_KEY, -1f);
+            float currentAQHIValue = aqhiPref.getFloat(LATEST_AQHI_VAL_KEY, -1f);
             if (currentAQHIValue>=0) return true; //We have valid data already
         }
 
@@ -295,7 +293,7 @@ public class AQHIService {
      */
     public String getStationName(boolean allowStale){
         if(!allowStale) {
-            Long ts = aqhiPref.getLong(STATION_TS_KEY, Integer.MIN_VALUE);
+            long ts = aqhiPref.getLong(STATION_TS_KEY, Integer.MIN_VALUE);
             if (System.currentTimeMillis() - ts > DATA_VALIDITY_DURATION) return null;
         }
         return aqhiPref.getString(STATION_NAME_KEY, null);
@@ -318,7 +316,7 @@ public class AQHIService {
      */
     public String getStationCode(boolean allowStale){
         if(!allowStale) {
-            Long ts = aqhiPref.getLong(STATION_TS_KEY, Integer.MIN_VALUE);
+            long ts = aqhiPref.getLong(STATION_TS_KEY, Integer.MIN_VALUE);
             if (System.currentTimeMillis() - ts > DATA_VALIDITY_DURATION) return null;
         }
         return aqhiPref.getString(STATION_CODE_KEY, null);
@@ -350,7 +348,7 @@ public class AQHIService {
      */
     public Double getLatestAQHI(boolean allowStale){
         if(!allowStale) {
-            Long ts = aqhiPref.getLong(LATEST_AQHI_TS_KEY, Integer.MIN_VALUE);
+            long ts = aqhiPref.getLong(LATEST_AQHI_TS_KEY, Integer.MIN_VALUE);
             if(System.currentTimeMillis() - ts > DATA_VALIDITY_DURATION) return -1d;
         }
         return (double) aqhiPref.getFloat(LATEST_AQHI_VAL_KEY, -1f);
@@ -370,7 +368,7 @@ public class AQHIService {
      * @return Map<Date, Double> of historical AQHI values if they have been updated within the last {@link AQHIService#DATA_VALIDITY_DURATION} milliseconds. Otherwise returns null.
      */
     public Map<Date, Double> getHistoricalAQHI(){
-        final Long ts = aqhiPref.getLong(HISTORICAL_AQHI_TS_KEY, Integer.MIN_VALUE);
+        final long ts = aqhiPref.getLong(HISTORICAL_AQHI_TS_KEY, Integer.MIN_VALUE);
         if(System.currentTimeMillis() - ts > DATA_VALIDITY_DURATION) return null;
         String historicalAQHI = aqhiPref.getString(HISTORICAL_AQHI_VAL_KEY, null);
         if (null == historicalAQHI || historicalAQHI.isEmpty()) return Collections.EMPTY_MAP;
@@ -392,7 +390,7 @@ public class AQHIService {
      * @return Map<Date, Double> of forecast AQHI values if they have been updated within the last {@link AQHIService#DATA_VALIDITY_DURATION} milliseconds. Otherwise returns null.
      */
     public Map<Date, Double> getForecastAQHI(){
-        final Long ts = aqhiPref.getLong(FORECAST_AQHI_TS_KEY, Integer.MIN_VALUE);
+        final long ts = aqhiPref.getLong(FORECAST_AQHI_TS_KEY, Integer.MIN_VALUE);
         if(System.currentTimeMillis() - ts > DATA_VALIDITY_DURATION) return null;
         String forecastAQHI = aqhiPref.getString(FORECAST_AQHI_VAL_KEY, null);
         if (null == forecastAQHI || forecastAQHI.isEmpty()) return Collections.EMPTY_MAP;

@@ -15,13 +15,9 @@ public class WidgetConfig {
     private static final int DEFAULT_NIGHT_MODE = AppCompatDelegate.MODE_NIGHT_NO;
 
     private final SharedPreferences prefs;
-    private final int widgetId;
-    private final Context context;
 
     public WidgetConfig(Context context, int widgetId) {
-        this.widgetId = widgetId;
         this.prefs = context.getSharedPreferences(AQHI_PREF_KEY + widgetId, Context.MODE_PRIVATE);
-        this.context  = context;
     }
 
     public void clearConfigs() {

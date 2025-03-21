@@ -92,14 +92,18 @@ public class GeoMetService {
         Log.i(LOG_TAG, "Calling GeoMet. URL: " + baseURL);
         try (Response response = client. newCall(request).execute()) {
             if (response.isSuccessful()) {
-                try {
-                    DataResponse dataResponse = gson.fromJson(response.body().string(), responseClass);
-                    if(null != dataResponse) {
-                        Log.i(LOG_TAG, dataResponse.numberReturned + " Data points were returned from GeoMet. URL: " + baseURL);
-                        return dataResponse.getData();
+                if(response.body() != null) {
+                    try {
+                        DataResponse dataResponse = gson.fromJson(response.body().string(), responseClass);
+                        if(null != dataResponse) {
+                            Log.i(LOG_TAG, dataResponse.numberReturned + " Data points were returned from GeoMet. URL: " + baseURL);
+                            return dataResponse.getData();
+                        }
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "Failed to parse response for GeoMet. URL: " + baseURL + ". Response body: " + response.body().string()+ "\n" + StackTraceCompactor.getCompactStackTrace(e));
                     }
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "Failed to parse response for GeoMet. URL: " + baseURL + ". Response body: " + response.body().string()+ "\n" + StackTraceCompactor.getCompactStackTrace(e));
+                } else {
+                    Log.e(LOG_TAG, "Call to GeoMet failed. URL: " + baseURL + ". Empty response body.");
                 }
             } else {
                 Log.e(LOG_TAG, "Call to GeoMet failed. URL: " + baseURL + ". HTTP Code: " + response.code() + ". Message: " + (response.body() == null ? "null" : response.body().string()));
@@ -193,14 +197,18 @@ public class GeoMetService {
         Log.i(LOG_TAG, "Calling GeoMet. URL: " + STATION_URL);
         try (Response response = client. newCall(request).execute()) {
             if (response.isSuccessful()) {
-                try {
-                    StationResponse stationResponse = gson.fromJson(response.body().string(), StationResponse.class);
-                    if(null != stationResponse) {
-                        Log.i(LOG_TAG, stationResponse.numberReturned + " Stations were returned from GeoMet. URL: " + STATION_URL);
-                        return stationResponse.stations;
+                if(response.body() != null) {
+                    try {
+                        StationResponse stationResponse = gson.fromJson(response.body().string(), StationResponse.class);
+                        if(null != stationResponse) {
+                            Log.i(LOG_TAG, stationResponse.numberReturned + " Stations were returned from GeoMet. URL: " + STATION_URL);
+                            return stationResponse.stations;
+                        }
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "Failed to parse response for GeoMet. URL: " + STATION_URL + ". Response body: " + response.body().string() + "\n" + StackTraceCompactor.getCompactStackTrace(e));
                     }
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "Failed to parse response for GeoMet. URL: " + STATION_URL + ". Response body: " + response.body().string() + "\n" + StackTraceCompactor.getCompactStackTrace(e));
+                } else {
+                    Log.e(LOG_TAG, "Call to GeoMet failed. URL: " + STATION_URL + ". Empty response body.");
                 }
             } else {
                 Log.e(LOG_TAG, "Call to GeoMet failed. URL: " + STATION_URL + ". HTTP Code: " + response.code() + ". Message: " + (response.body() == null ? "null" : response.body().string()));

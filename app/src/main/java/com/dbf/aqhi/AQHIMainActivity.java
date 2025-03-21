@@ -183,7 +183,7 @@ public class AQHIMainActivity extends AppCompatActivity implements AQHIFeature {
         //UPDATE LOCATION TEXT
         TextView locationText = findViewById(R.id.txtLocation);
         if(null == recentStation || recentStation.isEmpty()) {
-            locationText.setText("Unknown");
+            locationText.setText(R.string.unknown_Location);
         } else {
             locationText.setText(recentStation);
         }
@@ -250,7 +250,6 @@ public class AQHIMainActivity extends AppCompatActivity implements AQHIFeature {
         //TODO: support timezone changes
         final boolean vertical = getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT;
         final int cellSize = vertical ? 65 : 110;
-        final int cellFontSize = vertical ? 65 : 110;
         final float fontScale = this.getResources().getConfiguration().fontScale;
         final SimpleDateFormat formatter = new SimpleDateFormat("MMM d a", Locale.CANADA); // Not thread safe
         return HeatMap.builder()

@@ -1,11 +1,9 @@
 package com.dbf.aqhi.widgets.config;
 
 import android.app.Activity;
-import android.app.WallpaperManager;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProviderInfo;
 import android.content.Intent;
-import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.widget.RadioGroup;
 import android.view.View;

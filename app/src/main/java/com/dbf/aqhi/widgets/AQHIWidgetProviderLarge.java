@@ -9,7 +9,6 @@ import android.appwidget.AppWidgetManager;
 import android.content.Context;
 import android.os.Bundle;
 import android.util.TypedValue;
-import android.widget.FrameLayout;
 import android.widget.RemoteViews;
 
 import androidx.appcompat.app.AppCompatDelegate;
