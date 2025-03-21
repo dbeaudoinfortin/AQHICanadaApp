@@ -16,6 +16,7 @@ import com.dbf.aqhi.geomet.data.realtime.RealtimeResponse;
 import com.dbf.aqhi.geomet.station.Station;
 import com.dbf.aqhi.geomet.station.StationResponse;
 import com.dbf.aqhi.http.RetryInterceptor;
+import com.dbf.utils.stacktrace.StackTraceCompactor;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
@@ -98,13 +99,13 @@ public class GeoMetService {
                         return dataResponse.getData();
                     }
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "Failed to parse response for GeoMet. URL: " + baseURL + ". Response body: " + response.body().string(), e);
+                    Log.e(LOG_TAG, "Failed to parse response for GeoMet. URL: " + baseURL + ". Response body: " + response.body().string()+ "\n" + StackTraceCompactor.getCompactStackTrace(e));
                 }
             } else {
                 Log.e(LOG_TAG, "Call to GeoMet failed. URL: " + baseURL + ". HTTP Code: " + response.code() + ". Message: " + (response.body() == null ? "null" : response.body().string()));
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "Failed to call GeoMet. URL: " + baseURL, e);
+            Log.e(LOG_TAG, "Failed to call GeoMet. URL: " + baseURL + "\n" + StackTraceCompactor.getCompactStackTrace(e));
         }
         return null;
     }
@@ -166,7 +167,7 @@ public class GeoMetService {
             gson.toJson(stations, writer); // Serialize the List<Station> to JSON
             stationCacheFile.setLastModified(System.currentTimeMillis()); // Update the timestamp
         } catch (IOException e) {
-            Log.e(LOG_TAG, "Failed to write station definitions to the cache file " + stationCacheFile.getAbsolutePath(), e);
+            Log.e(LOG_TAG, "Failed to write station definitions to the cache file " + stationCacheFile.getAbsolutePath() + "\n" + StackTraceCompactor.getCompactStackTrace(e));
         }
     }
 
@@ -177,7 +178,7 @@ public class GeoMetService {
             try (FileReader reader = new FileReader(stationCacheFile)) {
                 return gson.fromJson(reader, stationsType);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "Failed to read station definitions from the cache file " + stationCacheFile.getAbsolutePath(), e);
+                Log.e(LOG_TAG, "Failed to read station definitions from the cache file " + stationCacheFile.getAbsolutePath() + "\n" + StackTraceCompactor.getCompactStackTrace(e));
             }
         }
         return null;
@@ -199,13 +200,13 @@ public class GeoMetService {
                         return stationResponse.stations;
                     }
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "Failed to parse response for GeoMet. URL: " + STATION_URL + ". Response body: " + response.body().string(), e);
+                    Log.e(LOG_TAG, "Failed to parse response for GeoMet. URL: " + STATION_URL + ". Response body: " + response.body().string() + "\n" + StackTraceCompactor.getCompactStackTrace(e));
                 }
             } else {
                 Log.e(LOG_TAG, "Call to GeoMet failed. URL: " + STATION_URL + ". HTTP Code: " + response.code() + ". Message: " + (response.body() == null ? "null" : response.body().string()));
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "Failed to call GeoMet. URL: " + STATION_URL, e);
+            Log.e(LOG_TAG, "Failed to call GeoMet. URL: " + STATION_URL + "\n" + StackTraceCompactor.getCompactStackTrace(e));
         }
         return null;
     }

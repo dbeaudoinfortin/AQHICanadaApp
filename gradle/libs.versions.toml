@@ -16,8 +16,9 @@ activity = "1.8.0"
 constraintlayout = "2.1.4"
 okhttp = "4.12.0"
 gson = "2.12.1"
-heatmaps = "0.0.1.3"
 commons-io = "2.18.0"
+heatmaps = "0.0.1.3"
+stacktrace = "0.0.5"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -42,8 +43,9 @@ androidx-activity = { group = "androidx.activity", name = "activity", version.re
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
-heatmaps = { group = "io.github.dbeaudoinfortin", name = "heatmaps-android", version.ref = "heatmaps" }
 commonsio = { group = "commons-io", name = "commons-io", version.ref = "commons-io" }
+heatmaps = { group = "io.github.dbeaudoinfortin", name = "heatmaps-android", version.ref = "heatmaps" }
+stacktrace = { group = "io.github.dbeaudoinfortin", name = "stack-trace-compactor", version.ref = "stacktrace" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -30,7 +30,7 @@
         <!-- SMALL ANDROID WIDGET -->
         <receiver
             android:name=".widgets.AQHIWidgetProviderSmall"
-            android:theme="@style/Theme.AQHIWidgetLight"
+            android:theme="@style/Theme.AQHIWidget"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -45,7 +45,7 @@
         <!-- LARGE ANDROID WIDGET -->
         <receiver
             android:name=".widgets.AQHIWidgetProviderLarge"
-            android:theme="@style/Theme.AQHIWidgetLight"
+            android:theme="@style/Theme.AQHIWidget"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />

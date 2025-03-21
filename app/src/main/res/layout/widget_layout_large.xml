@@ -9,7 +9,8 @@
         android:id="@+id/widget_background"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:src="@drawable/widget_background"
+        android:importantForAccessibility="no"
+        android:src="@drawable/widget_background_light"
         android:scaleType="centerCrop" />
 
     <LinearLayout
@@ -31,7 +32,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:layout_marginStart="5dp"
-                android:layout_marginEnd="2dp"
+                android:layout_marginEnd="6dp"
                 android:gravity="start|center"
                 android:fontFamily="@font/roboto"
                 android:includeFontPadding="false"

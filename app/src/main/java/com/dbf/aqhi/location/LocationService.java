@@ -3,13 +3,11 @@ package com.dbf.aqhi.location;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.os.Looper;
 import android.util.Log;
-import android.widget.Toast;
 
-import com.dbf.aqhi.R;
 import com.dbf.aqhi.Utils;
 import com.dbf.aqhi.permissions.PermissionService;
+import com.dbf.utils.stacktrace.StackTraceCompactor;
 import com.google.android.gms.location.CurrentLocationRequest;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
@@ -42,7 +40,7 @@ public class LocationService {
         this.locationClient = LocationServices.getFusedLocationProviderClient(context);
         this.locationRequest =
             new CurrentLocationRequest.Builder()
-                    .setPriority(Priority.PRIORITY_BALANCED_POWER_ACCURACY)
+                    .setPriority(Priority.PRIORITY_HIGH_ACCURACY)
                     .setMaxUpdateAgeMillis(60000)
                     .setDurationMillis(60000)
                     .build();
@@ -95,13 +93,11 @@ public class LocationService {
 
             //Perform the callback now that the saved location has been updated
             if(null != callback) callback.run();
-        }).addOnFailureListener(e -> {
-            Log.e(LOG_TAG, "Failed to update the current location.", e);
-        });
+        }).addOnFailureListener(e -> Log.e(LOG_TAG, "Failed to update the current location." + "\n" + StackTraceCompactor.getCompactStackTrace(e)));
     }
 
     /**
-     * Converts are String representation of latitude and longitude coordinates, seperated by a semi-colon ';',
+     * Converts are String representation of latitude and longitude coordinates, separated by a semi-colon ';',
      * into a double array of length 2, in the form of double[latitude, longitude].
      *
      * @param coordinates String of coordinates.
@@ -130,7 +126,7 @@ public class LocationService {
 
             return new double[] {latitude, longitude};
         } catch (Exception e) {
-            Log.e(LOG_TAG, "Failed to parse location coordinates: " + coordinates, e);
+            Log.e(LOG_TAG, "Failed to parse location coordinates: " + coordinates + "\n" + StackTraceCompactor.getCompactStackTrace(e));
         }
         return null;
     }
@@ -143,7 +139,7 @@ public class LocationService {
      */
     public double[] getRecentLocation(boolean allowStale){
         if(!allowStale) {
-            Long ts = locationPref.getLong(LOCATION_COORDINATES_TS_KEY, Integer.MIN_VALUE);
+            long ts = locationPref.getLong(LOCATION_COORDINATES_TS_KEY, Integer.MIN_VALUE);
             if (System.currentTimeMillis() - ts > DATA_VALIDITY_DURATION) return null;
         }
         return parseLocationCoordinates(locationPref.getString(LOCATION_COORDINATES_KEY, null));

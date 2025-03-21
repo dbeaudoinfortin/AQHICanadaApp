@@ -2,6 +2,10 @@ package com.dbf.aqhi.http;
 
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
+import com.dbf.utils.stacktrace.StackTraceCompactor;
+
 import java.io.IOException;
 
 import okhttp3.Interceptor;
@@ -16,16 +20,17 @@ public class RetryInterceptor implements Interceptor {
         this.LOG_TAG = LOG_TAG;
     }
 
+    @NonNull
     @Override
     public Response intercept(Chain chain) throws IOException {
-        int attempt = 0;
+        int attempt = 1;
         while (true) {
             try {
                 return chain.proceed(chain.request());
             } catch (IOException e) {
-                Log.w(LOG_TAG, "HTTP Call failed: " + chain.request().method() + " " + chain.request().url(), e);
+                Log.w(LOG_TAG, "HTTP Call failed on attempt " + attempt + ": " + chain.request().method() + " " + chain.request().url() + "\n" + StackTraceCompactor.getCompactStackTrace(e));
                 attempt++;
-                if (attempt >= maxTries) {
+                if (attempt > maxTries) {
                     throw e;
                 }
             }

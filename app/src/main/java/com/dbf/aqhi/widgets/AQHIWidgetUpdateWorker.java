@@ -5,6 +5,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
@@ -20,6 +21,7 @@ public class AQHIWidgetUpdateWorker extends Worker {
         super(context, params);
     }
 
+    @NonNull
     @Override
     public Result doWork() {
         Log.i(LOG_TAG, "Starting forced background update of AQHI widgets.");

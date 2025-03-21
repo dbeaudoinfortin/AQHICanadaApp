@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.widget.RemoteViews;
 
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.work.ExistingWorkPolicy;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
@@ -137,7 +138,7 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQ
             //Create the new remote view that will replace the existing one
             RemoteViews views = createRemoteViews(context);
             //Attach a Click Listener that will open the main activity when you click on the widget
-            addClickListeners(context, views, appWidgetManager);
+            addClickListeners(context, views);
             //Manually update the widget UI using stale data
             updateWidgetUI(context, views, appWidgetManager, appWidgetId);
         }
@@ -171,7 +172,7 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQ
                     //Create the new remote view that will replace the existing one
                     RemoteViews view = createRemoteViews(context);
                     //Attach a Click Listener that will open the main activity when you click on the widget
-                    addClickListeners(context, view, appWidgetManager);
+                    addClickListeners(context, view);
                     updateWidgetUI(context, view, appWidgetManager, appWidgetId);
                 }
             });
@@ -180,7 +181,7 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQ
         }
     }
 
-    private void addClickListeners(Context context, RemoteViews views, AppWidgetManager appWidgetManager) {
+    private void addClickListeners(Context context, RemoteViews views) {
         //Set an intent that will open the main activity when clicking on the widget
         Intent clickIntent = new Intent(context, AQHIMainActivity.class);
         clickIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP); //Open just once
@@ -228,10 +229,27 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQ
     }
 
     public void updateWidgetUI(Context context, RemoteViews views, AppWidgetManager appWidgetManager, int appWidgetId) {
+
         WidgetConfig widgetConfig = new WidgetConfig(context, appWidgetId);
+        final int lightDarkMode = widgetConfig.getNightMode();
+
+        //Background colour
+        int bgID = R.drawable.widget_background;
+        if (lightDarkMode == AppCompatDelegate.MODE_NIGHT_YES) {
+            bgID = R.drawable.widget_background_dark;
+        } else if (lightDarkMode == AppCompatDelegate.MODE_NIGHT_NO) {
+            bgID = R.drawable.widget_background_light;
+        }
+        views.setImageViewResource(R.id.widget_background, bgID);
+
         //Background transparency
         views.setInt(R.id.widget_background, "setAlpha", (int) (widgetConfig.getAlpha() * 2.55f));
+
+        //Allow the sub-classes to update their specific UI components
+        updateWidgetUI(context, lightDarkMode, views, appWidgetManager, appWidgetId);
     }
+
+    public abstract void updateWidgetUI(Context context, int lightDarkMode, RemoteViews views, AppWidgetManager appWidgetManager, int appWidgetId);
 
     protected abstract int getLayoutId();
 }

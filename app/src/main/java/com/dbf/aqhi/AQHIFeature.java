@@ -1,5 +1,7 @@
 package com.dbf.aqhi;
 
+import androidx.appcompat.app.AppCompatDelegate;
+
 import com.dbf.aqhi.service.AQHIService;
 
 import java.text.DecimalFormat;

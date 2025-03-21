@@ -1,9 +1,9 @@
 package com.dbf.aqhi.widgets.config;
 
 import android.app.Activity;
+import android.app.WallpaperManager;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProviderInfo;
-import android.content.Context;
 import android.content.Intent;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
@@ -14,16 +14,18 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.FrameLayout;
 
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
-import androidx.appcompat.view.ContextThemeWrapper;
 
+import com.dbf.aqhi.AQHIFeature;
 import com.dbf.aqhi.R;
+import com.dbf.aqhi.service.AQHIService;
 import com.dbf.aqhi.widgets.AQHIWidgetProvider;
 import com.dbf.aqhi.widgets.AQHIWidgetProviderLarge;
 import com.dbf.aqhi.widgets.AQHIWidgetProviderSmall;
 
-public class AQHIWidgetConfigActivity extends AppCompatActivity {
+public class AQHIWidgetConfigActivity extends Activity implements AQHIFeature {
+
+    private View widgetPreview;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,7 +78,7 @@ public class AQHIWidgetConfigActivity extends AppCompatActivity {
         updateModeCheckBoxes(rgMode, mode);
 
         //Add a preview of the widget itself
-        View widgetPreview = showWidgetPreview(appWidgetId, determineWidgetTheme(mode));
+        widgetPreview = showWidgetPreview(appWidgetId);
 
         //Set the defaults for transparency
         int defaultAlpha = widgetConfig.getAlpha();
@@ -85,15 +87,16 @@ public class AQHIWidgetConfigActivity extends AppCompatActivity {
 
         TextView lblTransparencyValue = findViewById(R.id.lblTransparencyValue);
         lblTransparencyValue.setText(defaultAlpha + "%");
-        setPreviewBackground(widgetPreview, defaultAlpha);
 
         //Update the transparency label when the bar value changes
         sbTransparency.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 lblTransparencyValue.setText(progress + "%");
-                setPreviewBackground(widgetPreview, progress);
                 widgetConfig.setAlpha(progress);
+
+                //Apply layout to the widget preview
+                widgetPreview = showWidgetPreview(appWidgetId);
             }
 
             @Override
@@ -104,26 +107,19 @@ public class AQHIWidgetConfigActivity extends AppCompatActivity {
         });
 
         //Changes to dark/light mode
-        rgMode.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(RadioGroup group, int checkedId) {
-                int newMode = determineLightDarkMode(checkedId);
-                widgetConfig.setNightMode(newMode);
+        rgMode.setOnCheckedChangeListener((group, checkedId) -> {
+            int newMode = determineLightDarkMode(checkedId);
+            widgetConfig.setNightMode(newMode);
 
-                //Apply theme to the widget preview
-                int themeId = determineWidgetTheme(newMode);
-                showWidgetPreview(appWidgetId, themeId);
-            }
+            //Apply layout to the widget preview
+            widgetPreview = showWidgetPreview(appWidgetId);
         });
     }
 
-    private View showWidgetPreview(int appWidgetId, int themeId) {
+    private View showWidgetPreview(int appWidgetId) {
         AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(this.getApplicationContext());
         AppWidgetProviderInfo info = appWidgetManager.getAppWidgetInfo(appWidgetId);
         RemoteViews widgetRemoteViews = new RemoteViews(getPackageName(), info.initialLayout);
-
-        //Create a dynamic theme that can switch between light and dark mode
-        Context themedContext = new ContextThemeWrapper(this, themeId);
 
         //Size it correctly and place it in its container
         FrameLayout previewContainer = findViewById(R.id.preview_container);
@@ -131,15 +127,21 @@ public class AQHIWidgetConfigActivity extends AppCompatActivity {
         //Existing previews before adding the new one
         previewContainer.removeAllViews();
 
-        View widgetPreview = widgetRemoteViews.apply(themedContext, previewContainer);
-        
-        //Set rounded corners
-        widgetPreview.setClipToOutline(true); 
+        View widgetPreview = widgetRemoteViews.apply(this, previewContainer);
         
         //Set the size of the preview
-        float density = getResources().getDisplayMetrics().density*0.6f;
-        widgetPreview.setLayoutParams(new FrameLayout.LayoutParams((int) (info.minWidth*density), (int) (info.minHeight*density)));
-        
+        FrameLayout previewBG = findViewById(R.id.preview_container_background);
+        //The large widget has a 3 to 1 ratio
+        //The small widget has a 1.2:1 ratio
+        final float scale = info.initialLayout == R.layout.widget_layout_large ? AQHIWidgetProviderLarge.PREVIEW_SCREEN_SCALE: AQHIWidgetProviderSmall.PREVIEW_SCREEN_SCALE;
+        final float ratio = info.initialLayout == R.layout.widget_layout_large ? AQHIWidgetProviderLarge.PREVIEW_SCREEN_RATIO: AQHIWidgetProviderSmall.PREVIEW_SCREEN_RATIO;
+        final int screenWidth = getResources().getDisplayMetrics().widthPixels;
+
+        widgetPreview.setLayoutParams(new FrameLayout.LayoutParams((int) (screenWidth*scale), (int) (screenWidth*scale*ratio)));
+
+        //Set rounded corners
+        widgetPreview.setClipToOutline(true);
+
         //Add the preview to the container
         previewContainer.addView(widgetPreview);
 
@@ -149,19 +151,10 @@ public class AQHIWidgetConfigActivity extends AppCompatActivity {
 
         //AQHIService is not initialized automatically since it needs a context
         provider.initAQHIService(this, appWidgetManager, new int[] {appWidgetId});
-        provider.refreshWidget(this, widgetRemoteViews, appWidgetManager, widgetRemoteViews.getViewId());
+        provider.refreshWidget(this, widgetRemoteViews, appWidgetManager, appWidgetId);
         widgetRemoteViews.reapply(this, widgetPreview);
 
         return widgetPreview;
-    }
-
-    private int determineWidgetTheme(int mode){
-        if (mode == AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM) {
-            return R.style.Theme_AQHIWidgetLightDark;
-        } else if (mode== AppCompatDelegate.MODE_NIGHT_YES) {
-            return R.style.Theme_AQHIWidgetDark;
-        }
-        return R.style.Theme_AQHIWidgetLight;
     }
 
     private int determineLightDarkMode(int checkedId) {
@@ -183,14 +176,8 @@ public class AQHIWidgetConfigActivity extends AppCompatActivity {
         }
     }
 
-    private void setPreviewBackground(View widgetPreview, int percentage) {
-        //TODO: this is now broken
-        Drawable background = widgetPreview.getBackground();
-        if (background != null) {
-            //Make the background mutable
-            background = background.mutate();
-            int newAlpha = (int) (percentage * 2.55f);
-            background.setAlpha(newAlpha);
-        }
+    @Override
+    public AQHIService getAQHIService() {
+        return null; //Handled by the provider instead
     }
 }

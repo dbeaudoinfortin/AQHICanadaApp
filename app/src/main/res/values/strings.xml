@@ -22,4 +22,12 @@
     <string name="forecast_heat_map">Forecast Heat Map</string>
     <string name="daily_maximums">Daily Maximums:</string>
     <string name="hourly_forecast">Hourly Forecast:</string>
+    <string name="preview">Preview:</string>
+    <string name="automatic">Automatic</string>
+    <string name="dark">Dark</string>
+    <string name="light">Light</string>
+    <string name="light_dark_mode">Light/Dark Mode:</string>
+    <string name="background_transparency">Background Transparency:</string>
+    <string name="save_settings">Save Settings</string>
+    <string name="widget_preview">Widget Preview</string>
 </resources>

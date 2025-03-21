@@ -25,7 +25,7 @@
                 android:id="@+id/lblTransparency"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Background Transparency:" />
+                android:text="@string/background_transparency" />
 
             <SeekBar
                 android:id="@+id/sbTransparency"
@@ -39,7 +39,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center"
-                android:text="30%" />
+                android:text="30%"
+                tools:ignore="HardcodedText" />
 
             <!-- Mode selection -->
             <TextView
@@ -47,7 +48,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
-                android:text="Light/Dark Mode:" />
+                android:text="@string/light_dark_mode" />
 
             <RadioGroup
                 android:id="@+id/rgMode"
@@ -58,30 +59,44 @@
                     android:id="@+id/rbLight"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Light" />
+                    android:text="@string/light" />
                 <RadioButton
                     android:id="@+id/rbDark"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Dark" />
+                    android:text="@string/dark" />
 
                 <RadioButton
                     android:id="@+id/rbAutomatic"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:checked="true"
-                    android:text="Automatic" />
+                    android:text="@string/automatic" />
             </RadioGroup>
+
+            <!-- Widget Preview -->
             <TextView
                 android:id="@+id/lblPreview"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Preview:" />
+                android:text="@string/preview"
+                android:layout_marginTop="10dp"/>
+
             <FrameLayout
-                android:id="@+id/preview_container"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"/>
+                android:id="@+id/preview_container_background"
+                android:layout_width="match_parent"
+                android:layout_height="200dp"
+                android:layout_marginTop="16dp"
+                android:scaleType="fitXY"
+                android:background="@drawable/dummy_bg">
+                <FrameLayout
+                    android:id="@+id/preview_container"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center">
+                </FrameLayout>
+            </FrameLayout>
+
 
         </LinearLayout>
     </ScrollView>
@@ -90,7 +105,7 @@
         android:id="@+id/btnSave"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Save Settings"
+        android:text="@string/save_settings"
         android:layout_marginTop="10dp"
         app:layout_constraintBottom_toBottomOf="parent"/>
 </androidx.constraintlayout.widget.ConstraintLayout>

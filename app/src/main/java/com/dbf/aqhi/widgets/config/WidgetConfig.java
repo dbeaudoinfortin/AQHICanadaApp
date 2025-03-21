@@ -5,16 +5,13 @@ import android.content.SharedPreferences;
 
 import androidx.appcompat.app.AppCompatDelegate;
 
-import java.util.Date;
-import java.util.Map;
-
 public class WidgetConfig {
 
     private static final String AQHI_PREF_KEY = "com.dbf.aqhi.widgets.";
     private static final String ALPHA_KEY  = "BACKGROUND_ALPHA";
     private static final String NIGHT_MODE_KEY = "NIGHT_MODE";
 
-    private static final int DEFAULT_ALPHA = 30; //30%
+    private static final int DEFAULT_ALPHA = 50; //50%
     private static final int DEFAULT_NIGHT_MODE = AppCompatDelegate.MODE_NIGHT_NO;
 
     private final SharedPreferences prefs;

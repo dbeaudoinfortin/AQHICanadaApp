@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="widget_background_color">#EBEBEB</color>
+    <color name="widget_background_light_color">#EBEBEB</color>
+    <color name="widget_background_dark_color">#1B1B1B</color>
     <color name="widget_text_color">#000000</color>
+    <color name="widget_text_light_color">#000000</color>
+    <color name="widget_text_dark_color">#E9E8E8</color>
     <color name="ic_launcher_background">#FFFFFD</color>
     <color name="main_activity_background">#FFFFFD</color>
     <color name="main_activity_header_background">#F2F2F2</color>

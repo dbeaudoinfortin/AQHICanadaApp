@@ -95,17 +95,6 @@ public class AQHIMainActivity extends AppCompatActivity implements AQHIFeature {
     }
 
     @Override
-    public void onConfigurationChanged(@NonNull Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-
-        if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            // Handle landscape mode
-        } else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
-            // Handle portrait mode
-        }
-    }
-
-    @Override
     protected void onResume() {
         super.onResume();
         Log.i(LOG_TAG, "AQHI Main Activity resumed.");
@@ -125,7 +114,6 @@ public class AQHIMainActivity extends AppCompatActivity implements AQHIFeature {
         super.onDestroy();
         Log.i(LOG_TAG, "AQHI Main Activity destroyed.");
         backgroundWorker.stop();
-
         //TODO: Force a widget update so the widgets aren't out of sync.
     }
 
@@ -174,29 +162,18 @@ public class AQHIMainActivity extends AppCompatActivity implements AQHIFeature {
 
         //Add a click listener to the heatmaps that will render them with data
         ImageView imgHistoricalHeatMap = findViewById(R.id.imgHistoricalHeatMap);
-        imgHistoricalHeatMap.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                showHistoricalGridData = !showHistoricalGridData;
-                Map<Date, Double> histData = backgroundWorker.getAQHIService().getHistoricalAQHI();
-                renderHistoricalHeatMap(histData);
-            }
+        imgHistoricalHeatMap.setOnClickListener(v -> {
+            showHistoricalGridData = !showHistoricalGridData;
+            Map<Date, Double> histData = backgroundWorker.getAQHIService().getHistoricalAQHI();
+            renderHistoricalHeatMap(histData);
         });
 
         ImageView imgForecastHeatMap = findViewById(R.id.imgForecastHeatMap);
-        imgForecastHeatMap.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                showForecastGridData = !showForecastGridData;
-                Map<Date, Double> forecastData = backgroundWorker.getAQHIService().getForecastAQHI();
-                renderForecastHeatMap(forecastData);
-            }
+        imgForecastHeatMap.setOnClickListener(v -> {
+            showForecastGridData = !showForecastGridData;
+            Map<Date, Double> forecastData = backgroundWorker.getAQHIService().getForecastAQHI();
+            renderForecastHeatMap(forecastData);
         });
-    }
-
-    private float calculateGaugeArrowRotation(Double aqhi) {
-        aqhi = Math.max(Math.min(aqhi,11d),1d);
-        return (float) ((((11-aqhi) / 10) * (-163.636)) -8.182);
     }
 
     private void updateUI() {
@@ -226,11 +203,9 @@ public class AQHIMainActivity extends AppCompatActivity implements AQHIFeature {
         if(null == aqhi) {
             arrowImage.setVisibility(INVISIBLE);
         } else {
-            aqhi = Math.max(Math.min(aqhi,11d),1d);
             arrowImage.setPivotX(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,6, getResources().getDisplayMetrics()));
             arrowImage.setPivotY(arrowImage.getHeight() / 2f);
-            float angle = (float) ((((11-aqhi) / 10) * (-163.636)) -8.182);
-            arrowImage.setRotation(angle);
+            arrowImage.setRotation(calculateGaugeArrowRotation(aqhi));
             arrowImage.setVisibility(VISIBLE);
         }
 
@@ -245,6 +220,11 @@ public class AQHIMainActivity extends AppCompatActivity implements AQHIFeature {
         LinearLayout dailyHistoricalList = findViewById(R.id.daily_historical_list);
         updateDailyList(histData, dailyHistoricalList, true);
         renderHistoricalHeatMap(histData);
+    }
+
+    private float calculateGaugeArrowRotation(Double aqhi) {
+        aqhi = Math.max(Math.min(aqhi,11d),1d);
+        return (float) ((((11-aqhi) / 10) * (-163.636)) -8.182);
     }
 
     private void renderForecastHeatMap(Map<Date, Double> forecastData) {
@@ -268,7 +248,10 @@ public class AQHIMainActivity extends AppCompatActivity implements AQHIFeature {
     private Bitmap generateHeatMap(Map<Date, Double> data, boolean showGridValues) {
         //TODO: support daylight savings
         //TODO: support timezone changes
-        float fontScale = this.getResources().getConfiguration().fontScale;
+        final boolean vertical = getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT;
+        final int cellSize = vertical ? 65 : 110;
+        final int cellFontSize = vertical ? 65 : 110;
+        final float fontScale = this.getResources().getConfiguration().fontScale;
         final SimpleDateFormat formatter = new SimpleDateFormat("MMM d a", Locale.CANADA); // Not thread safe
         return HeatMap.builder()
                 .withXAxis(IntegerAxis.instance()
@@ -290,7 +273,7 @@ public class AQHIMainActivity extends AppCompatActivity implements AQHIFeature {
                         data.keySet()//We need to sort these by date, then convert to string, then remove dupes!
                                 .stream()
                                 .sorted()
-                                .map(date->formatter.format(date))
+                                .map(formatter::format)
                                 .distinct()
                                 .toList()))
                 .withOptions(HeatMapOptions.builder()
@@ -309,17 +292,17 @@ public class AQHIMainActivity extends AppCompatActivity implements AQHIFeature {
                                         getColour("gradient_colour_10"),
                                         getColour("gradient_colour_11")
                                 }).build())
-                        .withCellWidth(65)
-                        .withCellHeight(65)
+                        .withCellWidth(cellSize)
+                        .withCellHeight(cellSize)
                         .withShowGridlines(false)
                         .withShowGridValues(showGridValues)
+                        .withGridValuesFontSize(vertical ? 28f : 36f)
                         .withOutsidePadding(0)
                         .withShowLegend(false)
                         .withShowXAxisLabels(true)
                         .withShowYAxisLabels(true)
                         .withAxisLabelFontColour(getSystemDefaultTextColor())
                         .withAxisLabelFontSize(38f*fontScale)
-                        .withGridValuesFontSize(28f)
                         .withAxisLabelPadding(15)
                         .withAxisLabelFontTypeface(Typeface.create("Roboto", Typeface.NORMAL))
                         .withColourScaleLowerBound(1.0)
@@ -327,10 +310,8 @@ public class AQHIMainActivity extends AppCompatActivity implements AQHIFeature {
                         .build())
                 .build().render(data.entrySet()
                         .stream()
-                        .map(entry->{
-                            return (DataRecord) new BasicDataRecord(Integer.valueOf(Utils.to12Hour(entry.getKey().getHours())),
-                                    formatter.format(entry.getKey()),Math.max(Math.min(entry.getValue(),11d),1d));
-                        }).toList());
+                        .map(entry-> (DataRecord) new BasicDataRecord(Utils.to12Hour(entry.getKey().getHours()),
+                                formatter.format(entry.getKey()),Math.max(Math.min(entry.getValue(),11d),1d))).toList());
     }
 
     private Color getSystemDefaultTextColor() {
@@ -346,8 +327,8 @@ public class AQHIMainActivity extends AppCompatActivity implements AQHIFeature {
         if (null == data || data.isEmpty()) return;
 
         final DecimalFormat decimalFormatter = new DecimalFormat(decimals ? AQHI_DIGIT_FORMAT : AQHI_NO_DIGIT_FORMAT);
-        final SimpleDateFormat dateDisplayFormat = new SimpleDateFormat("MMM d");//MAR 3
-        final SimpleDateFormat dayDisplayFormat  = new SimpleDateFormat("E");
+        final SimpleDateFormat dateDisplayFormat = new SimpleDateFormat("MMM d", Locale.CANADA);//MAR 3
+        final SimpleDateFormat dayDisplayFormat  = new SimpleDateFormat("E", Locale.CANADA);
 
         data.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
