@@ -2,6 +2,9 @@ package com.dbf.aqhi.service;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.util.Log;
 
 import com.dbf.aqhi.geomet.GeoMetService;
@@ -67,12 +70,15 @@ public class AQHIService {
     //May also be needed is the background location permission is not set
     private boolean allowStaleLocation = true;
 
+    private Context context;
+
     public AQHIService(Context context, Runnable onChange) {
         Log.i(LOG_TAG, "Initializing AQHI service.");
         locationService = new LocationService(context);
         this.geoMetService = new GeoMetService(context);
         this.onChange = onChange;
         this.aqhiPref = context.getSharedPreferences(AQHI_PREF_KEY, Context.MODE_PRIVATE);
+        this.context = context;
     }
 
     public void update() {
@@ -96,7 +102,8 @@ public class AQHIService {
         new Thread(() -> {
             try {
                 updateAQHISync();
-                //Always consider this a change in data. The latest AQHI number may be the same but the station may have changed, or the historical data may have changed.
+                //Always consider this a change in data.
+                //The latest AQHI number may be the same but the station may have changed, or the historical data may have changed.
                 if(null != onChange) onChange.run();
             } catch (Throwable t) { //Catch all
                 Log.e(LOG_TAG, "Failed to update AQHI data.", t);
@@ -112,6 +119,10 @@ public class AQHIService {
      *
      */
     private void updateAQHISync() {
+        if(!isInternetAvailable()) {
+            Log.i(LOG_TAG, "Network is down. Skipping update.");
+            return;
+        }
         Log.i(LOG_TAG, "Attempting to update the AQHI data for the current location.");
 
         //This code is stateful, we don't want to run multiple updates at the same time
@@ -143,18 +154,18 @@ public class AQHIService {
                 Log.i(LOG_TAG, "Could not fetch fresh data for station " + currentStationCode);
                 currentStationCode = determineCurrentLocation(previousStationCode, true);
                 if (currentStationCode == null) {
-                    Log.w(LOG_TAG, "Cannot determine the closest station. Clearing preferences.");
-                    //If the station is still null after forcing an update, then the API must be broken, we need wipe the preferences.
-                    clearAllPreferences();
+                    //If the station is still null after forcing an update, then either the API is broken or the device is offline
+                    Log.w(LOG_TAG, "Cannot determine the closest station. Device may be offline.");
+                    return;
+                }
+
+                //We have a new, valid, station. Update the AQHI once more
+                if (fetchLatestAQHIData(currentStationCode)) {
+                    Log.i(LOG_TAG, "Fresh data found for station " + currentStationCode);
                 } else {
-                    //We have a new, valid, station. Update the AQHI once more
-                    if (fetchLatestAQHIData(currentStationCode)) {
-                        Log.i(LOG_TAG, "Fresh data found for station " + currentStationCode);
-                    } else {
-                        //At this point, we may legitimately have no data.
-                        //For example, it's possible we were not able to update the station list and the current station has no data
-                        Log.e(LOG_TAG, "Could not fetch fresh data for station " + currentStationCode);
-                    }
+                    //At this point, we may legitimately have no data.
+                    //For example, it's possible we were not able to update the station list and the current station has no data
+                    Log.e(LOG_TAG, "Could not fetch fresh data for station " + currentStationCode);
                 }
             } else {
                 Log.i(LOG_TAG, "Could not fetch fresh data for manually set station: " + currentStationCode);
@@ -465,6 +476,23 @@ public class AQHIService {
         }
         editor.putLong(LATEST_AQHI_TS_KEY, System.currentTimeMillis());
         editor.apply();
+    }
+
+    private boolean isInternetAvailable() {
+        ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (connectivityManager == null)
+            return false;
+
+        Network network = connectivityManager.getActiveNetwork();
+        if (network == null)
+            return false;
+
+        NetworkCapabilities networkCapabilities = connectivityManager.getNetworkCapabilities(network);
+        if (networkCapabilities == null)
+            return false;
+
+        return networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
     }
 
     public boolean isAllowStaleLocation() {
