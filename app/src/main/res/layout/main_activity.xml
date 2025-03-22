@@ -45,7 +45,8 @@
                 android:fontFamily="@font/roboto"
                 android:textSize="16sp"
                 android:paddingTop="8dp"
-                android:paddingLeft="2dp"
+                android:paddingStart="2dp"
+                android:paddingEnd="0dp"
                 android:textStyle="bold"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintStart_toStartOf="parent"/>
@@ -77,10 +78,11 @@
                         android:layout_weight="1"
                         android:gravity="start|center_vertical"
                         android:fontFamily="@font/roboto"
-                        android:text="Unknown"
+                        android:text="@string/unknown"
                         android:paddingTop="8dp"
                         android:paddingBottom="8dp"
                         android:paddingEnd="4dp"
+                        android:paddingStart="0dp"
                         android:textSize="20sp" />
 
                     <TextView
@@ -108,7 +110,8 @@
                 android:text="@string/current_aqhi"
                 android:fontFamily="@font/roboto"
                 android:textSize="16sp"
-                android:paddingLeft="2dp"
+                android:paddingStart="2dp"
+                android:paddingEnd="0dp"
                 android:textStyle="bold"
                 app:layout_constraintTop_toBottomOf="@id/location_section"
                 app:layout_constraintStart_toStartOf="parent"
@@ -129,6 +132,7 @@
                     android:id="@+id/current_aqhi_bar"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:baselineAligned="false"
                     android:orientation="horizontal"
                     app:layout_constraintTop_toTopOf="@id/current_aqhi_section">
                 <LinearLayout
@@ -154,14 +158,14 @@
                         android:text="0.00"
                         android:textSize="38sp"
                         android:textStyle="bold"
-                        tools:ignore="SpUsage" />
+                        tools:ignore="HardcodedText,SpUsage" />
                     <TextView
                         android:id="@+id/txtAQHIRisk"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="center"
                         android:fontFamily="@font/roboto"
-                        android:text="Low Risk"
+                        android:text="@string/low_risk"
                         android:textSize="20sp"
                         android:paddingTop="0dp"
                         android:paddingBottom="8dp"/>
@@ -187,6 +191,7 @@
                             android:layout_height="wrap_content"
                             android:layout_gravity="bottom|start"
                             android:layout_marginStart="92dp"
+                            android:contentDescription="@string/aqhi_meter_graph"
                             android:src="@drawable/gauge_arrow"
                             android:translationY="4dp"
                             android:visibility="invisible" />
@@ -201,7 +206,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/aqhi_forecast_maximums"
-                android:paddingLeft="2dp"
+                android:paddingStart="2dp"
+                android:paddingEnd="0dp"
                 android:fontFamily="@font/roboto"
                 android:textSize="16sp"
                 android:textStyle="bold"
@@ -249,7 +255,8 @@
                     android:fontFamily="@font/roboto"
                     android:paddingTop="4dp"
                     android:paddingBottom="4dp"
-                    android:paddingLeft="8dp"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="0dp"
                     android:text="@string/hourly_forecast"
                     android:textStyle="bold"
                     app:layout_constraintStart_toStartOf="parent"
@@ -274,7 +281,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/aqhi_historical_trend"
-                android:paddingLeft="2dp"
+                android:paddingStart="2dp"
+                android:paddingEnd="0dp"
                 android:fontFamily="@font/roboto"
                 android:textSize="16sp"
                 android:textStyle="bold"
@@ -323,8 +331,9 @@
                     android:fontFamily="@font/roboto"
                     android:paddingTop="4dp"
                     android:paddingBottom="4dp"
-                    android:paddingLeft="8dp"
-                    android:text="Hourly History:"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="0dp"
+                    android:text="@string/hourly_history"
                     android:textStyle="bold"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/daily_historical_list" />
@@ -343,7 +352,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="10dp"
                 app:layout_constraintTop_toBottomOf="@id/aqhi_historical_section"
-                app:layout_constraintEnd_toEndOf="parent"/>
+                app:layout_constraintEnd_toEndOf="parent"
+                tools:ignore="UselessLeaf" />
         </androidx.constraintlayout.widget.ConstraintLayout>
         </androidx.constraintlayout.widget.ConstraintLayout>
     </ScrollView>

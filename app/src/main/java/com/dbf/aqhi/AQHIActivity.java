@@ -28,6 +28,8 @@ public abstract class AQHIActivity extends Activity implements AQHIFeature {
         showDialog("About AQHI", R.raw.about_aqhi);
     }
 
+    public void showPrivacy(View view) { showDialog("Privacy Statement", R.raw.privacy); }
+
     private void showDialog(String title, int resourceID){
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(title);

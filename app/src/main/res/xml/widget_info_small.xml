@@ -7,5 +7,5 @@
     android:resizeMode="horizontal"
     android:previewImage="@drawable/widget_small_preview"
     android:widgetCategory="home_screen"
-    android:configure="com.dbf.aqhi.widgets.config.AQHIWidgetConfigActivity">
-</appwidget-provider>
+    android:configure="com.dbf.aqhi.widgets.config.AQHIWidgetConfigActivity"
+    android:widgetFeatures="reconfigurable"/>

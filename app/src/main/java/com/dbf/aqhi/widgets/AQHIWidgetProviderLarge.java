@@ -25,7 +25,7 @@ public class AQHIWidgetProviderLarge extends AQHIWidgetProvider {
     public static final float PREVIEW_SCREEN_SCALE = 0.8f;
     public static final float PREVIEW_SCREEN_RATIO = 0.33333f;
 
-    private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("h:mm a", Locale.ENGLISH);
+    private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("h:mm a", Locale.CANADA);
 
     public AQHIWidgetProviderLarge() {
         super();
@@ -60,7 +60,7 @@ public class AQHIWidgetProviderLarge extends AQHIWidgetProvider {
         //Update text contents
         views.setTextViewText(R.id.txtAQHI, getLatestAQHIString());
         views.setTextViewText(R.id.lblStation, getCurrentStationName());
-        views.setTextViewText(R.id.lblTimestamp, LocalTime.now().format(TIMESTAMP_FORMAT));
+        views.setTextViewText(R.id.lblTimestamp, context.getResources().getString(R.string.updated_at) + " " + LocalTime.now().format(TIMESTAMP_FORMAT));
 
         //Update the position of the gauge arrow
         updateArrowPosition(context, views, appWidgetManager, appWidgetId);

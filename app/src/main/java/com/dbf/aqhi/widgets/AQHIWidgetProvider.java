@@ -103,6 +103,11 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQ
                 new OneTimeWorkRequest.Builder(AQHIWidgetUpdateWorker.class)
                         .setInitialDelay(20, TimeUnit.MINUTES)
                         .build());
+
+        workManager.enqueueUniqueWork("widget_update_30", ExistingWorkPolicy.KEEP,
+                new OneTimeWorkRequest.Builder(AQHIWidgetUpdateWorker.class)
+                        .setInitialDelay(30, TimeUnit.MINUTES)
+                        .build());
     }
 
     public void onRestored(Context context, int[] oldWidgetIds, int[] newWidgetIds) {

@@ -40,7 +40,7 @@ public class LocationService {
         this.locationClient = LocationServices.getFusedLocationProviderClient(context);
         this.locationRequest =
             new CurrentLocationRequest.Builder()
-                    .setPriority(Priority.PRIORITY_HIGH_ACCURACY)
+                    .setPriority(Priority.PRIORITY_BALANCED_POWER_ACCURACY)
                     .setMaxUpdateAgeMillis(60000)
                     .setDurationMillis(60000)
                     .build();
