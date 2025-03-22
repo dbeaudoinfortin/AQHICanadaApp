@@ -21,6 +21,7 @@
 
         <!-- TOP PORTION, INFO -->
         <LinearLayout
+            android:id="@+id/top_info"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
@@ -75,6 +76,7 @@
 
         <!-- BOTTOM PORTION, SCALE -->
         <FrameLayout
+            android:id="@+id/bottom_info"
             android:layout_width="match_parent"
             android:layout_height="50dp">
 

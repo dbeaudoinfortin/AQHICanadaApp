@@ -3,12 +3,14 @@ package com.dbf.aqhi.widgets;
 import static android.view.View.INVISIBLE;
 import static android.view.View.VISIBLE;
 import static android.widget.RemoteViews.MARGIN_START;
+import static android.widget.RemoteViews.MARGIN_TOP;
 
 import android.app.Activity;
 import android.appwidget.AppWidgetManager;
 import android.content.Context;
 import android.os.Bundle;
 import android.util.TypedValue;
+import android.view.View;
 import android.widget.RemoteViews;
 
 import androidx.appcompat.app.AppCompatDelegate;
@@ -24,6 +26,7 @@ public class AQHIWidgetProviderLarge extends AQHIWidgetProvider {
 
     public static final float PREVIEW_SCREEN_SCALE = 0.8f;
     public static final float PREVIEW_SCREEN_RATIO = 0.33333f;
+    public static final int   MIN_HEIGHT_INFO_BAR = 60;
 
     private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("h:mm a", Locale.CANADA);
 
@@ -36,6 +39,21 @@ public class AQHIWidgetProviderLarge extends AQHIWidgetProvider {
     }
 
     public void updateWidgetUI(Context context, int lightDarkMode, RemoteViews views, AppWidgetManager appWidgetManager, int appWidgetId) {
+        //We don't always have enough space to render top bar
+        //This happens in landscape mode. Don't do this if we are in preview mode
+        if(!(context instanceof Activity)) {
+            Bundle options = appWidgetManager.getAppWidgetOptions(appWidgetId);
+            if (options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT) < MIN_HEIGHT_INFO_BAR) {
+                views.setViewVisibility(R.id.top_info, View.GONE);
+                views.setViewLayoutMargin(R.id.bottom_info, MARGIN_TOP, 10, TypedValue.COMPLEX_UNIT_DIP);
+                views.setViewVisibility(R.id.lblTimestamp, View.GONE);
+            } else {
+                views.setViewVisibility(R.id.top_info, View.VISIBLE);
+                views.setViewLayoutMargin(R.id.bottom_info, MARGIN_TOP, 0, TypedValue.COMPLEX_UNIT_DIP);
+                views.setViewVisibility(R.id.lblTimestamp, View.VISIBLE);
+            }
+        }
+
         //Update text colours
         int colourId = R.color.widget_text_color;
         if (lightDarkMode == AppCompatDelegate.MODE_NIGHT_YES) {
