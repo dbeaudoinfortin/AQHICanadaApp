@@ -5,6 +5,7 @@ import static android.view.View.VISIBLE;
 
 import android.Manifest;
 
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
@@ -65,12 +66,6 @@ public class AQHIMainActivity extends AQHIActivity {
 
         Log.i(LOG_TAG, "AQHI Main Activity created.");
         setContentView(R.layout.main_activity);
-
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
 
         initUI();
 
@@ -140,6 +135,12 @@ public class AQHIMainActivity extends AQHIActivity {
 
     protected void initUI() {
         Log.i(LOG_TAG, "Initializing AQHI Main Activity UI.");
+
+        //Add a click listener for the change location text
+        findViewById(R.id.txtChangeLocationLink).setOnClickListener(v -> {
+            Intent intent = new Intent(AQHIMainActivity.this, AQHILocationActivity.class);
+            startActivity(intent);
+        });
 
         //Align the arrow to the correct center position of the gauge
         ImageView arrowImage = findViewById(R.id.imgAQHIGaugeArrow);

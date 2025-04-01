@@ -30,7 +30,7 @@
         app:layout_constraintBottom_toTopOf="@id/footer_bar">
 
         <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/body_content"
+            android:id="@+id/bodyContent"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_margin="10dp"
@@ -52,7 +52,7 @@
                 app:layout_constraintStart_toStartOf="parent"/>
 
             <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/location_section"
+                android:id="@+id/clLocationSection"
                 android:layout_width="match_parent"
                 android:padding="8dp"
                 android:layout_marginTop="6dp"
@@ -63,39 +63,42 @@
                 app:layout_constraintEnd_toEndOf="parent">
 
                 <LinearLayout
-                    android:id="@+id/location_layout"
+                    android:id="@+id/locationLayout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    app:layout_constraintTop_toTopOf="@id/location_section"
+                    app:layout_constraintTop_toTopOf="@id/clLocationSection"
                     app:layout_constraintStart_toStartOf="parent" >
 
                     <TextView
                         android:id="@+id/txtLocation"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:maxLines="3"
                         android:layout_weight="1"
                         android:gravity="start|center_vertical"
+                        android:layout_gravity="start|center_vertical"
                         android:fontFamily="@font/roboto"
                         android:text="@string/unknown"
-                        android:paddingTop="8dp"
+                        android:paddingTop="0dp"
                         android:paddingBottom="8dp"
                         android:paddingEnd="4dp"
                         android:paddingStart="0dp"
                         android:textSize="20sp" />
 
                     <TextView
-                        android:id="@+id/change_location"
+                        android:id="@+id/txtChangeLocationLink"
                         android:layout_width="wrap_content"
-                        android:layout_height="match_parent"
+                        android:layout_height="48dp"
                         android:text="@string/change_location"
                         android:fontFamily="@font/roboto"
                         android:textColor="@color/main_activity_action_text"
                         android:gravity="end|bottom"
+                        android:layout_gravity="end|bottom"
                         android:textSize="12sp"
                         android:paddingStart="4dp"
-                        android:paddingEnd="8dp"/>
+                        android:paddingEnd="3dp"
+                        android:clickable="true"
+                        android:focusable="true"/>
                </LinearLayout>
 
 
@@ -113,12 +116,12 @@
                 android:paddingStart="2dp"
                 android:paddingEnd="0dp"
                 android:textStyle="bold"
-                app:layout_constraintTop_toBottomOf="@id/location_section"
+                app:layout_constraintTop_toBottomOf="@id/clLocationSection"
                 app:layout_constraintStart_toStartOf="parent"
                 android:paddingTop="10dp"/>
 
             <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/current_aqhi_section"
+                android:id="@+id/clCurrentAQHISection"
                 android:layout_width="match_parent"
                 android:padding="8dp"
                 android:layout_marginTop="6dp"
@@ -129,14 +132,14 @@
                 android:background="@drawable/soft_border">
 
                 <LinearLayout
-                    android:id="@+id/current_aqhi_bar"
+                    android:id="@+id/llCurrentAQHIBar"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:baselineAligned="false"
                     android:orientation="horizontal"
-                    app:layout_constraintTop_toTopOf="@id/current_aqhi_section">
+                    app:layout_constraintTop_toTopOf="@id/clCurrentAQHISection">
                 <LinearLayout
-                    android:id="@+id/current_aqhi_reading"
+                    android:id="@+id/llCurrentAQHIReading"
                     android:layout_width="0dp"
                     android:layout_weight="1"
                     android:layout_height="wrap_content"
@@ -144,7 +147,7 @@
                     android:paddingStart="0dp"
                     android:paddingEnd="0dp"
                     android:layout_gravity="center"
-                    app:layout_constraintTop_toTopOf="@id/current_aqhi_section">
+                    app:layout_constraintTop_toTopOf="@id/clCurrentAQHISection">
 
                     <TextView
                         android:id="@+id/txtAQHIValue"
@@ -211,7 +214,7 @@
                 android:fontFamily="@font/roboto"
                 android:textSize="16sp"
                 android:textStyle="bold"
-                app:layout_constraintTop_toBottomOf="@id/current_aqhi_section"
+                app:layout_constraintTop_toBottomOf="@id/clCurrentAQHISection"
                 app:layout_constraintStart_toStartOf="parent"
                 android:paddingTop="10dp"/>
 

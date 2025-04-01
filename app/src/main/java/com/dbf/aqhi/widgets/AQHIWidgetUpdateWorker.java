@@ -44,6 +44,8 @@ public class AQHIWidgetUpdateWorker extends Worker {
     }
 
     private void updateWidgets(Context context, AQHIWidgetProvider provider, AppWidgetManager appWidgetManager, int[] widgetIds) {
+        if(widgetIds == null || widgetIds.length < 1) return;
+
         Log.i(LOG_TAG, "Forcefully updating AQHI widget UIs in background. Widget IDs: " + Arrays.toString(widgetIds));
         for (int widgetId : widgetIds) {
             provider.updateWidgetUI(context, provider.createRemoteViews(context), appWidgetManager, widgetId); //Will push update

@@ -47,10 +47,24 @@ Widgets are configurable: you can set the background transparency as well as the
 > Setting light/dark mode to automatic will make the widget switch automatically with the system preference.
 
 ## How it works
-
 AQHI Data is pulled from Environment and Climate Change Canada's public API using the closest active monitoring station to your current location. The station definitions, current location, and current AQHI readings are all cached to prevent excessive calls to the API. Data is shared between the main app and the widgets.
 
 The rendering of heat maps is entirely written from scratch by myself. My [GitHub project](https://github.com/dbeaudoinfortin/HeatMaps) contains rendering libraries for both Android and Java2D. Check it out if you want to add beautiful, customizable heat maps to you own Java project.
+
+## About AQHI
+The Canadian Air Quality Health Index (AQHI) is a made-in-Canada scale developed by Environment and Climate Change Canada (ECCC) to provide real-time information about the health risks associated with air pollution. It combines measurements from ground-level ozone, fine particulate matter (PM2.5), and nitrogen dioxide into a single numerical value on a scale from 1 (low risk) to 10 (high risk). All values above 10 are assigned a reading of 10+, indicating a very high risk.
+
+**Scale:**
+- 1-3 Low health risk
+- 4-6 Moderate health risk
+- 7-10 High health risk
+- 10+  Very high health risk
+
+As per ECCC, the calculation of the AQHI may change over time to reflect new understanding associated with air pollution health effects. AQHI values are calculated automatically using observations from a network of air quality monitoring stations across Canada. These measurements are collected in real-time and are not verified prior to publication. Forecast and historical AQHI values are reported on an hourly basis.
+
+If you are interested in the analysis of Canadian air quality data that has been validated, check out my [NAPS Data Analysis Project](https://github.com/dbeaudoinfortin/NAPSDataAnalysis) on GitHub.</p>
+
+For more information about the AQHI, visit [ECCC's website](https://www.canada.ca/en/environment-climate-change/services/air-quality-health-index/about.html).
 
 ## Requirements
 - This app was developed for and tested on Android 14. 
@@ -62,7 +76,7 @@ Your device's location is used only to identify the closest air quality monitori
  
 This app determines your nearest air quality monitoring station by comparing your location (locally, on your device) with a list of stations obtained from Environment and Climate Change Canada's (ECCC) GeoMet service. Your location data is never sent to ECCC or any other server.
 
-You can learn more about ECCC's GeoMet service (here)[https://eccc-msc.github.io/open-data/].
+You can learn more about ECCC's GeoMet service [here](https://eccc-msc.github.io/open-data/).
 
 
 ## Legal Stuff

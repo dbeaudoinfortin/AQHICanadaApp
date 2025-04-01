@@ -27,6 +27,13 @@
             </intent-filter>
         </activity>
 
+        <!-- CHANGE LOCATION -->
+        <activity
+            android:name=".main.AQHILocationActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AQHI">
+        </activity>
+
         <!-- SMALL ANDROID WIDGET -->
         <receiver
             android:name=".widgets.AQHIWidgetProviderSmall"
