@@ -1,5 +1,6 @@
 package com.dbf.aqhi.main;
 
+import static android.view.View.GONE;
 import static android.view.View.INVISIBLE;
 import static android.view.View.VISIBLE;
 
@@ -182,14 +183,23 @@ public class AQHIMainActivity extends AQHIActivity {
             locationText.setText(recentStation);
         }
 
-        Double aqhi = this.getLatestAQHI();
-
         //UPDATE AQHI TEXT
+        final Double aqhi = this.getLatestAQHI();
         TextView aqhiText = findViewById(R.id.txtAQHIValue);
         aqhiText.setText(this.getLatestAQHIString());
 
         TextView aqhiRiskText = findViewById(R.id.txtAQHIRisk);
         aqhiRiskText.setText(getRiskFactor(aqhi));
+
+        //UPDATE TYPICAL AQHI TEXT
+        final String typicalAQHI = this.getTypicalAQHIString();
+        TextView txtTypicalAQHI = findViewById(R.id.txtTypicalAQHI);
+        if(null == typicalAQHI) {
+            txtTypicalAQHI.setVisibility(GONE);
+        } else {
+            txtTypicalAQHI.setVisibility(VISIBLE);
+            txtTypicalAQHI.setText(getString(R.string.typical) + " " + typicalAQHI);
+        }
 
         //UPDATE GAUGE ANGLE
         ImageView arrowImage = findViewById(R.id.imgAQHIGaugeArrow);
@@ -364,10 +374,10 @@ public class AQHIMainActivity extends AQHIActivity {
         return "Very High Risk";
     }
 
+    public void showTypicalAQHI(View view) { showDialog("Typical AQHI", R.raw.typical_aqhi); }
+
     @Override
     public AQHIService getAQHIService() {
         return backgroundWorker.getAQHIService();
     }
-
-
 }

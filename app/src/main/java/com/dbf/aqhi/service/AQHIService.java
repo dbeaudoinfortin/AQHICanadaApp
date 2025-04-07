@@ -1,27 +1,39 @@
 package com.dbf.aqhi.service;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.util.Log;
+import android.util.Pair;
 
+import com.dbf.aqhi.R;
+import com.dbf.aqhi.Utils;
 import com.dbf.aqhi.geomet.GeoMetService;
 import com.dbf.aqhi.geomet.data.Data;
 import com.dbf.aqhi.geomet.data.forecast.ForecastData;
 import com.dbf.aqhi.geomet.data.realtime.RealtimeData;
 import com.dbf.aqhi.geomet.station.Station;
 import com.dbf.aqhi.location.LocationService;
+import com.dbf.utils.stacktrace.StackTraceCompactor;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.lang.reflect.Type;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.TreeMap;
 
 public class AQHIService {
@@ -41,11 +53,14 @@ public class AQHIService {
     //Shared preferences keys
     private static final String AQHI_PREF_KEY = "com.dbf.aqhi.service";
     private static final String STATION_NAME_KEY = "STATION_NAME";
+    private static final String STATION_NAPS_ID_KEY = "STATION_NAPS_ID";
+    private static final String STATION_TZ_KEY = "STATION_TZ";
     private static final String STATION_CODE_KEY = "STATION_CODE";
     private static final String STATION_AUTO_KEY = "STATION_AUTO";
     private static final String STATION_TS_KEY = "STATION_TS";
-    private static final String LATEST_AQHI_VAL_KEY = "AQHI_VAL";
-    private static final String LATEST_AQHI_TS_KEY = "AQHI_TS";
+    private static final String TYPICAL_AQHI_VAL_KEY = "TYPICAL_AQHI_VAL";
+    private static final String LATEST_AQHI_VAL_KEY = "LATEST_AQHI_VAL";
+    private static final String AQHI_TS_KEY = "AQHI_TS";
     private static final String HISTORICAL_AQHI_VAL_KEY = "AQHI_HIST";
     private static final String HISTORICAL_AQHI_TS_KEY = "AQHI_HIST_TS";
     private static final String FORECAST_AQHI_VAL_KEY = "AQHI_FORE";
@@ -66,19 +81,38 @@ public class AQHIService {
     //Cheap in-memory cache, fall-back to preferences if null
     private double[] lastLatLong = null;
 
+    //Cheap in-memory cache, fall-back to the file system if null
+    private static final Map<Integer, double[]> NAPS_STATIONS = new HashMap<>();
+
+    //Cache the typical AQHI data in memory so we don't need to load it from the filesystem each time
+    //The map of data will be wiped clean if the NAPS ID for the station changes.
+    //In the form of Map<Hour of day, Map<Week of year, AQHI value>>
+    private static final Type TYPICAL_AQHI_Type = new TypeToken<Map<Integer, Map<Integer, Float>>>(){}.getType();
+    private Map<Integer, Map<Integer, Float>> typicalAQHIMap;
+    private Integer typicalAQHINAPSID;
+
+    //Indicates that the typical AQHI values will be loaded
+    //This is not used for widgets.
+    private final boolean loadTypicalAQHI;
+
     //This is mainly needed for widgets that run in the background.
     //May also be needed is the background location permission is not set
     private boolean allowStaleLocation = true;
 
-    private Context context;
+    private final Context context;
 
     public AQHIService(Context context, Runnable onChange) {
+        this(context, onChange, false);
+    }
+
+    public AQHIService(Context context, Runnable onChange, boolean loadTypicalAQHI) {
         Log.i(LOG_TAG, "Initializing AQHI service.");
         locationService = new LocationService(context);
         this.geoMetService = new GeoMetService(context);
         this.onChange = onChange;
         this.aqhiPref = context.getSharedPreferences(AQHI_PREF_KEY, Context.MODE_PRIVATE);
         this.context = context;
+        this.loadTypicalAQHI = loadTypicalAQHI;
     }
 
     public void update() {
@@ -177,7 +211,7 @@ public class AQHIService {
         Log.i(LOG_TAG, "Clearing all AQHI data.");
         aqhiPref.edit()
                 .remove(LATEST_AQHI_VAL_KEY)
-                .remove(LATEST_AQHI_TS_KEY)
+                .remove(AQHI_TS_KEY)
                 .remove(HISTORICAL_AQHI_VAL_KEY)
                 .remove(HISTORICAL_AQHI_TS_KEY)
                 .remove(FORECAST_AQHI_VAL_KEY)
@@ -190,6 +224,8 @@ public class AQHIService {
         if(isStationAuto()) {
             aqhiPref.edit().remove(STATION_NAME_KEY)
                     .remove(STATION_CODE_KEY)
+                    .remove(STATION_NAPS_ID_KEY)
+                    .remove(STATION_TZ_KEY)
                     .remove(STATION_TS_KEY)
                     .apply();
         }
@@ -212,7 +248,7 @@ public class AQHIService {
         }
 
         //Update just the timestamp to indicate that the station is still valid
-        setStation(null, null);
+        setStation(null, null, null);
         return previousStationCode;
     }
 
@@ -228,8 +264,76 @@ public class AQHIService {
         }
 
         Log.i(LOG_TAG, "Station updated. Code: " + station.properties.location_id  + ", Name: " + station.properties.location_name_en);
-        setStation(station.properties.location_id, station.properties.location_name_en);
+        Pair<Integer, Double> napsStation = loadTypicalAQHI ? determineNAPS(station.geometry.coordinates.get(1), station.geometry.coordinates.get(0)) : null;
+        setStation(station.properties.location_id, station.properties.location_name_en, napsStation);
         return station.properties.location_id;
+    }
+
+    /**
+     * Determines the matching NAPS site ID and time zone based latitude and longitude coordinate.
+     * This performs a fuzzy match that tries to get close enough.
+     *
+     * The NAPS station definition file will be loaded and cached in memory if it wasn't already.
+     *
+     * @param latitude
+     * @param longitude
+     * @return A Pair<Integer, Double> representing the NAPS site ID and time zone offset.
+     *
+     */
+    private Pair<Integer, Double> determineNAPS(double latitude, double longitude) {
+        synchronized (NAPS_STATIONS) {
+            if (NAPS_STATIONS.isEmpty()) {
+                Log.i(LOG_TAG, "Loading NAPS site definition file.");
+                String rawJson = Utils.loadCompressedResource(context, R.raw.sites);
+                if(null != rawJson) {
+                    try {
+                        JSONArray jsonArray = new JSONArray(rawJson);
+                        for (int i = 0; i < jsonArray.length(); i++) {
+                            JSONObject locationObj = jsonArray.getJSONObject(i);
+                            NAPS_STATIONS.put(locationObj.getInt("id"), new double[]{locationObj.getDouble("lat"), locationObj.getDouble("lon"), locationObj.getDouble("tz")});
+                        }
+                    } catch (JSONException e) {
+                        Log.e(LOG_TAG, "Failed to parse the NAPS site definition file. Exception:\n" + StackTraceCompactor.getCompactStackTrace(e));
+                        return null;
+                    }
+                }
+
+                if(NAPS_STATIONS.isEmpty()) {
+                    //We should not still be empty after loading.
+                    Log.w(LOG_TAG, "Failed to load NAPS site definition file, no data.");
+                    return null;
+                }
+            }
+        }
+
+        Log.i(LOG_TAG, "Determining the matching NAPS site.");
+        //Determine the closest matching location
+        double closestDist = Double.MAX_VALUE;
+        Integer closestNAPSID = null;
+        Double closestTZ = null;
+        for(Map.Entry<Integer, double[]> entry : NAPS_STATIONS.entrySet()) {
+            final double[] latLonTZ = entry.getValue();
+            final double latDiff = Math.abs(latitude - latLonTZ[0]);
+            final double lonDiff = Math.abs(longitude - latLonTZ[1]);
+
+            //Since we are dealing with very close distances, we don't need to worry
+            //about map projections this time.
+            if(latDiff <= 0.1 && lonDiff <= 0.1) {
+                final double distanceMag = Math.pow(latDiff, 2) + Math.pow(lonDiff, 2);
+                if(distanceMag < closestDist) {
+                    closestDist = distanceMag;
+                    closestNAPSID = entry.getKey();
+                    closestTZ = latLonTZ[2];
+                }
+            }
+        }
+
+        if(null == closestNAPSID) {
+            Log.i(LOG_TAG, "No matching NAPS site was found.");
+        } else {
+            Log.i(LOG_TAG, "The closest NAPS site is " + closestNAPSID + ".");
+        }
+        return new Pair<Integer, Double>(closestNAPSID, closestTZ);
     }
 
     /**
@@ -243,7 +347,7 @@ public class AQHIService {
     private boolean fetchLatestAQHIData(String stationCode) {
         //First determine if the data we have now is new enough to use as-is
         //This avoids excessive calls to the API.
-        long ts = aqhiPref.getLong(LATEST_AQHI_TS_KEY, Integer.MIN_VALUE);
+        long ts = aqhiPref.getLong(AQHI_TS_KEY, Integer.MIN_VALUE);
         if(System.currentTimeMillis() - ts <= DATA_REFRESH_MIN_DURATION) {
             float currentAQHIValue = aqhiPref.getFloat(LATEST_AQHI_VAL_KEY, -1f);
             if (currentAQHIValue>=0) return true; //We have valid data already
@@ -261,6 +365,9 @@ public class AQHIService {
             //We know we have at least one data point at this time, so we can update the historical data
             setHistoricalAQHI(extractPerDateAQHIValues(realtimeData));
 
+            //Determine the typical AQHI for this time of day and time of year, if we have the data for it
+            if(loadTypicalAQHI) determineTypicalAQHI();
+
             //Try to fetch the forecast as well
             List<ForecastData> forecastData = geoMetService.getForecastData(stationCode);
             if(null != forecastData) {
@@ -269,6 +376,104 @@ public class AQHIService {
             return true;
         }
         return false; //We could not get any valid data
+    }
+
+    private synchronized void determineTypicalAQHI() {
+        Integer napsID = getStationNAPSID();
+        if (null == napsID) {
+            setTypicalAQHI(null);
+            return;
+        }
+        if(null == typicalAQHINAPSID || !typicalAQHINAPSID.equals(napsID)) {
+            typicalAQHINAPSID = napsID;
+            final String fileName = "p50_aqhi_" + napsID;
+            @SuppressLint("DiscouragedApi")
+            int resId = context.getResources().getIdentifier(fileName, "raw", context.getPackageName());
+            if (resId == 0) {
+                Log.w(LOG_TAG, "No P50 AQHI data file found for NAPS ID " + napsID + " with file name " + fileName + ".");
+                return;
+            }
+
+            String json = Utils.loadCompressedResource(context, resId);
+            typicalAQHIMap = gson.fromJson(json, TYPICAL_AQHI_Type);
+
+            if(null == typicalAQHIMap || typicalAQHIMap.isEmpty()) {
+                Log.w(LOG_TAG, "Could not parse P50 AQHI data from file found for NAPS ID " + fileName + ".");
+                return;
+            }
+        }
+
+        //Get the current time in GMT and convert it into the timezone of the naps station.
+        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+        Float timeZone = getStationTZ();
+        if (null != timeZone) {
+            //Note: Newfoundland's offset is 3 1/2 hours, so we use minutes
+            final int timezoneMinutes = (int) (timeZone.floatValue() * 60.0);
+            calendar.add(Calendar.MINUTE, timezoneMinutes);
+        } else {
+            Log.w(LOG_TAG, "No time zone is available for NAPS ID " + napsID + ".");
+        }
+
+        final int weekOfYear = calendar.get(Calendar.WEEK_OF_YEAR);
+
+        //We need to adjust the time forward by 1 hour because the typical AQHI data is from 1 to 24
+        final int hour = calendar.get(Calendar.HOUR_OF_DAY) + 1;
+        final Pair<Map<Integer, Float>, Map<Integer, Float>> hourMaps = getTypicalAQHIHourMaps(hour, typicalAQHIMap);
+
+        //Save the determined value
+        setTypicalAQHI(getAvgTypicalAQHI(getTypicalAQHI(weekOfYear, hourMaps.first), getTypicalAQHI(weekOfYear, hourMaps.second)));
+    }
+
+    private Float getAvgTypicalAQHI(Float valueOne, Float valueTwo) {
+        if(null != valueOne && null != valueTwo) {
+            //We return the average between both values
+            return (valueOne + valueTwo) / 2f;
+        } else if (null != valueOne) {
+            return valueOne;
+        } else if (null != valueTwo) {
+            return valueTwo;
+        }
+
+        //Couldn't find any value at all
+        return null;
+    }
+
+    private Float getTypicalAQHI(int weekOfYear, Map<Integer, Float> hourMap) {
+        if(null == hourMap) return null;
+
+        //First see if we have a direct match
+        Float valueOne = hourMap.get(weekOfYear);
+        if (null != valueOne) return valueOne;
+
+        //Try returning both the previous and next week's maps
+        Float valueTwo = null;
+
+        //Sometimes we have a week 53, sometimes we don't :)
+        if(weekOfYear == 1) {
+            valueOne = hourMap.get(53);
+            if(null == valueOne) valueOne = hourMap.get(52);
+        } else {
+            valueOne = hourMap.get(weekOfYear-1);
+        }
+
+        if(weekOfYear == 52) {
+            valueTwo = hourMap.get(53);
+            if (null == valueTwo) valueTwo = hourMap.get(1);
+        } else if (weekOfYear == 53) {
+            valueTwo = hourMap.get(1);
+        } else {
+            valueTwo = hourMap.get(weekOfYear+1);
+        }
+        return getAvgTypicalAQHI(valueOne, valueTwo);
+    }
+
+    private Pair<Map<Integer, Float>, Map<Integer, Float>> getTypicalAQHIHourMaps(int hour, Map<Integer, Map<Integer, Float>> typicalAQHIMap) {
+        //First see if we have a direct match
+        final Map<Integer, Float> hourMap = typicalAQHIMap.get(hour);
+        if(null != hourMap) return new Pair<Map<Integer, Float>, Map<Integer, Float>>(hourMap, null);
+
+        //Try returning both the previous and next hours' maps
+        return new Pair<Map<Integer, Float>, Map<Integer, Float>>(typicalAQHIMap.get(hour==1 ? 24 : hour-1), typicalAQHIMap.get(hour == 24 ? 1 : hour+1));
     }
 
     private static Double extractLatestAQHIValue(List<RealtimeData> data) {
@@ -293,6 +498,28 @@ public class AQHIService {
             sortedMap.put(dataPoint.getProperties().getDate(), dataPoint.getProperties().aqhi);
         }
         return sortedMap;
+    }
+
+    /**
+     * Retrieves the matching NAPS site ID for the station either selected by the user or closest to the most recently updated user location.
+     *
+     * @return Integer, NAPS ID, may be null.
+     */
+    public Integer getStationNAPSID() {
+        long rawID = aqhiPref.getLong(STATION_NAPS_ID_KEY, -1l);
+        if(rawID < 0) return null;
+        return (int) rawID;
+    }
+
+    /**
+     * Retrieves the time zone offset of the matching NAPS site for the station either selected by the user or closest to the most recently updated user location.
+     *
+     * @return Float, time zone offset, may be null
+     */
+    public Float getStationTZ() {
+        float rawTZ = aqhiPref.getFloat(STATION_TZ_KEY, -100l);
+        if(rawTZ < -50) return null;
+        return rawTZ;
     }
 
     /**
@@ -352,6 +579,20 @@ public class AQHIService {
     }
 
     /**
+     * Retrieves the last saved typical AQHI value for the current station.
+     *
+     * @param allowStale boolean, if false only return the AQHI value if it has been updated within the last {@link AQHIService#DATA_VALIDITY_DURATION} milliseconds.
+     * @return Double, AQHI value, or returns -1 if stale or not present.
+     */
+    public Double getTypicalAQHI(boolean allowStale){
+        if(!allowStale) {
+            long ts = aqhiPref.getLong(AQHI_TS_KEY, Integer.MIN_VALUE);
+            if(System.currentTimeMillis() - ts > DATA_VALIDITY_DURATION) return -1d;
+        }
+        return (double) aqhiPref.getFloat(TYPICAL_AQHI_VAL_KEY, -1f);
+    }
+
+    /**
      * Retrieves the last saved AQHI value for the current station.
      *
      * @param allowStale boolean, if false only return the AQHI value if it has been updated within the last {@link AQHIService#DATA_VALIDITY_DURATION} milliseconds.
@@ -359,7 +600,7 @@ public class AQHIService {
      */
     public Double getLatestAQHI(boolean allowStale){
         if(!allowStale) {
-            long ts = aqhiPref.getLong(LATEST_AQHI_TS_KEY, Integer.MIN_VALUE);
+            long ts = aqhiPref.getLong(AQHI_TS_KEY, Integer.MIN_VALUE);
             if(System.currentTimeMillis() - ts > DATA_VALIDITY_DURATION) return -1d;
         }
         return (double) aqhiPref.getFloat(LATEST_AQHI_VAL_KEY, -1f);
@@ -445,21 +686,41 @@ public class AQHIService {
     }
 
     /**
-     * Saves the current station name and code to the shared preference.
-     * Only updates the timestamp if the values are null.
+     * Saves the current station name, code, and NAPS ID to the shared preference.
+     * Will only updates the timestamp when all values are null.
      *
-     * @param code Station code
-     * @param name Station name
+     * @param code   Station code
+     * @param name   Station name
+     * @param napsStation A Pair<Integer, Double> representing the NAPS site ID and time zone offset.
      */
-    private void setStation(String code, String name) {
+    private void setStation(String code, String name, Pair<Integer, Double> napsStation) {
         SharedPreferences.Editor editor = aqhiPref.edit();
-        if(null != code && !code.isEmpty()) {
-            editor.putString(STATION_CODE_KEY, code);
-        }
-        if(null != name && !name.isEmpty()) {
-            editor.putString(STATION_NAME_KEY, name);
-        }
         editor.putLong(STATION_TS_KEY, System.currentTimeMillis());
+        //When everything is null we update just the timestamp (refresh)
+        if (null != code || null != name || null != napsStation) {
+            if(null != code && !code.isEmpty()) {
+                editor.putString(STATION_CODE_KEY, code);
+            }
+            if(null != name && !name.isEmpty()) {
+                editor.putString(STATION_NAME_KEY, name);
+            }
+
+            if(loadTypicalAQHI) {
+                //Typical AQHI doesn't apply to widgets.
+                //Make sure we don't accidentally erase the value for the main app
+                if (null == napsStation.first) {
+                    editor.remove(STATION_NAPS_ID_KEY);
+                } else {
+                    editor.putLong(STATION_NAPS_ID_KEY, napsStation.first);
+                }
+
+                if (null == napsStation.second) {
+                    editor.remove(STATION_TZ_KEY);
+                } else {
+                    editor.putFloat(STATION_TZ_KEY, napsStation.second.floatValue());
+                }
+            }
+        }
         editor.apply();
     }
 
@@ -474,7 +735,23 @@ public class AQHIService {
         if(null != val) {
             editor.putFloat(LATEST_AQHI_VAL_KEY, val.floatValue());
         }
-        editor.putLong(LATEST_AQHI_TS_KEY, System.currentTimeMillis());
+        editor.putLong(AQHI_TS_KEY, System.currentTimeMillis());
+        editor.apply();
+    }
+
+    /**
+     * Saves the typical AQHI value to the shared preferences.
+     * Removes the shared preferences if the value is null
+     *
+     * @param val Float the typical AQHI value
+     */
+    private void setTypicalAQHI(Float val) {
+        SharedPreferences.Editor editor = aqhiPref.edit();
+        if(null != val) {
+            editor.putFloat(TYPICAL_AQHI_VAL_KEY, val);
+        } else {
+            editor.remove(TYPICAL_AQHI_VAL_KEY);
+        }
         editor.apply();
     }
 

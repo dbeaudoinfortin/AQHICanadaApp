@@ -26,17 +26,26 @@ public interface AQHIFeature {
         return recentAQHI;
     }
 
-    public default String formatAQHIValue(Double recentAQHI){
-        if(null == recentAQHI) {
+    public default String getTypicalAQHIString() {
+        //For widgets, we want to allow stale values since the update are only guaranteed to happen once per 30 minutes
+        Double typicalAQHI = getAQHIService().getTypicalAQHI(true);
+        if(null == typicalAQHI || typicalAQHI < 0.0) {
+            return null;
+        }
+        return formatAQHIValue(typicalAQHI);
+    }
+
+    public default String formatAQHIValue(Double aqhi){
+        if(null == aqhi) {
             return "…"; //Still fetching the value
-        } else if( recentAQHI < 0.0) {
+        } else if(aqhi < 0.0) {
             return "?"; //Unknown
-        } else if(recentAQHI % 1.0 == 0.0) {
+        } else if(aqhi % 1.0 == 0.0) {
             //No fraction
-            return recentAQHI.toString();
+            return aqhi.toString();
         }
         //2-digit fractional number
         DecimalFormat df = new DecimalFormat(AQHI_DIGIT_FORMAT); // Not thread safe
-        return df.format(recentAQHI);
+        return df.format(aqhi);
     }
 }

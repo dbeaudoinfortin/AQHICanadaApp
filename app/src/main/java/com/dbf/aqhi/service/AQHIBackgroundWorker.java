@@ -18,7 +18,7 @@ public class AQHIBackgroundWorker {
     private ScheduledExecutorService updateScheduler;
 
     public AQHIBackgroundWorker(Context context, Runnable onChange) {
-        aqhiService = new AQHIService(context, onChange);
+        aqhiService = new AQHIService(context, onChange, true);
         initScheduler();
     }
 

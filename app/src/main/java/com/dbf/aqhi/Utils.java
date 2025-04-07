@@ -2,16 +2,60 @@ package com.dbf.aqhi;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.util.Log;
 
 import androidx.core.content.ContextCompat;
+
+import com.dbf.utils.stacktrace.StackTraceCompactor;
+
+import org.apache.commons.io.IOUtils;
+
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.Charset;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 
 public class Utils {
 
+    private static final String LOG_TAG = "Utils";
+
+    public static String loadCompressedResource(Context context, int resourceID) {
+        try (InputStream is = context.getResources().openRawResource(resourceID);
+             BufferedInputStream bis = new BufferedInputStream(is);
+             ZipInputStream zis = new ZipInputStream(bis)){
+            ZipEntry ze;
+            while ((ze = zis.getNextEntry()) != null) {
+                if (!ze.isDirectory()) {
+                    return IOUtils.toString(zis, Charset.defaultCharset());
+                }
+                zis.closeEntry();
+            }
+        } catch (IOException e) {
+            Log.e(LOG_TAG, "Failed to decompress resource file " + resourceID + ". Exception:\n" + StackTraceCompactor.getCompactStackTrace(e));
+        }
+        return null;
+    }
+
+    /**
+     * Converts a time in 24-hour format (1-24) into 12-hour format (12-11)
+     *
+     * @param hour_24  Time in 24-hour format
+     * @return int Time in 12-hour format
+     */
     public static int to12Hour(int hour_24) {
         return (hour_24 % 12 == 0) ? 12 : hour_24 % 12;
     }
 
+    /**
+     * Loads a Color from a resource bundle.
+     *
+     * @param context
+     * @param colourResourceName
+     * @return Color
+     */
     public static Color getColor(Context context, String colourResourceName) {
         int colourId = context.getResources().getIdentifier(colourResourceName, "color", context.getPackageName());
         if (colourId != 0) {

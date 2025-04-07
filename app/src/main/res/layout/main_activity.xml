@@ -94,11 +94,11 @@
                         android:textColor="@color/main_activity_action_text"
                         android:gravity="end|bottom"
                         android:layout_gravity="end|bottom"
-                        android:textSize="12sp"
                         android:paddingStart="4dp"
                         android:paddingEnd="3dp"
                         android:clickable="true"
-                        android:focusable="true"/>
+                        android:focusable="true"
+                        android:textSize="12sp"/>
                </LinearLayout>
 
 
@@ -156,7 +156,7 @@
                         android:fontFamily="@font/roboto"
                         android:gravity="center"
                         android:maxLines="1"
-                        android:paddingTop="8dp"
+                        android:paddingTop="4dp"
                         android:paddingBottom="0dp"
                         android:text="0.00"
                         android:textSize="38sp"
@@ -171,7 +171,21 @@
                         android:text="@string/low_risk"
                         android:textSize="20sp"
                         android:paddingTop="0dp"
-                        android:paddingBottom="8dp"/>
+                        android:paddingBottom="4dp"/>
+                    <TextView
+                        android:id="@+id/txtTypicalAQHI"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:fontFamily="@font/roboto"
+                        android:text="@string/typical"
+                        android:paddingTop="4dp"
+                        android:paddingBottom="0dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:textSize="12sp"
+                        android:onClick="showTypicalAQHI"
+                        android:textColor="@color/main_activity_action_text"/>
                 </LinearLayout>
 
 
