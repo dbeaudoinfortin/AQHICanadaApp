@@ -6,18 +6,25 @@ import static android.view.View.VISIBLE;
 
 import android.Manifest;
 
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.Insets;
 import android.graphics.Typeface;
+import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
+import android.text.Html;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewTreeObserver;
+import android.view.WindowInsets;
+import android.view.WindowManager;
+import android.view.WindowMetrics;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -25,10 +32,6 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
-
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
 import com.dbf.aqhi.AQHIActivity;
 import com.dbf.aqhi.R;
@@ -282,19 +285,7 @@ public class AQHIMainActivity extends AQHIActivity {
             .withOptions(HeatMapOptions.builder()
                 .withBackgroundColour(getColour("main_activity_background"))
                 .withGradient(HeatMapGradient.builder()
-                    .withSteps(new Color[]{
-                        getColour("gradient_colour_01"),
-                        getColour("gradient_colour_02"),
-                        getColour("gradient_colour_03"),
-                        getColour("gradient_colour_04"),
-                        getColour("gradient_colour_05"),
-                        getColour("gradient_colour_06"),
-                        getColour("gradient_colour_07"),
-                        getColour("gradient_colour_08"),
-                        getColour("gradient_colour_09"),
-                        getColour("gradient_colour_10"),
-                        getColour("gradient_colour_11")
-                    }).build())
+                    .withSteps(getHeatMapGradient()).build())
                 .withCellWidth(cellSize)
                 .withCellHeight(cellSize)
                 .withShowGridlines(false)
@@ -374,7 +365,98 @@ public class AQHIMainActivity extends AQHIActivity {
         return "Very High Risk";
     }
 
-    public void showTypicalAQHI(View view) { showDialog("Typical AQHI", R.raw.typical_aqhi); }
+    public void showTypicalAQHI(View view) {
+        String extraContent = null;
+        Html.ImageGetter imageGetter = null;
+        final Integer napsID = getAQHIService().getStationNAPSID();
+        if(null != napsID) {
+            Map<Integer, Map<Integer, Float>> dataMap = getAQHIService().getTypicalAQHIMap(napsID);
+            if(null != dataMap) {
+                final Bitmap heatmap = generateTypicalAQHIHeatMap(dataMap);
+                final String stationName = getAQHIService().getStationName(true);
+                extraContent = "<p align=\"center\"><b> "+ stationName + " Typical AQHI:</b><br/><img src=\"typical_heatmap\" /></p>";
+                imageGetter = source -> {
+                    if ("typical_heatmap".equals(source)) {
+                        //Create a drawable to old the bitmap
+                        BitmapDrawable drawable = new BitmapDrawable(getResources(), heatmap);
+                        //Set the bounds
+                        WindowManager windowManager = (WindowManager) this.getSystemService(Context.WINDOW_SERVICE);
+                        WindowMetrics windowMetrics = windowManager.getCurrentWindowMetrics();
+                        final Insets insets = windowMetrics.getWindowInsets().getInsets(WindowInsets.Type.systemBars());
+                        final int screenWidth = windowMetrics.getBounds().width() - insets.left - insets.right;
+                        final double width = (screenWidth*0.80); //Fixed 80% of the total screen width
+                        final double scale = width / drawable.getIntrinsicWidth();
+                        drawable.setBounds(0, 0, (int) width, (int) (drawable.getIntrinsicHeight()*scale));
+                        return drawable;
+                    }
+                    return null;
+                };
+            }
+        }
+        showDialog("Typical AQHI", R.raw.typical_aqhi, extraContent, imageGetter, null);
+    }
+
+    private Bitmap generateTypicalAQHIHeatMap(Map<Integer, Map<Integer, Float>> data) {
+        final int cellSize = 35;
+        final float fontScale = this.getResources().getConfiguration().fontScale;
+
+        //Determine the background colour of the dialog box
+        final TypedValue bgColourValue = new TypedValue();
+        getTheme().resolveAttribute(android.R.attr.colorBackgroundFloating, bgColourValue, true);
+        Color bgColour = Color.valueOf(bgColourValue.data);
+
+        return HeatMap.builder()
+                .withXAxis(IntegerAxis.instance()
+                        .withTitle("Hour")
+                        .addEntries(1,24)
+                )
+                .withYAxis(IntegerAxis.instance()
+                        .withTitle("Week")
+                        .addEntries(1,53)
+                )
+                .withOptions(HeatMapOptions.builder()
+                        .withBackgroundColour(bgColour)
+                        .withGradient(HeatMapGradient.builder()
+                                .withSteps(getHeatMapGradient()).build())
+                        .withCellWidth(cellSize)
+                        .withCellHeight(cellSize)
+                        .withShowGridlines(false)
+                        .withShowGridValues(false)
+                        .withOutsidePadding(0)
+                        .withShowLegend(false)
+                        .withShowXAxisLabels(true)
+                        .withShowYAxisLabels(true)
+                        .withAxisLabelFontColour(getSystemDefaultTextColor())
+                        .withAxisTitleFontSize(44f*fontScale)
+                        .withAxisLabelFontSize(38f*fontScale)
+                        .withAxisLabelPadding(15)
+                        .withAxisLabelFontTypeface(Typeface.create("Roboto", Typeface.NORMAL))
+                        .withColourScaleLowerBound(1.0)
+                        .withColourScaleUpperBound(11.0)
+                        .build())
+                .build().render(data.entrySet().stream()
+                        .flatMap(hourEntry -> hourEntry.getValue().entrySet().stream()
+                                .map(weekEntry -> new BasicDataRecord(hourEntry.getKey(), weekEntry.getKey(), weekEntry.getValue().doubleValue())))
+                        .collect(Collectors.toList()));
+    }
+
+    private Color[] getHeatMapGradient() {
+        //This must be done each time at run time because the colours change
+        //based on the theme, such as light and dark.
+        return new Color[]{
+            getColour("gradient_colour_01"),
+            getColour("gradient_colour_02"),
+            getColour("gradient_colour_03"),
+            getColour("gradient_colour_04"),
+            getColour("gradient_colour_05"),
+            getColour("gradient_colour_06"),
+            getColour("gradient_colour_07"),
+            getColour("gradient_colour_08"),
+            getColour("gradient_colour_09"),
+            getColour("gradient_colour_10"),
+            getColour("gradient_colour_11")
+        };
+    }
 
     @Override
     public AQHIService getAQHIService() {

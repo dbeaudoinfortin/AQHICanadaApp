@@ -3,11 +3,14 @@ package com.dbf.aqhi;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.text.Html;
 import android.text.method.LinkMovementMethod;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.TextView;
 
 import com.dbf.utils.stacktrace.StackTraceCompactor;
@@ -30,19 +33,34 @@ public abstract class AQHIActivity extends Activity implements AQHIFeature {
 
     public void showPrivacy(View view) { showDialog("Privacy Statement", R.raw.privacy); }
 
-    protected void showDialog(String title, int resourceID){
+    protected void showDialog(String title, int resourceID) {
+        showDialog(title, resourceID, null, null, null);
+    }
+
+    protected void showDialog(String title, int resourceID, String additionalHTML, Html.ImageGetter imageGetter, Html.TagHandler tagHandler){
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(title);
 
         // Create a TextView to show the message
         TextView messageTextView = new TextView(this);
-        messageTextView.setText(Html.fromHtml(loadDialogContent(resourceID),Html.FROM_HTML_MODE_LEGACY));
+        String contents = loadDialogContent(resourceID);
+        if(null != additionalHTML && !additionalHTML.equals("")) {
+            contents += additionalHTML;
+        }
+        messageTextView.setText(Html.fromHtml(contents, Html.FROM_HTML_MODE_LEGACY, imageGetter, tagHandler));
         messageTextView.setMovementMethod(LinkMovementMethod.getInstance());
-        int padding = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 16, getResources().getDisplayMetrics());
+        int padding = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, getResources().getDisplayMetrics());
         messageTextView.setPadding(padding, padding, padding, padding);
         builder.setView(messageTextView);
         builder.setPositiveButton("OK", (dialog, which) -> dialog.dismiss());
-        builder.show();
+        AlertDialog dialog = builder.show();
+
+        Window window = dialog.getWindow();
+        if (window != null) {
+            WindowManager.LayoutParams params = window.getAttributes();
+            params.width = WindowManager.LayoutParams.MATCH_PARENT;
+            window.setAttributes(params);
+        }
     }
 
     protected String loadDialogContent(int resourceID) {

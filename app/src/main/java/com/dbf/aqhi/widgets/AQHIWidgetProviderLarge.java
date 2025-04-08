@@ -101,7 +101,7 @@ public class AQHIWidgetProviderLarge extends AQHIWidgetProvider {
 
             //We might be rendering inside a preview container during configuration
             if(context instanceof Activity) {
-                float density = context.getResources().getDisplayMetrics().density;
+                final float density = context.getResources().getDisplayMetrics().density;
                 final int screenWidth = context.getResources().getDisplayMetrics().widthPixels;
                 minWidthDp = (int) ((screenWidth*PREVIEW_SCREEN_SCALE) / density);
             }

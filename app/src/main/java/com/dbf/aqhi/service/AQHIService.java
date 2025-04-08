@@ -378,29 +378,40 @@ public class AQHIService {
         return false; //We could not get any valid data
     }
 
-    private synchronized void determineTypicalAQHI() {
-        Integer napsID = getStationNAPSID();
-        if (null == napsID) {
-            setTypicalAQHI(null);
-            return;
-        }
+    public synchronized Map<Integer, Map<Integer, Float>> getTypicalAQHIMap(Integer napsID) {
+        if(null == napsID) return null;
+
+        //We cache the typicalAQHIMap map in memory to prevent loading it multiple times.
+        //We keep track of when the NAPS station changes with typicalAQHINAPSID
         if(null == typicalAQHINAPSID || !typicalAQHINAPSID.equals(napsID)) {
+            //Set this first so we don't keep trying to reload the map if it fails,
+            //for example from a JSON parsing error.
             typicalAQHINAPSID = napsID;
             final String fileName = "p50_aqhi_" + napsID;
             @SuppressLint("DiscouragedApi")
             int resId = context.getResources().getIdentifier(fileName, "raw", context.getPackageName());
             if (resId == 0) {
                 Log.w(LOG_TAG, "No P50 AQHI data file found for NAPS ID " + napsID + " with file name " + fileName + ".");
-                return;
+                return null;
             }
 
             String json = Utils.loadCompressedResource(context, resId);
             typicalAQHIMap = gson.fromJson(json, TYPICAL_AQHI_Type);
-
             if(null == typicalAQHIMap || typicalAQHIMap.isEmpty()) {
                 Log.w(LOG_TAG, "Could not parse P50 AQHI data from file found for NAPS ID " + fileName + ".");
-                return;
+                return null;
             }
+        }
+
+        return typicalAQHIMap;
+    }
+
+
+    private synchronized void determineTypicalAQHI() {
+        Integer napsID = getStationNAPSID();
+        if (null == napsID) {
+            setTypicalAQHI(null);
+            return;
         }
 
         //Get the current time in GMT and convert it into the timezone of the naps station.
@@ -413,12 +424,11 @@ public class AQHIService {
         } else {
             Log.w(LOG_TAG, "No time zone is available for NAPS ID " + napsID + ".");
         }
-
         final int weekOfYear = calendar.get(Calendar.WEEK_OF_YEAR);
 
         //We need to adjust the time forward by 1 hour because the typical AQHI data is from 1 to 24
         final int hour = calendar.get(Calendar.HOUR_OF_DAY) + 1;
-        final Pair<Map<Integer, Float>, Map<Integer, Float>> hourMaps = getTypicalAQHIHourMaps(hour, typicalAQHIMap);
+        final Pair<Map<Integer, Float>, Map<Integer, Float>> hourMaps = getTypicalAQHIHourMaps(hour, getTypicalAQHIMap(napsID));
 
         //Save the determined value
         setTypicalAQHI(getAvgTypicalAQHI(getTypicalAQHI(weekOfYear, hourMaps.first), getTypicalAQHI(weekOfYear, hourMaps.second)));
