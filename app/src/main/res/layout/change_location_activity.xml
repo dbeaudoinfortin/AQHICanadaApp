@@ -32,10 +32,11 @@
             android:id="@+id/lblChangeLocation"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/change_location"
             android:fontFamily="@font/roboto"
+            android:paddingBottom="8dp"
+            android:text="@string/change_location"
             android:textSize="16sp"
-            android:paddingBottom="8dp"/>
+            android:textStyle="bold" />
 
         <!-- Toggle for Automatic vs Manual -->
         <com.google.android.material.switchmaterial.SwitchMaterial
@@ -54,20 +55,11 @@
             android:hint="@string/type_or_select_location"
             android:layout_marginBottom="8dp" />
 
-        <com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
+        <ovh.plrapps.mapview.MapView
             android:id="@+id/mapView"
             android:layout_width="match_parent"
             android:layout_height="300dp"
             android:layout_marginBottom="0dp"/>
-
-        <!-- MAP
-        <org.mapsforge.map.android.view.MapView
-            android:id="@+id/mapView"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:layout_marginBottom="0dp"/>
-            -->
 
     </LinearLayout>
     </ScrollView>

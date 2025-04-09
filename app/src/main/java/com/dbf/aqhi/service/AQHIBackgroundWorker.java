@@ -3,6 +3,8 @@ package com.dbf.aqhi.service;
 import android.content.Context;
 import android.util.Log;
 
+import com.dbf.utils.stacktrace.StackTraceCompactor;
+
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -33,7 +35,7 @@ public class AQHIBackgroundWorker {
                         Log.i(LOG_TAG, "Running automatic AQHI update in background.");
                         aqhiService.update();
                     } catch (Throwable t) { //Catch all, protect the scheduler
-                        Log.e(LOG_TAG, "Failed to run scheduled AQHI update.", t);
+                        Log.e(LOG_TAG, "Failed to run scheduled AQHI update:\n" + StackTraceCompactor.getCompactStackTrace(t));
                     }
                 }
                 //Update every 10 minutes, starting 10 minutes from now

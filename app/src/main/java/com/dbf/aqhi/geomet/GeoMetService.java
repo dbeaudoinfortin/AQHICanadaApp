@@ -127,7 +127,7 @@ public class GeoMetService {
         return null;
     }
 
-    private synchronized List<Station> loadStations(boolean forceUpdate) {
+    public synchronized List<Station> loadStations(boolean forceUpdate) {
         if(null == stations || forceUpdate) {
             //This request can be heavy, so we want to first see if we have this cached
             List<Station> newStations = loadStationsCached(forceUpdate);

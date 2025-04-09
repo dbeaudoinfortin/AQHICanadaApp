@@ -17,7 +17,7 @@
     <string name="aqhi_forecast_maximums">AQHI Forecast</string>
     <string name="aqhi_meter_graph">Current AQHI Meter Graph</string>
     <string name="current_aqhi">Current AQHI</string>
-    <string name="change_location">Change Location</string>
+    <string name="change_location">Change Location:</string>
     <string name="location">Location</string>
     <string name="forecast_heat_map">Forecast Heat Map</string>
     <string name="daily_maximums">Daily Maximums:</string>

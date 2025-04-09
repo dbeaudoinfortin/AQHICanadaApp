@@ -797,4 +797,8 @@ public class AQHIService {
     public void setOnChange(Runnable onChange) {
         this.onChange = onChange;
     }
+
+    public GeoMetService getGeoMetService() {
+        return geoMetService;
+    }
 }
