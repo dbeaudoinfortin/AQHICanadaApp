@@ -8,6 +8,8 @@ Android app and widgets for displaying Canadian Air Quality Health Index (AQHI) 
   <img src="https://github.com/user-attachments/assets/f79e5a43-eb0f-4f45-a2b8-96435382de78" width="400" />
   <img src="https://github.com/user-attachments/assets/9ee88b49-10e0-45fe-89f5-d128f8934a15" width="400" />
   <img src="https://github.com/user-attachments/assets/159ce2f9-c024-4efe-b952-3ecdc3d397ea" width="400" />
+  <img src="https://github.com/user-attachments/assets/19365e74-b855-40aa-99f3-fbe53e3ecc8c" width="400" />
+
 </p>
 
 <p align="center">
@@ -15,6 +17,7 @@ Android app and widgets for displaying Canadian Air Quality Health Index (AQHI) 
   <img src="https://github.com/user-attachments/assets/7dc414ad-5137-485f-bb24-67abbf16ba4d" width="400" />
   <img src="https://github.com/user-attachments/assets/debaab1a-7bc8-4684-ab10-60d5af95e0b4" width="400" />
 </p>
+
 
 > [!NOTE]  
 > Both light mode and dark mode are supported and will switch automatically with the system preference.
@@ -65,6 +68,22 @@ As per ECCC, the calculation of the AQHI may change over time to reflect new und
 If you are interested in the analysis of Canadian air quality data that has been validated, check out my [NAPS Data Analysis Project](https://github.com/dbeaudoinfortin/NAPSDataAnalysis) on GitHub.</p>
 
 For more information about the AQHI, visit [ECCC's website](https://www.canada.ca/en/environment-climate-change/services/air-quality-health-index/about.html).
+
+## Typical AQHI
+
+The typical AQHI is calculated as the median hourly AQHI for the current hour of the day and current week of the year, based on data from your selected location. This calculation uses a 10-year period from 2014 to 2023, where at least 5 years of data are available for that location.
+
+These values were generated using my [NAPS Data Analysis Toolbox](https://github.com/dbeaudoinfortin/NAPSDataAnalysis), which sources raw data from the [National Air Pollution Surveillance (NAPS)](https://data-donnees.az.ec.gc.ca/data/air/monitor/national-air-pollution-surveillance-naps-program/) program, part of Environment and Climate Change Canada. I calculated the tables for the median AQHI from the raw concentration readings of the 3 constituent pollutants (O3, NO2, & PM2.5) for all roughly 300 current active NAPS sites. These sites are then matched to the correct GeoMet stations using a bit of fuzzy logic with the latitude and longitude coordinates that both data sets provide. The formula for calculating AQHI is the following:
+
+![AQHI Formula](https://github.com/user-attachments/assets/c5da4175-0a3b-4902-8c6d-15b99fc6a67c)
+
+## Map Data
+
+The map used for viewing and selecting locations is stored entirely on-device, as I do not want to send your location off-device. The base map data comes from [CBCT3978](https://maps-cartes.services.geo.ca/server2_serveur2/rest/services/BaseMaps/CBCT3978/MapServer), which is freely provided by Natural Resources Canada under the terms of the [Open Government Licence](https://open.canada.ca/en/open-government-licence-canada). 
+
+The map uses the Lambert Conformal Conic projection, which minimizes distortion across Canada. I cleaned up visible JPEG compression artifacts using a neural filter, then manually stitched together the tiles into a single 1-gigapixel image (35,000 × 30,000 pixels).
+
+This high-resolution map was then tiled into 8 zoom levels and compressed in WebP format. The result is a folder structure containing approximately 21,500 files, taking up only about 160MB of space. The map is diplayed in the app using [Pierre Laurence's MapView library](https://github.com/p-lr/MapView). Check out his project!
 
 ## Requirements
 - This app was developed for and tested on Android 14. 
