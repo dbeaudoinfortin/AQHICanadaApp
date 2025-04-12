@@ -55,6 +55,8 @@ public class AQHIService {
     private static final String STATION_NAME_KEY = "STATION_NAME";
     private static final String STATION_NAPS_ID_KEY = "STATION_NAPS_ID";
     private static final String STATION_TZ_KEY = "STATION_TZ";
+    private static final String STATION_LAT_KEY = "STATION_LAT";
+    private static final String STATION_LON_KEY = "STATION_LON";
     private static final String STATION_CODE_KEY = "STATION_CODE";
     private static final String STATION_AUTO_KEY = "STATION_AUTO";
     private static final String STATION_TS_KEY = "STATION_TS";
@@ -226,6 +228,8 @@ public class AQHIService {
                     .remove(STATION_CODE_KEY)
                     .remove(STATION_NAPS_ID_KEY)
                     .remove(STATION_TZ_KEY)
+                    .remove(STATION_LAT_KEY)
+                    .remove(STATION_LON_KEY)
                     .remove(STATION_TS_KEY)
                     .apply();
         }
@@ -248,7 +252,7 @@ public class AQHIService {
         }
 
         //Update just the timestamp to indicate that the station is still valid
-        setStation(null, null, null);
+        setStation(null, null);
         return previousStationCode;
     }
 
@@ -264,8 +268,8 @@ public class AQHIService {
         }
 
         Log.i(LOG_TAG, "Station updated. Code: " + station.properties.location_id  + ", Name: " + station.properties.location_name_en);
-        Pair<Integer, Double> napsStation = loadTypicalAQHI ? determineNAPS(station.geometry.coordinates.get(1), station.geometry.coordinates.get(0)) : null;
-        setStation(station.properties.location_id, station.properties.location_name_en, napsStation);
+        Pair<Integer, Double> napsStation = loadTypicalAQHI ? determineNAPSSite(station.geometry.coordinates.get(1), station.geometry.coordinates.get(0)) : null;
+        setStation(station, napsStation);
         return station.properties.location_id;
     }
 
@@ -280,7 +284,7 @@ public class AQHIService {
      * @return A Pair<Integer, Double> representing the NAPS site ID and time zone offset.
      *
      */
-    private Pair<Integer, Double> determineNAPS(double latitude, double longitude) {
+    private Pair<Integer, Double> determineNAPSSite(double latitude, double longitude) {
         synchronized (NAPS_STATIONS) {
             if (NAPS_STATIONS.isEmpty()) {
                 Log.i(LOG_TAG, "Loading NAPS site definition file.");
@@ -571,6 +575,21 @@ public class AQHIService {
     }
 
     /**
+     * Retrieves the latitude & longitude coordinates of the station either selected by the user or closest to the most recently updated user location.
+     *
+     * @param allowStale boolean, if false only return the coordinates if they have been validated during the last {@link AQHIService#DATA_VALIDITY_DURATION} milliseconds.
+     *
+     * @return Pair<Float, Float> station Latitude and Longitude coordinates.
+     */
+    public Pair<Float, Float> getStationLatLon(boolean allowStale){
+        if(!allowStale) {
+            long ts = aqhiPref.getLong(STATION_TS_KEY, Integer.MIN_VALUE);
+            if (System.currentTimeMillis() - ts > DATA_VALIDITY_DURATION) return null;
+        }
+        return new Pair<Float, Float>(aqhiPref.getFloat(STATION_LAT_KEY, -500f),aqhiPref.getFloat(STATION_LON_KEY, -500f));
+    }
+
+    /**
      * Retrieves the automatic station selection preference.
      *
      * @return boolean, true if the station is automatically selected based on the user's location, false otherwise.
@@ -584,7 +603,7 @@ public class AQHIService {
      *
      * @param val boolean, true if the station should be automatically selected based on the user's location, false otherwise.
      */
-    private void setStationAuto(boolean val) {
+    public void setStationAuto(boolean val) {
         aqhiPref.edit().putBoolean(STATION_AUTO_KEY, val).apply();
     }
 
@@ -699,22 +718,22 @@ public class AQHIService {
      * Saves the current station name, code, and NAPS ID to the shared preference.
      * Will only updates the timestamp when all values are null.
      *
-     * @param code   Station code
-     * @param name   Station name
+     * @param station Station
      * @param napsStation A Pair<Integer, Double> representing the NAPS site ID and time zone offset.
      */
-    private void setStation(String code, String name, Pair<Integer, Double> napsStation) {
+    private void setStation(Station station, Pair<Integer, Double> napsStation) {
         SharedPreferences.Editor editor = aqhiPref.edit();
         editor.putLong(STATION_TS_KEY, System.currentTimeMillis());
         //When everything is null we update just the timestamp (refresh)
-        if (null != code || null != name || null != napsStation) {
-            if(null != code && !code.isEmpty()) {
-                editor.putString(STATION_CODE_KEY, code);
+        if (null != station || null != napsStation) {
+            if(null != station) {
+                //These need to always be in sync
+                //Null checks were already preformed when fetching the stations
+                editor.putString(STATION_CODE_KEY, station.properties.location_id);
+                editor.putString(STATION_NAME_KEY, station.properties.location_name_en);
+                editor.putFloat(STATION_LAT_KEY, station.geometry.coordinates.get(1));
+                editor.putFloat(STATION_LON_KEY, station.geometry.coordinates.get(0));
             }
-            if(null != name && !name.isEmpty()) {
-                editor.putString(STATION_NAME_KEY, name);
-            }
-
             if(loadTypicalAQHI) {
                 //Typical AQHI doesn't apply to widgets.
                 //Make sure we don't accidentally erase the value for the main app

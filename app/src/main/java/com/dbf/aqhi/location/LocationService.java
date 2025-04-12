@@ -76,7 +76,7 @@ public class LocationService {
                     setRecentLocation(null, null);
                 } else {
                     //Determine if the location differs enough to update and to make the callback
-                    final double distance = Utils.distanceMeters(currentLocation.getLongitude(), currentLocation.getLatitude(), oldLatLong[1], oldLatLong[0]);
+                    final double distance = Utils.earthDistanceMeters(currentLocation.getLongitude(), currentLocation.getLatitude(), oldLatLong[1], oldLatLong[0]);
                     if(distance >= MIN_CHANGE_DISTANCE) {
                         //The location is sufficiently different from the last saved location. Update the saved location
                         setRecentLocation(currentLocation.getLatitude(), currentLocation.getLongitude());

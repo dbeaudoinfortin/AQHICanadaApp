@@ -10,7 +10,7 @@ public class Station {
 
     public static class Geometry {
         public String type;
-        public List<Double> coordinates;
+        public List<Float> coordinates;
     }
 
     public static class Properties {

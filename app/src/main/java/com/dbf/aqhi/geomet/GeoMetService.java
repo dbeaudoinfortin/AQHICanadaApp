@@ -1,6 +1,6 @@
 package com.dbf.aqhi.geomet;
 
-import static com.dbf.aqhi.Utils.distanceMagnitude;
+import static com.dbf.aqhi.Utils.earthDistanceMagnitude;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
@@ -25,8 +25,12 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -58,22 +62,22 @@ public class GeoMetService {
 
     private final File stationCacheFile;
 
-    private List<Station> stations; //This is cached
+    private Map<String, Station> stations; //This is cached
 
     public GeoMetService(Context context) {
         this.stationCacheFile = new File(context.getCacheDir(), STATION_CACHE_FILE_NAME);
     }
 
     public Station getNearestStation(double longitude, double latitude,boolean forceStationUpdate){
-        List<Station> stations = loadStations(forceStationUpdate);
-        if (null == stations) return null; //Well, we tried.
+        Map<String, Station> stations = loadStations(forceStationUpdate);
+        if (null == stations || stations.isEmpty()) return null; //Well, we tried.
 
         //TODO: Apply a bit of logic to reduce the amount of heavy math calculations
-        Station nearestStation = stations.get(0);
-        double nearestMagnitude = distanceMagnitude(longitude, latitude, nearestStation.geometry.coordinates.get(0), nearestStation.geometry.coordinates.get(1));
-        for(int i = 1; i < stations.size(); i++) {
-            Station station = stations.get(i);
-            double distanceMagnitude = distanceMagnitude(longitude, latitude, station.geometry.coordinates.get(0), station.geometry.coordinates.get(1));
+        Collection<Station> stationList = stations.values();
+        Station nearestStation = null;
+        double nearestMagnitude = Double.MAX_VALUE;
+        for(Station station : stationList) {
+            double distanceMagnitude = earthDistanceMagnitude(longitude, latitude, station.geometry.coordinates.get(0), station.geometry.coordinates.get(1));
             if (distanceMagnitude < nearestMagnitude) {
                 nearestMagnitude = distanceMagnitude;
                 nearestStation = station;
@@ -127,21 +131,27 @@ public class GeoMetService {
         return null;
     }
 
-    public synchronized List<Station> loadStations(boolean forceUpdate) {
+    /**
+     *  Returns a Map of all of the possible stations to choose from.
+     *
+     * @param forceUpdate When true, the data will be forcefully reloaded into memory.
+     * @return Map<String, Station> all stations
+     */
+    public synchronized Map<String, Station> loadStations(boolean forceUpdate) {
         if(null == stations || forceUpdate) {
             //This request can be heavy, so we want to first see if we have this cached
-            List<Station> newStations = loadStationsCached(forceUpdate);
+            Map<String, Station> newStations = loadStationsCached(forceUpdate);
             if (null != newStations && !newStations.isEmpty()) {
                 //Don't replace the station list if we could not fetch a new list this time
                 stations = newStations;
             }
         }
-        if(stations.isEmpty()) return null;
+        if(null == stations || stations.isEmpty()) return null;
         return stations;
     }
 
-    private List<Station> loadStationsCached(boolean forceUpdate){
-        List<Station> stations;
+    private Map<String, Station> loadStationsCached(boolean forceUpdate){
+        Map<String, Station> stations;
 
         if(!forceUpdate) {
             //Determine if the station definitions have been previously cached to disk to avoid fetching them from the API again
@@ -166,17 +176,17 @@ public class GeoMetService {
         return stations;
     }
 
-    private void writeStationsToDisk(List<Station> stations) {
+    private void writeStationsToDisk(Map<String, Station> stations) {
         try (FileWriter writer = new FileWriter(stationCacheFile)) {
-            gson.toJson(stations, writer); // Serialize the List<Station> to JSON
+            gson.toJson(stations, writer); // Serialize the Map<String, Station> to JSON
             stationCacheFile.setLastModified(System.currentTimeMillis()); // Update the timestamp
         } catch (IOException e) {
             Log.e(LOG_TAG, "Failed to write station definitions to the cache file " + stationCacheFile.getAbsolutePath() + "\n" + StackTraceCompactor.getCompactStackTrace(e));
         }
     }
 
-    private static final Type stationsType = new TypeToken<List<Station>>() {}.getType();
-    private List<Station> fetchStationsFromDisk() {
+    private static final Type stationsType = new TypeToken<Map<String, Station>>() {}.getType();
+    private Map<String, Station> fetchStationsFromDisk() {
         if (stationCacheFile.exists() && (System.currentTimeMillis() - stationCacheFile.lastModified()) <= STATION_CACHE_DURATION) {
             Log.i(LOG_TAG, "Loading station list from disk cache.");
             try (FileReader reader = new FileReader(stationCacheFile)) {
@@ -188,7 +198,7 @@ public class GeoMetService {
         return null;
     }
 
-    private List<Station> fetchStationsRemotely() {
+    private Map<String, Station> fetchStationsRemotely() {
         Request request = new Request.Builder()
                 .url(STATION_URL)
                 .build();
@@ -202,7 +212,7 @@ public class GeoMetService {
                         StationResponse stationResponse = gson.fromJson(response.body().string(), StationResponse.class);
                         if(null != stationResponse) {
                             Log.i(LOG_TAG, stationResponse.numberReturned + " Stations were returned from GeoMet. URL: " + STATION_URL);
-                            return stationResponse.stations;
+                            return validateStations(stationResponse.stations);
                         }
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "Failed to parse response for GeoMet. URL: " + STATION_URL + ". Response body: " + response.body().string() + "\n" + StackTraceCompactor.getCompactStackTrace(e));
@@ -217,5 +227,26 @@ public class GeoMetService {
             Log.e(LOG_TAG, "Failed to call GeoMet. URL: " + STATION_URL + "\n" + StackTraceCompactor.getCompactStackTrace(e));
         }
         return null;
+    }
+
+    private Map<String, Station> validateStations(List<Station> stations) {
+        //Remove any station that doesn't have valid geometry data
+        final Map<String, Station> validStations = new HashMap<String, Station>(stations.size());
+        for(Station station : stations) {
+            if(null == station.id || "".equals(station.id)) {
+                Log.w(LOG_TAG, "Invalid station ID: " + station.id + ".");
+                continue;
+            }
+            if(null == station.geometry || null == station.geometry.coordinates || station.geometry.coordinates.size() < 2) {
+                Log.w(LOG_TAG, "Invalid geometry data for station " + station.id + ".");
+                continue;
+            }
+            if(null == station.properties) {
+                Log.w(LOG_TAG, "Invalid properties for station " + station.id + ".");
+                continue;
+            }
+            validStations.put(station.id, station);
+        }
+        return validStations;
     }
 }

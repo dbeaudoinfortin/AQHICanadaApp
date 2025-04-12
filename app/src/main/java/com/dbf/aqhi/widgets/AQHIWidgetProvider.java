@@ -90,15 +90,16 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQ
         Log.i(LOG_TAG, "AQHI widget disabled.");
     }
 
-    public static void scheduleForcedUpdates(Context context) {
+    public synchronized static void scheduleForcedUpdates(Context context) {
         Log.d(LOG_TAG, "Scheduling forced widget background updates");
         //The maximum refresh period of 30 minutes is not enough
         //Enqueue a new task that will for a refresh after 10 and 20 minutes
         WorkManager workManager = WorkManager.getInstance(context);
         workManager.enqueueUniqueWork("widget_update_10", ExistingWorkPolicy.KEEP,
-                        new OneTimeWorkRequest.Builder(AQHIWidgetUpdateWorker.class)
-                                .setInitialDelay(10, TimeUnit.MINUTES)
-                                .build());
+                new OneTimeWorkRequest.Builder(AQHIWidgetUpdateWorker.class)
+                        .setInitialDelay(10, TimeUnit.MINUTES)
+                        .build());
+
         workManager.enqueueUniqueWork("widget_update_20", ExistingWorkPolicy.KEEP,
                 new OneTimeWorkRequest.Builder(AQHIWidgetUpdateWorker.class)
                         .setInitialDelay(20, TimeUnit.MINUTES)

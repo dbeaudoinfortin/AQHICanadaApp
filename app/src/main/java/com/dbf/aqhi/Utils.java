@@ -76,7 +76,7 @@ public class Utils {
      * @param latitude2 latitude of the second point
      * @return double magnitude of the distance between two points latitude and longitude
      */
-    public static double distanceMagnitude(double longitude1, double latitude1, double longitude2, double latitude2) {
+    public static double earthDistanceMagnitude(double longitude1, double latitude1, double longitude2, double latitude2) {
         //Using the Haversine formula approach
         //Convert from degrees to radians
         latitude1  = Math.toRadians(latitude1);
@@ -104,8 +104,8 @@ public class Utils {
      * @param latitude2 latitude of the second point
      * @return double The distance in meters between two points latitude and longitude on Earth
      */
-    public static double distanceMeters(double longitude1, double latitude1, double longitude2, double latitude2) {
-        double magSquared = distanceMagnitude(longitude1, latitude1, longitude2, latitude2);
+    public static double earthDistanceMeters(double longitude1, double latitude1, double longitude2, double latitude2) {
+        double magSquared = earthDistanceMagnitude(longitude1, latitude1, longitude2, latitude2);
         return EARTH_RADIUS * (2 * Math.atan2(Math.sqrt(magSquared), Math.sqrt(1 - magSquared)));
     }
 }
