@@ -7,6 +7,9 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.util.Pair;
+import android.util.TypedValue;
+import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.ImageView;
@@ -126,6 +129,21 @@ public class AQHILocationActivity extends AQHIActivity {
             changeStation(stationID);
         };
         mapView.getMarkerLayout().setMarkerTapListener(tapper);
+        //Add a layout listener to ensure a minimum reasonable map size
+        mapView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                int minHeightPx = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,300f,getResources().getDisplayMetrics());
+                if (mapView.getHeight() < minHeightPx) {
+                    ViewGroup.LayoutParams params = mapView.getLayoutParams();
+                    params.height = minHeightPx;
+                    mapView.setLayoutParams(params);
+                }
+                //Remove the listener so it doesn't keep firing
+                //Will be re-added on rotation
+                mapView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+            }
+        });
 
         //Refresh the UI
         //Do this first to avoid triggering onChange events
@@ -171,7 +189,7 @@ public class AQHILocationActivity extends AQHIActivity {
     /**
      * Changes the currently selected location, refreshes the UI and re-fetches fresh AQHI data
      *
-     * @param stationID
+     * @param stationID The ID of the station
      * @return boolean, indicating if the selected location was changed
      */
     private boolean changeStation(String stationID) {
@@ -251,7 +269,7 @@ public class AQHILocationActivity extends AQHIActivity {
                     .filter(k->!stations.containsKey(k))
                     .toList()
                     .stream() //Avoid concurrent modification
-                    .forEach(k->removeMarker(k));
+                    .forEach(this::removeMarker);
             //Add new markers
             stations.values().stream()
                     .filter(s->!markers.containsKey(s.id))

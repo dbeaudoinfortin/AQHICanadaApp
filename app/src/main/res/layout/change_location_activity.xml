@@ -33,7 +33,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:fontFamily="@font/roboto"
-            android:paddingBottom="8dp"
+            android:paddingBottom="4dp"
             android:text="@string/change_location_colon"
             android:textSize="16sp"
             android:textStyle="bold" />
@@ -45,21 +45,22 @@
             android:layout_height="wrap_content"
             android:checked="true"
             android:text="@string/automatic"
-            android:layout_marginBottom="8dp"/>
+            android:layout_marginBottom="0dp"/>
 
         <!-- Location Dropdown -->
         <AutoCompleteTextView
             android:id="@+id/ddLocation"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
             android:hint="@string/type_or_select_location"
-            android:layout_marginBottom="8dp" />
+            android:minHeight="48dp" />
 
         <ovh.plrapps.mapview.MapView
             android:id="@+id/mapView"
             android:layout_width="match_parent"
-            android:layout_height="300dp"
-            android:layout_marginBottom="0dp"/>
+            android:layout_height="match_parent"
+            android:layout_marginBottom="0dp" />
 
     </LinearLayout>
     </ScrollView>

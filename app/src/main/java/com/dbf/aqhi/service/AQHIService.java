@@ -450,9 +450,13 @@ public class AQHIService {
         //We need to adjust the time forward by 1 hour because the typical AQHI data is from 1 to 24
         final int hour = calendar.get(Calendar.HOUR_OF_DAY) + 1;
         final Pair<Map<Integer, Float>, Map<Integer, Float>> hourMaps = getTypicalAQHIHourMaps(hour, getTypicalAQHIMap(napsID));
-
-        //Save the determined value
-        setTypicalAQHI(getAvgTypicalAQHI(getTypicalAQHI(weekOfYear, hourMaps.first), getTypicalAQHI(weekOfYear, hourMaps.second)));
+        if(null == hourMaps) {
+            Log.w(LOG_TAG, "No typical AQHI data is available for NAPS ID " + napsID + ".");
+            setTypicalAQHI(null);
+        } else {
+            //Save the determined value
+            setTypicalAQHI(getAvgTypicalAQHI(getTypicalAQHI(weekOfYear, hourMaps.first), getTypicalAQHI(weekOfYear, hourMaps.second)));
+        }
     }
 
     private Float getAvgTypicalAQHI(Float valueOne, Float valueTwo) {
@@ -499,6 +503,7 @@ public class AQHIService {
     }
 
     private Pair<Map<Integer, Float>, Map<Integer, Float>> getTypicalAQHIHourMaps(int hour, Map<Integer, Map<Integer, Float>> typicalAQHIMap) {
+        if(null == typicalAQHIMap) return null;
         //First see if we have a direct match
         final Map<Integer, Float> hourMap = typicalAQHIMap.get(hour);
         if(null != hourMap) return new Pair<Map<Integer, Float>, Map<Integer, Float>>(hourMap, null);
@@ -634,7 +639,7 @@ public class AQHIService {
         if(System.currentTimeMillis() - ts > DATA_VALIDITY_DURATION) {
             //If the last update was handled by a widget then this value is likely stale
             determineTypicalAQHI();
-        };
+        }
 
         return (double) aqhiPref.getFloat(TYPICAL_AQHI_VAL_KEY, -1f);
     }

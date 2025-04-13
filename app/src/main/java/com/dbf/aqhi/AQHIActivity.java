@@ -3,7 +3,6 @@ package com.dbf.aqhi;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
 import android.text.Html;
 import android.text.method.LinkMovementMethod;
 import android.util.Log;
@@ -44,7 +43,7 @@ public abstract class AQHIActivity extends Activity implements AQHIFeature {
         // Create a TextView to show the message
         TextView messageTextView = new TextView(this);
         String contents = loadDialogContent(resourceID);
-        if(null != additionalHTML && !additionalHTML.equals("")) {
+        if(null != additionalHTML && !additionalHTML.isEmpty()) {
             contents += additionalHTML;
         }
         messageTextView.setText(Html.fromHtml(contents, Html.FROM_HTML_MODE_LEGACY, imageGetter, tagHandler));

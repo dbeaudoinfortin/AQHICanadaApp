@@ -3,8 +3,6 @@ package com.dbf.aqhi.geomet.data.realtime;
 import com.dbf.aqhi.geomet.data.Data;
 import com.dbf.aqhi.geomet.data.DataProperties;
 
-import java.util.Properties;
-
 public class RealtimeData extends Data {
 
     public RealtimeProperties properties;

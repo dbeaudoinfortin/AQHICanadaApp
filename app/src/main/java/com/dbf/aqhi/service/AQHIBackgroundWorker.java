@@ -28,17 +28,14 @@ public class AQHIBackgroundWorker {
         if (updateScheduler == null || updateScheduler.isShutdown()) {
             updateScheduler = Executors.newScheduledThreadPool(1);
             Log.i(LOG_TAG, "Starting background AQHI worker.");
-            updateScheduler.scheduleWithFixedDelay(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        Log.i(LOG_TAG, "Running automatic AQHI update in background.");
-                        aqhiService.update();
-                    } catch (Throwable t) { //Catch all, protect the scheduler
-                        Log.e(LOG_TAG, "Failed to run scheduled AQHI update:\n" + StackTraceCompactor.getCompactStackTrace(t));
-                    }
+            //Update every 10 minutes, starting 10 minutes from now
+            updateScheduler.scheduleWithFixedDelay(() -> {
+                try {
+                    Log.i(LOG_TAG, "Running automatic AQHI update in background.");
+                    aqhiService.update();
+                } catch (Throwable t) { //Catch all, protect the scheduler
+                    Log.e(LOG_TAG, "Failed to run scheduled AQHI update:\n" + StackTraceCompactor.getCompactStackTrace(t));
                 }
-                //Update every 10 minutes, starting 10 minutes from now
             }, UPDATE_INTERVAL, UPDATE_INTERVAL, TimeUnit.SECONDS);
         }
     }

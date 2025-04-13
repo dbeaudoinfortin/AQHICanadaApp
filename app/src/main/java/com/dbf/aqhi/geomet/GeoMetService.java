@@ -25,7 +25,6 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -233,7 +232,7 @@ public class GeoMetService {
         //Remove any station that doesn't have valid geometry data
         final Map<String, Station> validStations = new HashMap<String, Station>(stations.size());
         for(Station station : stations) {
-            if(null == station.id || "".equals(station.id)) {
+            if(null == station.id || station.id.isEmpty()) {
                 Log.w(LOG_TAG, "Invalid station ID: " + station.id + ".");
                 continue;
             }
