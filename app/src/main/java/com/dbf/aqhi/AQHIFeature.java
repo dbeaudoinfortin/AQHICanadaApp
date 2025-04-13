@@ -13,13 +13,21 @@ public interface AQHIFeature {
 
     public default String getLatestAQHIString() {
         //For widgets, we want to allow stale values since the update are only guaranteed to happen once per 30 minutes
-        Double recentAQHI = getAQHIService().getLatestAQHI(false);
+        return getLatestAQHIString(true);
+    }
+
+    public default String getLatestAQHIString(boolean allowStale) {
+        Double recentAQHI = getAQHIService().getLatestAQHI(allowStale);
         return formatAQHIValue(recentAQHI);
     }
 
     public default Double getLatestAQHI() {
         //For widgets, we want to allow stale values since the update are only guaranteed to happen once per 30 minutes
-        Double recentAQHI = getAQHIService().getLatestAQHI(true);
+        return getLatestAQHI(true);
+    }
+
+    public default Double getLatestAQHI(boolean allowStale) {
+        Double recentAQHI = getAQHIService().getLatestAQHI(allowStale);
         if(null == recentAQHI || recentAQHI < 0.0) {
             return null;
         }
@@ -27,8 +35,7 @@ public interface AQHIFeature {
     }
 
     public default String getTypicalAQHIString() {
-        //For widgets, we want to allow stale values since the update are only guaranteed to happen once per 30 minutes
-        Double typicalAQHI = getAQHIService().getTypicalAQHI(true);
+        Double typicalAQHI = getAQHIService().getTypicalAQHI();
         if(null == typicalAQHI || typicalAQHI < 0.0) {
             return null;
         }

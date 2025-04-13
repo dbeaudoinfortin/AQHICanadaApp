@@ -68,8 +68,8 @@ public class GeoMetService {
         this.stationCacheFile = new File(context.getCacheDir(), STATION_CACHE_FILE_NAME);
     }
 
-    public Station getNearestStation(double longitude, double latitude,boolean forceStationUpdate){
-        Map<String, Station> stations = loadStations(forceStationUpdate);
+    public Station getNearestStation(double longitude, double latitude, boolean forceStationUpdate){
+        Map<String, Station> stations = loadStations(forceStationUpdate, true);
         if (null == stations || stations.isEmpty()) return null; //Well, we tried.
 
         //TODO: Apply a bit of logic to reduce the amount of heavy math calculations
@@ -137,10 +137,10 @@ public class GeoMetService {
      * @param forceUpdate When true, the data will be forcefully reloaded into memory.
      * @return Map<String, Station> all stations
      */
-    public synchronized Map<String, Station> loadStations(boolean forceUpdate) {
+    public synchronized Map<String, Station> loadStations(boolean forceUpdate, boolean allowRemote) {
         if(null == stations || forceUpdate) {
             //This request can be heavy, so we want to first see if we have this cached
-            Map<String, Station> newStations = loadStationsCached(forceUpdate);
+            Map<String, Station> newStations = loadStationsCached(forceUpdate, allowRemote);
             if (null != newStations && !newStations.isEmpty()) {
                 //Don't replace the station list if we could not fetch a new list this time
                 stations = newStations;
@@ -150,8 +150,8 @@ public class GeoMetService {
         return stations;
     }
 
-    private Map<String, Station> loadStationsCached(boolean forceUpdate){
-        Map<String, Station> stations;
+    private Map<String, Station> loadStationsCached(boolean forceUpdate, boolean allowRemote){
+        Map<String, Station> stations = null;
 
         if(!forceUpdate) {
             //Determine if the station definitions have been previously cached to disk to avoid fetching them from the API again
@@ -161,7 +161,7 @@ public class GeoMetService {
 
         //The cache file may not exist, may be corrupt, or may be expired.
         //Attempt to fetch the stations remotely and cache the results.
-        stations = fetchStationsRemotely();
+        if(allowRemote) stations = fetchStationsRemotely();
 
         if(null == stations) {
             //Remote look up failed.

@@ -97,18 +97,18 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQ
         WorkManager workManager = WorkManager.getInstance(context);
         workManager.enqueueUniqueWork("widget_update_10", ExistingWorkPolicy.KEEP,
                 new OneTimeWorkRequest.Builder(AQHIWidgetUpdateWorker.class)
-                        .setInitialDelay(10, TimeUnit.MINUTES)
-                        .build());
+                    .setInitialDelay(10, TimeUnit.MINUTES)
+                    .build());
 
         workManager.enqueueUniqueWork("widget_update_20", ExistingWorkPolicy.KEEP,
                 new OneTimeWorkRequest.Builder(AQHIWidgetUpdateWorker.class)
-                        .setInitialDelay(20, TimeUnit.MINUTES)
-                        .build());
+                    .setInitialDelay(20, TimeUnit.MINUTES)
+                    .build());
 
         workManager.enqueueUniqueWork("widget_update_30", ExistingWorkPolicy.KEEP,
                 new OneTimeWorkRequest.Builder(AQHIWidgetUpdateWorker.class)
-                        .setInitialDelay(30, TimeUnit.MINUTES)
-                        .build());
+                    .setInitialDelay(30, TimeUnit.MINUTES)
+                    .build());
     }
 
     public void onRestored(Context context, int[] oldWidgetIds, int[] newWidgetIds) {

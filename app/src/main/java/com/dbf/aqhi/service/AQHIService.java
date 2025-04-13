@@ -61,8 +61,9 @@ public class AQHIService {
     private static final String STATION_AUTO_KEY = "STATION_AUTO";
     private static final String STATION_TS_KEY = "STATION_TS";
     private static final String TYPICAL_AQHI_VAL_KEY = "TYPICAL_AQHI_VAL";
+    private static final String TYPICAL_AQHI_TS_KEY = "TYPICAL_AQHI_TS";
     private static final String LATEST_AQHI_VAL_KEY = "LATEST_AQHI_VAL";
-    private static final String AQHI_TS_KEY = "AQHI_TS";
+    private static final String LATEST_AQHI_TS_KEY = "LATEST_AQHI_TS";
     private static final String HISTORICAL_AQHI_VAL_KEY = "AQHI_HIST";
     private static final String HISTORICAL_AQHI_TS_KEY = "AQHI_HIST_TS";
     private static final String FORECAST_AQHI_VAL_KEY = "AQHI_FORE";
@@ -209,11 +210,16 @@ public class AQHIService {
         }
     }
 
-    private void clearAllData() {
+    /**
+     * Deletes all stored AQHI data.
+     */
+    public void clearAllData() {
         Log.i(LOG_TAG, "Clearing all AQHI data.");
         aqhiPref.edit()
+                .remove(TYPICAL_AQHI_VAL_KEY)
+                .remove(TYPICAL_AQHI_TS_KEY)
                 .remove(LATEST_AQHI_VAL_KEY)
-                .remove(AQHI_TS_KEY)
+                .remove(LATEST_AQHI_TS_KEY)
                 .remove(HISTORICAL_AQHI_VAL_KEY)
                 .remove(HISTORICAL_AQHI_TS_KEY)
                 .remove(FORECAST_AQHI_VAL_KEY)
@@ -221,18 +227,21 @@ public class AQHIService {
                 .apply();
     }
 
-    private void clearAllPreferences() {
+    /**
+     * Deletes all stored preferences, including both AQHI data and station data.
+     */
+    public void clearAllPreferences() {
         clearAllData();
-        if(isStationAuto()) {
-            aqhiPref.edit().remove(STATION_NAME_KEY)
-                    .remove(STATION_CODE_KEY)
-                    .remove(STATION_NAPS_ID_KEY)
-                    .remove(STATION_TZ_KEY)
-                    .remove(STATION_LAT_KEY)
-                    .remove(STATION_LON_KEY)
-                    .remove(STATION_TS_KEY)
-                    .apply();
-        }
+        aqhiPref.edit()
+                .remove(STATION_NAME_KEY)
+                .remove(STATION_NAPS_ID_KEY)
+                .remove(STATION_CODE_KEY)
+                .remove(STATION_TZ_KEY)
+                .remove(STATION_LAT_KEY)
+                .remove(STATION_LON_KEY)
+                .remove(STATION_TS_KEY)
+                .apply();
+
     }
 
     private String determineCurrentLocation(String previousStationCode, boolean forceStationUpdate) {
@@ -268,9 +277,17 @@ public class AQHIService {
         }
 
         Log.i(LOG_TAG, "Station updated. Code: " + station.properties.location_id  + ", Name: " + station.properties.location_name_en);
-        Pair<Integer, Double> napsStation = loadTypicalAQHI ? determineNAPSSite(station.geometry.coordinates.get(1), station.geometry.coordinates.get(0)) : null;
-        setStation(station, napsStation);
+        setStation(station);
         return station.properties.location_id;
+    }
+
+    /**
+     * Sets the user's station
+     * @param station
+     */
+    public void setStation(Station station) {
+        Pair<Integer, Double> napsStation = station == null ? null : determineNAPSSite(station.geometry.coordinates.get(1), station.geometry.coordinates.get(0));
+        setStation(station, napsStation);
     }
 
     /**
@@ -351,7 +368,7 @@ public class AQHIService {
     private boolean fetchLatestAQHIData(String stationCode) {
         //First determine if the data we have now is new enough to use as-is
         //This avoids excessive calls to the API.
-        long ts = aqhiPref.getLong(AQHI_TS_KEY, Integer.MIN_VALUE);
+        long ts = aqhiPref.getLong(LATEST_AQHI_TS_KEY, Integer.MIN_VALUE);
         if(System.currentTimeMillis() - ts <= DATA_REFRESH_MIN_DURATION) {
             float currentAQHIValue = aqhiPref.getFloat(LATEST_AQHI_VAL_KEY, -1f);
             if (currentAQHIValue>=0) return true; //We have valid data already
@@ -423,7 +440,7 @@ public class AQHIService {
         Float timeZone = getStationTZ();
         if (null != timeZone) {
             //Note: Newfoundland's offset is 3 1/2 hours, so we use minutes
-            final int timezoneMinutes = (int) (timeZone.floatValue() * 60.0);
+            final int timezoneMinutes = (int) (timeZone * 60.0);
             calendar.add(Calendar.MINUTE, timezoneMinutes);
         } else {
             Log.w(LOG_TAG, "No time zone is available for NAPS ID " + napsID + ".");
@@ -520,7 +537,7 @@ public class AQHIService {
      * @return Integer, NAPS ID, may be null.
      */
     public Integer getStationNAPSID() {
-        long rawID = aqhiPref.getLong(STATION_NAPS_ID_KEY, -1l);
+        long rawID = aqhiPref.getLong(STATION_NAPS_ID_KEY, -1L);
         if(rawID < 0) return null;
         return (int) rawID;
     }
@@ -531,7 +548,7 @@ public class AQHIService {
      * @return Float, time zone offset, may be null
      */
     public Float getStationTZ() {
-        float rawTZ = aqhiPref.getFloat(STATION_TZ_KEY, -100l);
+        float rawTZ = aqhiPref.getFloat(STATION_TZ_KEY, -100L);
         if(rawTZ < -50) return null;
         return rawTZ;
     }
@@ -610,14 +627,15 @@ public class AQHIService {
     /**
      * Retrieves the last saved typical AQHI value for the current station.
      *
-     * @param allowStale boolean, if false only return the AQHI value if it has been updated within the last {@link AQHIService#DATA_VALIDITY_DURATION} milliseconds.
      * @return Double, AQHI value, or returns -1 if stale or not present.
      */
-    public Double getTypicalAQHI(boolean allowStale){
-        if(!allowStale) {
-            long ts = aqhiPref.getLong(AQHI_TS_KEY, Integer.MIN_VALUE);
-            if(System.currentTimeMillis() - ts > DATA_VALIDITY_DURATION) return -1d;
-        }
+    public Double getTypicalAQHI(){
+        long ts = aqhiPref.getLong(TYPICAL_AQHI_TS_KEY, Integer.MIN_VALUE);
+        if(System.currentTimeMillis() - ts > DATA_VALIDITY_DURATION) {
+            //If the last update was handled by a widget then this value is likely stale
+            determineTypicalAQHI();
+        };
+
         return (double) aqhiPref.getFloat(TYPICAL_AQHI_VAL_KEY, -1f);
     }
 
@@ -629,7 +647,7 @@ public class AQHIService {
      */
     public Double getLatestAQHI(boolean allowStale){
         if(!allowStale) {
-            long ts = aqhiPref.getLong(AQHI_TS_KEY, Integer.MIN_VALUE);
+            long ts = aqhiPref.getLong(LATEST_AQHI_TS_KEY, Integer.MIN_VALUE);
             if(System.currentTimeMillis() - ts > DATA_VALIDITY_DURATION) return -1d;
         }
         return (double) aqhiPref.getFloat(LATEST_AQHI_VAL_KEY, -1f);
@@ -726,6 +744,10 @@ public class AQHIService {
         editor.putLong(STATION_TS_KEY, System.currentTimeMillis());
         //When everything is null we update just the timestamp (refresh)
         if (null != station || null != napsStation) {
+            //Not every station has a corresponding NAPS site.
+            //So, NAPS is allowed to be null and is wiped when it is null.
+            //However, when the station is null, we keep everything as is.
+            //It's meaningless for the station to be null and NAPS to be not null.
             if(null != station) {
                 //These need to always be in sync
                 //Null checks were already preformed when fetching the stations
@@ -733,17 +755,14 @@ public class AQHIService {
                 editor.putString(STATION_NAME_KEY, station.properties.location_name_en);
                 editor.putFloat(STATION_LAT_KEY, station.geometry.coordinates.get(1));
                 editor.putFloat(STATION_LON_KEY, station.geometry.coordinates.get(0));
-            }
-            if(loadTypicalAQHI) {
-                //Typical AQHI doesn't apply to widgets.
-                //Make sure we don't accidentally erase the value for the main app
-                if (null == napsStation.first) {
+
+                if (null == napsStation || null == napsStation.first) {
                     editor.remove(STATION_NAPS_ID_KEY);
                 } else {
                     editor.putLong(STATION_NAPS_ID_KEY, napsStation.first);
                 }
 
-                if (null == napsStation.second) {
+                if (null == napsStation || null == napsStation.second) {
                     editor.remove(STATION_TZ_KEY);
                 } else {
                     editor.putFloat(STATION_TZ_KEY, napsStation.second.floatValue());
@@ -763,8 +782,12 @@ public class AQHIService {
         SharedPreferences.Editor editor = aqhiPref.edit();
         if(null != val) {
             editor.putFloat(LATEST_AQHI_VAL_KEY, val.floatValue());
+            editor.putLong(LATEST_AQHI_TS_KEY, System.currentTimeMillis());
+        } else {
+            editor.remove(LATEST_AQHI_VAL_KEY);
+            editor.remove(LATEST_AQHI_TS_KEY);
         }
-        editor.putLong(AQHI_TS_KEY, System.currentTimeMillis());
+
         editor.apply();
     }
 
@@ -778,8 +801,10 @@ public class AQHIService {
         SharedPreferences.Editor editor = aqhiPref.edit();
         if(null != val) {
             editor.putFloat(TYPICAL_AQHI_VAL_KEY, val);
+            editor.putLong(TYPICAL_AQHI_TS_KEY, System.currentTimeMillis());
         } else {
             editor.remove(TYPICAL_AQHI_VAL_KEY);
+            editor.remove(TYPICAL_AQHI_TS_KEY);
         }
         editor.apply();
     }
@@ -807,10 +832,6 @@ public class AQHIService {
 
     public void setAllowStaleLocation(boolean allowStaleLocation) {
         this.allowStaleLocation = allowStaleLocation;
-    }
-
-    public LocationService getLocationService() {
-        return locationService;
     }
 
     public void setOnChange(Runnable onChange) {

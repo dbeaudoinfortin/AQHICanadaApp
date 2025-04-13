@@ -38,6 +38,6 @@
     <string name="privacy_statement">Privacy Statement</string>
     <string name="hourly_history">Hourly History:</string>
     <string name="low_risk">Low Risk</string>
-    <string name="type_or_select_location">Type or select location</string>
+    <string name="type_or_select_location">Type or select a location on the map</string>
     <string name="typical">Typical:</string>
 </resources>

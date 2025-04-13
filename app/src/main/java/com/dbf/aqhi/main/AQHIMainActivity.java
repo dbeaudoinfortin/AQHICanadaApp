@@ -32,6 +32,9 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
+import androidx.work.ExistingWorkPolicy;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkManager;
 
 import com.dbf.aqhi.AQHIActivity;
 import com.dbf.aqhi.R;
@@ -39,6 +42,7 @@ import com.dbf.aqhi.Utils;
 import com.dbf.aqhi.permissions.PermissionService;
 import com.dbf.aqhi.service.AQHIBackgroundWorker;
 import com.dbf.aqhi.service.AQHIService;
+import com.dbf.aqhi.widgets.AQHIWidgetUpdateWorker;
 import com.dbf.heatmaps.android.HeatMap;
 import com.dbf.heatmaps.android.HeatMapGradient;
 import com.dbf.heatmaps.android.HeatMapOptions;
@@ -53,6 +57,7 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class AQHIMainActivity extends AQHIActivity {
@@ -92,7 +97,7 @@ public class AQHIMainActivity extends AQHIActivity {
         backgroundWorker.resume();
 
         //Ask the user to accept the location permission when the app loads
-        boolean isStationAuto = backgroundWorker.getAQHIService().isStationAuto();
+        boolean isStationAuto = getAQHIService().isStationAuto();
         if(!isStationAuto || requestPermissions()) {
             //User has already granted the permissions, update the location and data right now.
             //Otherwise, the data will only be updated after the user accepts the permission request.
@@ -113,6 +118,19 @@ public class AQHIMainActivity extends AQHIActivity {
         super.onPause();
         Log.i(LOG_TAG, "AQHI Main Activity paused.");
         backgroundWorker.stop();
+    }
+
+    @Override
+    public void onBackPressed() {
+        //Forcefully update the widgets, this will handle any change in location
+        //and also make sure that they get the same data the user is seeing on the
+        //main activity.
+        WorkManager workManager = WorkManager.getInstance(this);
+        workManager.enqueueUniqueWork("widget_update_now", ExistingWorkPolicy.APPEND,
+            new OneTimeWorkRequest.Builder(AQHIWidgetUpdateWorker.class)
+                .setInitialDelay(0, TimeUnit.MINUTES)
+                .build());
+        super.onBackPressed();
     }
 
     private boolean requestPermissions() {
@@ -162,21 +180,21 @@ public class AQHIMainActivity extends AQHIActivity {
         ImageView imgHistoricalHeatMap = findViewById(R.id.imgHistoricalHeatMap);
         imgHistoricalHeatMap.setOnClickListener(v -> {
             showHistoricalGridData = !showHistoricalGridData;
-            Map<Date, Double> histData = backgroundWorker.getAQHIService().getHistoricalAQHI();
+            Map<Date, Double> histData = getAQHIService().getHistoricalAQHI();
             renderHistoricalHeatMap(histData);
         });
 
         ImageView imgForecastHeatMap = findViewById(R.id.imgForecastHeatMap);
         imgForecastHeatMap.setOnClickListener(v -> {
             showForecastGridData = !showForecastGridData;
-            Map<Date, Double> forecastData = backgroundWorker.getAQHIService().getForecastAQHI();
+            Map<Date, Double> forecastData = getAQHIService().getForecastAQHI();
             renderForecastHeatMap(forecastData);
         });
     }
 
     private void updateUI() {
         Log.i(LOG_TAG, "Updating AQHI Main Activity UI.");
-        String recentStation = backgroundWorker.getAQHIService().getStationName();
+        String recentStation = getAQHIService().getStationName();
 
         //UPDATE LOCATION TEXT
         TextView locationText = findViewById(R.id.txtLocation);
@@ -187,15 +205,20 @@ public class AQHIMainActivity extends AQHIActivity {
         }
 
         //UPDATE AQHI TEXT
-        final Double aqhi = this.getLatestAQHI();
+        final Double aqhi = getLatestAQHI(false);
         TextView aqhiText = findViewById(R.id.txtAQHIValue);
-        aqhiText.setText(this.getLatestAQHIString());
+        aqhiText.setText(getLatestAQHIString(false));
 
         TextView aqhiRiskText = findViewById(R.id.txtAQHIRisk);
-        aqhiRiskText.setText(getRiskFactor(aqhi));
+        if(null == aqhi) {
+            aqhiRiskText.setVisibility(GONE);
+        } else {
+            aqhiRiskText.setVisibility(VISIBLE);
+            aqhiRiskText.setText(getRiskFactor(aqhi));
+        }
 
         //UPDATE TYPICAL AQHI TEXT
-        final String typicalAQHI = this.getTypicalAQHIString();
+        final String typicalAQHI = getTypicalAQHIString();
         TextView txtTypicalAQHI = findViewById(R.id.txtTypicalAQHI);
         if(null == typicalAQHI) {
             txtTypicalAQHI.setVisibility(GONE);
@@ -217,13 +240,13 @@ public class AQHIMainActivity extends AQHIActivity {
         }
 
         //UPDATE FORECAST
-        Map<Date, Double> forecastData = backgroundWorker.getAQHIService().getForecastAQHI();
+        Map<Date, Double> forecastData = getAQHIService().getForecastAQHI();
         LinearLayout dailyForecastList = findViewById(R.id.daily_forecast_list);
         updateDailyList(forecastData, dailyForecastList, false);
         renderForecastHeatMap(forecastData);
 
         //UPDATE HISTORICAL
-        Map<Date, Double> histData = backgroundWorker.getAQHIService().getHistoricalAQHI();
+        Map<Date, Double> histData = getAQHIService().getHistoricalAQHI();
         LinearLayout dailyHistoricalList = findViewById(R.id.daily_historical_list);
         updateDailyList(histData, dailyHistoricalList, true);
         renderHistoricalHeatMap(histData);

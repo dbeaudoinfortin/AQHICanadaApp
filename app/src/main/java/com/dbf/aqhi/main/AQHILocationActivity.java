@@ -1,6 +1,7 @@
 package com.dbf.aqhi.main;
 
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
@@ -21,6 +22,7 @@ import com.google.android.material.switchmaterial.SwitchMaterial;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import ovh.plrapps.mapview.MapView;
 import ovh.plrapps.mapview.MapViewConfiguration;
@@ -32,9 +34,13 @@ import ovh.plrapps.mapview.markers.MarkerTapListener;
 public class AQHILocationActivity extends AQHIActivity {
 
     private static final String LOG_TAG = "AQHILocationActivity";
+    public static final String SELECTED = "SELECTED";
 
     private AQHIService aqhiService;
-    private MapView imageView;
+    private MapView mapView;
+    private Map<String, Station> stationsCache;
+
+    private final Map<String, MarkerView> markers = new ConcurrentHashMap<String, MarkerView>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,127 +48,227 @@ public class AQHILocationActivity extends AQHIActivity {
         setContentView(R.layout.change_location_activity);
         initAQHIService(this);
         initUI();
+        //This is async on a separate thread, it will call updateUI() when done
+        aqhiService.updateAQHI();
     }
 
     private synchronized void initAQHIService(Context context) {
         if(null == aqhiService) {
-            aqhiService = new AQHIService(context, ()->{
+            aqhiService = new AQHIService(context, ()-> {
                 Log.i(LOG_TAG, "AQHI Service update complete. Updating the change location UI.");
-                    updateUI();
+                //Must always run on the UI thread
+                runOnUiThread(this::updateUI);
             });
         }
     }
 
-    private void updateUI() {
-        //Set the auto-select dropdown
+    private synchronized void updateUI() {
         boolean stationAuto = aqhiService.isStationAuto();
-        Map<String, Station> stations =  aqhiService.getGeoMetService().loadStations(false); //TODO: This risks doing a network call on the main thread. need to add a flag to avoid it
-        addMapMarkers(stationAuto, stations, imageView);
-    }
+        String stationName  = aqhiService.getStationName(true);
 
+        //Auto Toggle Switch
+        SwitchMaterial rbAuto = findViewById(R.id.swtAutomatic);
+        rbAuto.setChecked(stationAuto);
+
+        //Station drop-down
+        AutoCompleteTextView stationDropDown = findViewById(R.id.ddLocation);
+        stationDropDown.setText(null == stationName ? "" : stationName);
+        stationDropDown.setEnabled(!stationAuto);
+
+        //Populate the dropdown
+        Map<String, Station> stations = getStations();
+        //Check this every time on updateUI() in case the first time loaded the station list was empty
+        if(null != stations && !stations.isEmpty()
+                && (stationDropDown.getAdapter() == null || stationDropDown.getAdapter().getCount() < 1)) {
+            stationDropDown.setAdapter(new ArrayAdapter<>(
+                    this,
+                    android.R.layout.simple_dropdown_item_1line,
+                    stations.values().stream().map(s-> new StationEntry(s.id, s.properties.location_name_en)).sorted(Comparator.comparing(s -> s.label)).toList()
+            ));
+        }
+        updateMapMarkers(stationAuto);
+    }
 
     protected void initUI () {
         //Close Button Handler
         findViewById(R.id.btnSaveLocation).setOnClickListener(v -> {
             Intent resultValue = new Intent();
+            //Check to make sure the user has selected a location before leaving
+            boolean stationAuto = aqhiService.isStationAuto();
+            if(!stationAuto) {
+                String stationName  = aqhiService.getStationName(true);
+                if(null == stationName || stationName.isEmpty()) {
+                    //Create a pop-up warning the user that no location has been selected
+                    new AlertDialog.Builder(this)
+                        .setTitle("No Location Selected")
+                        .setMessage("No location has been selected. Are you sure you want to exit?")
+                        .setPositiveButton("Exit Anyway", (dialog, which) -> {
+                            setResult(RESULT_CANCELED, resultValue);
+                            finish();
+                        })
+                        .setNegativeButton("Cancel", (dialog, which) -> {
+                            // Dismiss the dialog and let the user select a location.
+                            dialog.dismiss();
+                        }).show();
+                    return;
+                }
+            }
             setResult(RESULT_OK, resultValue);
             finish();
         });
 
-        //Set initial states
-        boolean stationAuto = aqhiService.isStationAuto();
+        //Create the map, do this before updating the UI!
+        mapView = findViewById(R.id.mapView);
+        mapView.configure(getMapViewConfiguration());
+        MarkerTapListener tapper = (view, x, y) -> {
+            final String stationID = ((MarkerView) view).getMarkerName();
+            if (null == stationID || stationID.isEmpty()) return;
+            changeStation(stationID);
+        };
+        mapView.getMarkerLayout().setMarkerTapListener(tapper);
 
-        SwitchMaterial rbAuto = findViewById(R.id.swtAutomatic);
-        rbAuto.setChecked(stationAuto);
+        //Refresh the UI
+        //Do this first to avoid triggering onChange events
+        updateUI();
 
+        //Create a click listener for selecting a new station
         AutoCompleteTextView stationDropDown = findViewById(R.id.ddLocation);
-
-        String stationName = aqhiService.getStationName(true);
-        stationDropDown.setText(null == stationName ? "" : stationName);
-        stationDropDown.setEnabled(!stationAuto);
-
-        //Populate the dropdown
-        Map<String, Station> stations =  aqhiService.getGeoMetService().loadStations(false);
-
-        stationDropDown.setAdapter(new ArrayAdapter<>(
-            this,
-            android.R.layout.simple_dropdown_item_1line,
-            stations.values().stream().map(s-> new StationEntry(s.id,s.properties.location_name_en)).sorted(Comparator.comparing(s -> s.label)).toList()
-        ));
         stationDropDown.setOnItemClickListener((parent, view, position, id) -> {
             StationEntry selected = (StationEntry) parent.getItemAtPosition(position);
-            if (selected != null) stations.get(selected.id);
+            if (selected != null) changeStation(selected.id);
         });
 
         //Toggle auto location on and off
+        SwitchMaterial rbAuto = findViewById(R.id.swtAutomatic);
         rbAuto.setOnCheckedChangeListener((buttonView, isChecked) -> {
             aqhiService.setStationAuto(isChecked);
-            stationDropDown.setEnabled(!isChecked);
-            if (isChecked) {
-                Log.i(LOG_TAG, "Station selection set to auto.");
-                stationDropDown.setText(""); // Clear selection
-            } else {
-                Log.i(LOG_TAG, "Station selection set to manual.");
-            }
+            aqhiService.clearAllPreferences();
             updateUI();
+            if(isChecked) {
+                aqhiService.updateAQHI(); //Rediscover a new station
+            }
         });
-
-        //Create the map
-        imageView = findViewById(R.id.mapView);
-        imageView.configure(getMapViewConfiguration());
-        MarkerTapListener tapper = (view, x, y) -> {
-            final String stationID = ((MarkerView) view).getMarkerName();
-            if (null == stationID || "".equals(stationID)) return;
-            changeStation((MarkerView) view, stations.get(stationID));
-        };
-        imageView.getMarkerLayout().setMarkerTapListener(tapper);
-
-        //Refresh the UI
-        updateUI();
     }
 
-    private void changeStation(MarkerView view, Station station) {
-        if (null == station) return;
-        Log.i(LOG_TAG, "Changing the selected station to ID: " + station.id);
-
-        //Update the saved preferences
-        //TODO: do it
-
-        //Refresh the UI
-        updateUI();
+    private Station getStation(String stationID) {
+        if(null == stationID) return null;
+        Map<String, Station> stations = getStations();
+        if(null == stations) return null;
+        return stations.get(stationID);
     }
 
-    private void addMapMarkers(boolean stationAuto, Map<String, Station> stations, MapView imageView) {
+    private synchronized Map<String, Station> getStations() {
+        if(null == stationsCache) {
+            //Set allowRemote to false to avoid potentially doing a network call on the main thread.
+            stationsCache = aqhiService.getGeoMetService().loadStations(false, false);
+        }
+        if(null == stationsCache) {
+            Log.e(LOG_TAG, "Failed to load the station definition list.");
+        }
+        return stationsCache;
+    }
+
+    /**
+     * Changes the currently selected location, refreshes the UI and re-fetches fresh AQHI data
+     *
+     * @param stationID
+     * @return boolean, indicating if the selected location was changed
+     */
+    private boolean changeStation(String stationID) {
+        //Note: you can't re-select the selected location
+        if (null == stationID || stationID.isEmpty() || stationID.equals(SELECTED)) return false;
+        Log.i(LOG_TAG, "Changing the selected station to ID: " + stationID);
+
+        Station newStation = getStation(stationID);
+        if(null != newStation) {
+            aqhiService.setStation(newStation);
+            aqhiService.clearAllData();
+            updateUI();
+            aqhiService.updateAQHI(); //Wise idea to fetch fresh data now
+            return true;
+        }
+
+        Log.w(LOG_TAG, "Could not determine the new station ID: " + stationID);
+        return false;
+    }
+
+    private void updateMapMarkers(boolean stationAuto) {
+        Pair<Float, Float> latLon = aqhiService.getStationLatLon(true);
+        String stationID = aqhiService.getStationCode(true);
 
         if(stationAuto) {
-            //Place a single marker and zoom the map the the auto-selected location
-            Pair<Float, Float> latLon = aqhiService.getStationLatLon(true);
+            clearMarkers(); //We can safely clear all markers in this case
+        } else {
+            //Place markers for every single location
+            createMarkers();
+        }
+
+        //Set the selected station, if there is one
+        if(null != stationID) {
             if(latLon.first < -200f || latLon.second < -200f) {
                 Log.e(LOG_TAG, "Invalid latitude and longitude coordinates for the current station: " + latLon.first + ", " + latLon.second);
             } else {
-                MarkerView pinView = placePinOnMap(imageView, latLon.first, latLon.second, "");
-                //Zoom the map to the selected location
-                MarkerApiKt.moveToMarker(imageView, pinView, 1.5f, false);
+                //Place a single marker and zoom the map the the auto-selected location
+                //The previous selected marker was automatically removed but a regular marker of the
+                //same station ID would not have been removed yet.
+                removeMarker(stationID);
+                MarkerView pinView = createMarker(latLon.first, latLon.second, true, SELECTED);
+                MarkerApiKt.moveToMarker(mapView, pinView, 1.5f, false);
             }
         } else {
-            //Place markers for every single location
-            //TODO: intelligently replace markers, don't delete and re-add everything
-            //TODO: The currently selected station (if any) should be a different colour pin
-            //TODO: zoom the the selected pin, if there is one, or the whole map otherwise
-            if(null != stations) {
-                for(Station station : stations.values()) {
-                    placePinOnMap(imageView, station.geometry.coordinates.get(1), station.geometry.coordinates.get(0), station.id);
-                }
+            //This could can be valid scenario if the user location was never determined.
+            //Zoom out to the whole map
+            mapView.setScaleFromCenter(0);
+        }
+    }
+
+    private void clearMarkers() {
+        synchronized (markers) {
+            for (MarkerView marker : markers.values()) {
+                mapView.getMarkerLayout().removeMarker(marker);
+            }
+            markers.clear();
+        }
+    }
+
+    private void removeMarker(String markerName) {
+        synchronized (markers) {
+            MarkerView marker = markers.remove(markerName);
+            if (null != marker) {
+                mapView.getMarkerLayout().removeMarker(marker);
             }
         }
     }
 
-    private MarkerView placePinOnMap(MapView imageView, float lat, float lon, String pinName) {
+    private void createMarkers() {
+        Map<String, Station> stations = getStations();
+        if(null == stations) return;
+
+        synchronized (markers) {
+            //Remove all existing markers that shouldn't exist anymore
+            //And any previously selected marker that will need to be re-created
+            markers.keySet().stream()
+                    .filter(k->!stations.containsKey(k))
+                    .toList()
+                    .stream() //Avoid concurrent modification
+                    .forEach(k->removeMarker(k));
+            //Add new markers
+            stations.values().stream()
+                    .filter(s->!markers.containsKey(s.id))
+                    .forEach(s->createMarker(s.geometry.coordinates.get(1), s.geometry.coordinates.get(0), false, s.id));
+        }
+    }
+
+    private MarkerView createMarker(float lat, float lon, boolean selected, String markerName) {
         //Create a new pin image each time
-        MarkerView pinView = new MarkerView(this, pinName);
-        pinView.setImageResource(R.drawable.location_pin);
+        MarkerView pinView = new MarkerView(this, markerName);
+        pinView.setImageResource(selected ? R.drawable.location_pin_selected : R.drawable.location_pin);
         final Pair<Integer, Integer> coordinates = MapTransformer.transform(lat,lon);
-        imageView.getMarkerLayout().addMarker(pinView, coordinates.first, coordinates.second, -0.5f, -0.8f, 0f, 0f, pinName);
+
+        synchronized (markers) {
+            mapView.getMarkerLayout().addMarker(pinView, coordinates.first, coordinates.second, -0.5f, -0.8f, 0f, 0f, markerName);
+            markers.put(markerName, pinView);
+        }
         return pinView;
     }
 
@@ -187,7 +293,7 @@ public class AQHILocationActivity extends AQHIActivity {
         return null;
     }
 
-    private class StationEntry {
+    private static class StationEntry {
         public final String id;
         public final String label;
 
@@ -203,7 +309,7 @@ public class AQHILocationActivity extends AQHIActivity {
     }
 
     @SuppressLint("AppCompatCustomView")
-    private class MarkerView extends ImageView {
+    private static class MarkerView extends ImageView {
         private final String markerName;
 
         public MarkerView(Context context, String stationID) {
