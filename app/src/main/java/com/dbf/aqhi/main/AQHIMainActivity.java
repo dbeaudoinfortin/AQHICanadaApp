@@ -99,7 +99,8 @@ public class AQHIMainActivity extends AQHIActivity {
         //Ask the user to accept the location permission when the app loads
         boolean isStationAuto = getAQHIService().isStationAuto();
         if(!isStationAuto || requestPermissions()) {
-            //User has already granted the permissions, update the location and data right now.
+            //Either we don't require a location update (non-auto location) or the user has
+            //already granted the permissions. Update the data right now.
             //Otherwise, the data will only be updated after the user accepts the permission request.
             backgroundWorker.updateNow(); //Updates will be done async.
         }
@@ -134,7 +135,7 @@ public class AQHIMainActivity extends AQHIActivity {
     }
 
     private boolean requestPermissions() {
-        if (!PermissionService.checkLocationPermission(this)) {
+        if (!PermissionService.checkLocationPermission(this)) { //Has the location permission already been granted?
             Log.i(LOG_TAG, "Requesting location permission for AQHI Main Activity.");
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, LOCATION_PERMISSION_REQUEST_CODE);
             return false;
@@ -150,7 +151,8 @@ public class AQHIMainActivity extends AQHIActivity {
                 Log.i(LOG_TAG, "Location permission granted.");
                 backgroundWorker.updateNow();
             } else {
-                Toast.makeText(this, R.string.Location_perm_required, Toast.LENGTH_LONG).show();
+                Log.i(LOG_TAG, "Location permission was not granted. Disabling location auto-discovery.");
+                showNoPermission(this);
             }
         }
     }

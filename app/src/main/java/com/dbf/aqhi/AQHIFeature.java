@@ -1,5 +1,9 @@
 package com.dbf.aqhi;
 
+import android.content.Context;
+import android.util.Log;
+import android.widget.Toast;
+
 import com.dbf.aqhi.service.AQHIService;
 
 import java.text.DecimalFormat;
@@ -40,6 +44,14 @@ public interface AQHIFeature {
             return null;
         }
         return formatAQHIValue(typicalAQHI);
+    }
+
+    public default void showNoPermission(Context context) {
+        Toast.makeText(context, R.string.Location_perm_required, Toast.LENGTH_LONG).show();
+        getAQHIService().setStationAuto(false);
+        //AQHI data and station information are no longer valid
+        getAQHIService().clearAllPreferences();
+        //No point trying to update the AQHI data now, we don't have a station.
     }
 
     public default String formatAQHIValue(Double aqhi){

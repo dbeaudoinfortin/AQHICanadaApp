@@ -18,6 +18,7 @@ import com.dbf.aqhi.AQHIActivity;
 import com.dbf.aqhi.R;
 import com.dbf.aqhi.geomet.station.Station;
 import com.dbf.aqhi.location.MapTransformer;
+import com.dbf.aqhi.permissions.PermissionService;
 import com.dbf.aqhi.service.AQHIService;
 import com.dbf.utils.stacktrace.StackTraceCompactor;
 import com.google.android.material.switchmaterial.SwitchMaterial;
@@ -42,6 +43,7 @@ public class AQHILocationActivity extends AQHIActivity {
     private AQHIService aqhiService;
     private MapView mapView;
     private Map<String, Station> stationsCache;
+    private final Object  stationsCacheSync = new Object();
 
     private final Map<String, MarkerView> markers = new ConcurrentHashMap<String, MarkerView>();
 
@@ -52,14 +54,18 @@ public class AQHILocationActivity extends AQHIActivity {
         initAQHIService(this);
         initUI();
         //This is async on a separate thread, it will call updateUI() when done
-        aqhiService.updateAQHI();
+        aqhiService.update();
     }
 
     private synchronized void initAQHIService(Context context) {
         if(null == aqhiService) {
             aqhiService = new AQHIService(context, ()-> {
                 Log.i(LOG_TAG, "AQHI Service update complete. Updating the change location UI.");
-                //Must always run on the UI thread
+                //Refresh the station cache on tha background thread
+                synchronized (stationsCacheSync) {
+                    stationsCache = aqhiService.getGeoMetService().loadStations(false, true);
+                }
+                //Update the UI, must always run on the UI thread
                 runOnUiThread(this::updateUI);
             });
         }
@@ -159,11 +165,19 @@ public class AQHILocationActivity extends AQHIActivity {
         //Toggle auto location on and off
         SwitchMaterial rbAuto = findViewById(R.id.swtAutomatic);
         rbAuto.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if(isChecked && !PermissionService.checkLocationPermission(this)) {
+                Log.i(LOG_TAG, "Location permission was not granted. Disabling location auto-discovery.");
+                showNoPermission(this);
+                rbAuto.setChecked(false);
+                return;
+            }
+
             aqhiService.setStationAuto(isChecked);
             aqhiService.clearAllPreferences();
             updateUI();
             if(isChecked) {
-                aqhiService.updateAQHI(); //Rediscover a new station
+                //Rediscover a new station and load all fresh data
+                aqhiService.update();
             }
         });
     }
@@ -175,15 +189,17 @@ public class AQHILocationActivity extends AQHIActivity {
         return stations.get(stationID);
     }
 
-    private synchronized Map<String, Station> getStations() {
-        if(null == stationsCache) {
-            //Set allowRemote to false to avoid potentially doing a network call on the main thread.
-            stationsCache = aqhiService.getGeoMetService().loadStations(false, false);
+    private Map<String, Station> getStations() {
+        synchronized(stationsCacheSync) {
+            if(null == stationsCache) {
+                //Set allowRemote to false to avoid potentially doing a network call on the main thread.
+                stationsCache = aqhiService.getGeoMetService().loadStations(false, false);
+            }
+            if(null == stationsCache) {
+                Log.w(LOG_TAG, "Failed to load the station definition list.");
+            }
+            return stationsCache;
         }
-        if(null == stationsCache) {
-            Log.e(LOG_TAG, "Failed to load the station definition list.");
-        }
-        return stationsCache;
     }
 
     /**
@@ -308,7 +324,7 @@ public class AQHILocationActivity extends AQHIActivity {
 
     @Override
     public AQHIService getAQHIService() {
-        return null;
+        return aqhiService;
     }
 
     private static class StationEntry {
