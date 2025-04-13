@@ -3,9 +3,8 @@
 Android app and widgets for displaying Canadian Air Quality Health Index (AQHI) conditions, forecast and historical readings.
 
 ## Main App
-
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/f79e5a43-eb0f-4f45-a2b8-96435382de78" width="400" />
+  <img src="https://github.com/user-attachments/assets/19d1a29c-6dbe-410e-b981-72da76b51d73" width="400" />
   <img src="https://github.com/user-attachments/assets/9ee88b49-10e0-45fe-89f5-d128f8934a15" width="400" />
   <img src="https://github.com/user-attachments/assets/159ce2f9-c024-4efe-b952-3ecdc3d397ea" width="400" />
   <img src="https://github.com/user-attachments/assets/19365e74-b855-40aa-99f3-fbe53e3ecc8c" width="400" />
@@ -16,10 +15,11 @@ Android app and widgets for displaying Canadian Air Quality Health Index (AQHI) 
   <img src="https://github.com/user-attachments/assets/0c14c8de-2ecb-4d81-b82e-a9a400ea8476" width="400" />
   <img src="https://github.com/user-attachments/assets/7dc414ad-5137-485f-bb24-67abbf16ba4d" width="400" />
   <img src="https://github.com/user-attachments/assets/debaab1a-7bc8-4684-ab10-60d5af95e0b4" width="400" />
-  <img src="https://github.com/user-attachments/assets/80e2d5bd-0a81-4547-bdac-806f236316f5" width="400" />
-
+  <img src="https://github.com/user-attachments/assets/5269e8aa-da67-4873-b35d-1a26d82c382a" width="400" />
+  <img src="https://github.com/user-attachments/assets/0e9f578d-5913-42bc-a7e3-3da967473de8" width="400" />
+  <img src="https://github.com/user-attachments/assets/05bc3a03-47d0-44c9-9919-a144107956df" width="400" />
+  <img src="https://github.com/user-attachments/assets/f3c5fd2f-a322-4d87-883b-18c8f0aaff39" width="400" />
 </p>
-
 
 > [!NOTE]  
 > Both light mode and dark mode are supported and will switch automatically with the system preference.
