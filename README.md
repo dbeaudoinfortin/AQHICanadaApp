@@ -8,7 +8,6 @@ Android app and widgets for displaying Canadian Air Quality Health Index (AQHI) 
   <img src="https://github.com/user-attachments/assets/9ee88b49-10e0-45fe-89f5-d128f8934a15" width="400" />
   <img src="https://github.com/user-attachments/assets/159ce2f9-c024-4efe-b952-3ecdc3d397ea" width="400" />
   <img src="https://github.com/user-attachments/assets/19365e74-b855-40aa-99f3-fbe53e3ecc8c" width="400" />
-
 </p>
 
 <p align="center">
@@ -19,6 +18,7 @@ Android app and widgets for displaying Canadian Air Quality Health Index (AQHI) 
   <img src="https://github.com/user-attachments/assets/0e9f578d-5913-42bc-a7e3-3da967473de8" width="400" />
   <img src="https://github.com/user-attachments/assets/05bc3a03-47d0-44c9-9919-a144107956df" width="400" />
   <img src="https://github.com/user-attachments/assets/f3c5fd2f-a322-4d87-883b-18c8f0aaff39" width="400" />
+  <img src="https://github.com/user-attachments/assets/8b9d6ade-25b5-41c0-b5f3-6a3989d3d897" width="400" />
 </p>
 
 > [!NOTE]  
