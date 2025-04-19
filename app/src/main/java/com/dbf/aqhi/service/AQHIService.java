@@ -559,14 +559,15 @@ public class AQHIService {
     }
 
     /**
-     * Retrieves the station name of the station either selected by the suer or closest to the most recently updated user location.
+     * Retrieves the station name of the station either selected by the user or closest to the most recently updated user location.
      *
-     * @param allowStale boolean, if false only return the Station value if it has been validated during the last {@link AQHIService#DATA_VALIDITY_DURATION} milliseconds.
+     * @param allowStale boolean, if false only return the Station value if it has been validated during the
+     *                   last {@link AQHIService#DATA_VALIDITY_DURATION} milliseconds. Only applies if the station is set to automatic.
      *
      * @return String, station name.
      */
     public String getStationName(boolean allowStale){
-        if(!allowStale) {
+        if(!allowStale && isStationAuto()) {
             long ts = aqhiPref.getLong(STATION_TS_KEY, Integer.MIN_VALUE);
             if (System.currentTimeMillis() - ts > DATA_VALIDITY_DURATION) return null;
         }
@@ -584,12 +585,13 @@ public class AQHIService {
     /**
      * Retrieves the station code of the station either selected by the user or closest to the most recently updated user location.
      *
-     * @param allowStale boolean, if false only return the Station value if it has been validated during the last {@link AQHIService#DATA_VALIDITY_DURATION} milliseconds.
+     * @param allowStale boolean, if false only return the Station value if it has been validated during the
+     *                   last {@link AQHIService#DATA_VALIDITY_DURATION} milliseconds. Only applies if the station is set to automatic.
      *
      * @return String, station code.
      */
     public String getStationCode(boolean allowStale){
-        if(!allowStale) {
+        if(!allowStale && isStationAuto()) {
             long ts = aqhiPref.getLong(STATION_TS_KEY, Integer.MIN_VALUE);
             if (System.currentTimeMillis() - ts > DATA_VALIDITY_DURATION) return null;
         }
@@ -599,16 +601,17 @@ public class AQHIService {
     /**
      * Retrieves the latitude & longitude coordinates of the station either selected by the user or closest to the most recently updated user location.
      *
-     * @param allowStale boolean, if false only return the coordinates if they have been validated during the last {@link AQHIService#DATA_VALIDITY_DURATION} milliseconds.
+     * @param allowStale boolean, if false only return the coordinates if they have been validated during the
+     *                   last {@link AQHIService#DATA_VALIDITY_DURATION} milliseconds. Only applies if the station is set to automatic.
      *
      * @return Pair<Float, Float> station Latitude and Longitude coordinates.
      */
     public Pair<Float, Float> getStationLatLon(boolean allowStale){
-        if(!allowStale) {
+        if(!allowStale && isStationAuto()) {
             long ts = aqhiPref.getLong(STATION_TS_KEY, Integer.MIN_VALUE);
             if (System.currentTimeMillis() - ts > DATA_VALIDITY_DURATION) return null;
         }
-        return new Pair<Float, Float>(aqhiPref.getFloat(STATION_LAT_KEY, -500f),aqhiPref.getFloat(STATION_LON_KEY, -500f));
+        return new Pair<Float, Float>(aqhiPref.getFloat(STATION_LAT_KEY, -500f), aqhiPref.getFloat(STATION_LON_KEY, -500f));
     }
 
     /**
