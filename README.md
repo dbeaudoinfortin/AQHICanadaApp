@@ -3,7 +3,7 @@
 Android app and widgets for displaying Canadian Air Quality Health Index (AQHI) conditions, forecast and historical readings.
 <p align="center">&nbsp;</p>
 <p align="center">
-<a href="https://github.com/dbeaudoinfortin/AQHICanadaApp/releases"><b>Download and install the latest release.</b></a>
+<a href="https://github.com/dbeaudoinfortin/AQHICanadaApp/releases/latest"><b>Download and install the latest release.</b></a>
 </p>
 
 ## Main App
