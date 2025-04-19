@@ -247,7 +247,7 @@ public class AQHILocationActivity extends AQHIActivity {
                 //same station ID would not have been removed yet.
                 removeMarker(stationID);
                 MarkerView pinView = createMarker(latLon.first, latLon.second, true, SELECTED);
-                MarkerApiKt.moveToMarker(mapView, pinView, 1.5f, false);
+                MarkerApiKt.moveToMarker(mapView, pinView, 1f, false);
             }
         } else {
             //This could can be valid scenario if the user location was never determined.
