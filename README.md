@@ -9,7 +9,6 @@ Android app and widgets for displaying Canadian Air Quality Health Index (AQHI) 
 ## Main App
 <p align="center">
   <img src="https://github.com/user-attachments/assets/525d4af8-b17d-491a-8696-4072c5be20ea" width="400" />
-  <img src="https://github.com/user-attachments/assets/cabc9055-5a4c-4801-aba5-33bbf917d8d9" width="400" />
 </p>
 
 <p align="center">
