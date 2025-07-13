@@ -1,23 +1,20 @@
-package com.dbf.aqhi.geomet;
+package com.dbf.aqhi.api.geomet;
 
 import static com.dbf.aqhi.Utils.earthDistanceMagnitude;
-
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import android.content.Context;
 import android.util.Log;
 
-import com.dbf.aqhi.geomet.data.Data;
-import com.dbf.aqhi.geomet.data.DataResponse;
-import com.dbf.aqhi.geomet.data.forecast.ForecastData;
-import com.dbf.aqhi.geomet.data.forecast.ForecastResponse;
-import com.dbf.aqhi.geomet.data.realtime.RealtimeData;
-import com.dbf.aqhi.geomet.data.realtime.RealtimeResponse;
-import com.dbf.aqhi.geomet.station.Station;
-import com.dbf.aqhi.geomet.station.StationResponse;
-import com.dbf.aqhi.http.RetryInterceptor;
+import com.dbf.aqhi.api.APIService;
+import com.dbf.aqhi.api.geomet.data.Data;
+import com.dbf.aqhi.api.geomet.data.DataResponse;
+import com.dbf.aqhi.api.geomet.data.forecast.ForecastData;
+import com.dbf.aqhi.api.geomet.data.forecast.ForecastResponse;
+import com.dbf.aqhi.api.geomet.data.realtime.RealtimeData;
+import com.dbf.aqhi.api.geomet.data.realtime.RealtimeResponse;
+import com.dbf.aqhi.api.geomet.station.Station;
+import com.dbf.aqhi.api.geomet.station.StationResponse;
 import com.dbf.utils.stacktrace.StackTraceCompactor;
-import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import java.io.File;
@@ -31,20 +28,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
-public class GeoMetService {
+public class GeoMetService extends APIService {
 
-    private static final long HTTP_TIMEOUT = 60000; //1 minute in Milliseconds
-    private static final int  HTTP_TRIES = 3;
+    private static final String LOG_TAG = "GeoMetService";
 
     //Some stations will offline briefly, so we want to refresh this at least once per day
     private static final long STATION_CACHE_DURATION = 24 * 60 * 60 * 1000; //1 day in milliseconds
     private static final String STATION_CACHE_FILE_NAME = "stationCache.json";
 
-    private static final String LOG_TAG = "GeoMetService";
     private static final String BASE_URL = "https://api.weather.gc.ca/collections/";
 
     //Not all stations have data, so use only the stations that provide the latest observations.
@@ -53,11 +47,6 @@ public class GeoMetService {
     private static final String REALTIME_URL = BASE_URL + "aqhi-observations-realtime/items?skipGeometry=true";
     private static final String FORECAST_URL = BASE_URL + "aqhi-forecasts-realtime/items?skipGeometry=true";
     private static final String URL_LOCATION_ID = "location_id";
-    private static final Gson gson = new Gson();
-    private static final OkHttpClient client = new OkHttpClient.Builder()
-            .addInterceptor(new RetryInterceptor(HTTP_TRIES, LOG_TAG))
-            .callTimeout(HTTP_TIMEOUT, MILLISECONDS)
-            .build();
 
     private final File stationCacheFile;
 
@@ -93,13 +82,13 @@ public class GeoMetService {
                 .build();
 
         Log.i(LOG_TAG, "Calling GeoMet. URL: " + baseURL);
-        try (Response response = client. newCall(request).execute()) {
+        try (Response response = client.newCall(request).execute()) {
             if (response.isSuccessful()) {
                 if(response.body() != null) {
                     try {
                         DataResponse dataResponse = gson.fromJson(response.body().string(), responseClass);
                         if(null != dataResponse) {
-                            Log.i(LOG_TAG, dataResponse.numberReturned + " Data points were returned from GeoMet. URL: " + baseURL);
+                            Log.i(LOG_TAG, dataResponse.numberReturned + " data point(s) were returned from GeoMet. URL: " + baseURL);
                             return dataResponse.getData();
                         }
                     } catch (Exception e) {
@@ -124,6 +113,7 @@ public class GeoMetService {
     public List<ForecastData> getForecastData(String stationID) {
         List<ForecastData> data = getData(stationID, FORECAST_URL, ForecastResponse.class);
         if(null != data) {
+            //Filter out expired forecasts
             final Date now = new Date();
             return data.stream().filter(d->d.getProperties().getDate().after(now)).toList();
         }
@@ -204,7 +194,7 @@ public class GeoMetService {
 
         //This needs to be a blocking call since we can't move on without a list of stations
         Log.i(LOG_TAG, "Calling GeoMet. URL: " + STATION_URL);
-        try (Response response = client. newCall(request).execute()) {
+        try (Response response = client.newCall(request).execute()) {
             if (response.isSuccessful()) {
                 if(response.body() != null) {
                     try {

@@ -8,6 +8,7 @@ import static android.widget.RemoteViews.MARGIN_TOP;
 import android.app.Activity;
 import android.appwidget.AppWidgetManager;
 import android.content.Context;
+import android.opengl.Visibility;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.View;
@@ -18,8 +19,11 @@ import androidx.appcompat.app.AppCompatDelegate;
 import com.dbf.aqhi.R;
 import com.dbf.aqhi.service.AQHIService;
 
+import com.dbf.aqhi.api.weather.alert.Alert;
+
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Locale;
 
 public class AQHIWidgetProviderLarge extends AQHIWidgetProvider {
@@ -82,6 +86,27 @@ public class AQHIWidgetProviderLarge extends AQHIWidgetProvider {
 
         //Update the position of the gauge arrow
         updateArrowPosition(context, views, appWidgetManager, appWidgetId);
+
+        //Update the icon for Alerts
+        List<Alert> alerts = getAQHIService().getAlerts();
+        if(alerts.isEmpty()) {
+            views.setViewVisibility(R.id.imgAlert, View.GONE);
+        } else {
+            views.setViewVisibility(R.id.imgAlert, VISIBLE);
+            //Set the image to the highest alert setting
+            views.setImageViewResource(R.id.imgAlert,R.drawable.alert_statement);
+            for(Alert alert: alerts) {
+                String level = alert.getType();
+                if(null == level || level.isEmpty()) continue;
+                level = level.toLowerCase();
+                if("watch".equals(level)) {
+                    views.setImageViewResource(R.id.imgAlert,R.drawable.alert_watch);
+                } else if("warning".equals(level)) {
+                    views.setImageViewResource(R.id.imgAlert,R.drawable.alert_warn);
+                    break;
+                }
+            }
+        }
 
         //Push the update
         appWidgetManager.updateAppWidget(appWidgetId, views);

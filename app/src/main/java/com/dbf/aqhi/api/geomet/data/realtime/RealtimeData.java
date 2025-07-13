@@ -1,7 +1,7 @@
-package com.dbf.aqhi.geomet.data.realtime;
+package com.dbf.aqhi.api.geomet.data.realtime;
 
-import com.dbf.aqhi.geomet.data.Data;
-import com.dbf.aqhi.geomet.data.DataProperties;
+import com.dbf.aqhi.api.geomet.data.Data;
+import com.dbf.aqhi.api.geomet.data.DataProperties;
 
 public class RealtimeData extends Data {
 

@@ -39,6 +39,7 @@ import androidx.work.WorkManager;
 import com.dbf.aqhi.AQHIActivity;
 import com.dbf.aqhi.R;
 import com.dbf.aqhi.Utils;
+import com.dbf.aqhi.api.weather.alert.Alert;
 import com.dbf.aqhi.permissions.PermissionService;
 import com.dbf.aqhi.service.AQHIBackgroundWorker;
 import com.dbf.aqhi.service.AQHIService;
@@ -55,6 +56,7 @@ import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -122,7 +124,7 @@ public class AQHIMainActivity extends AQHIActivity {
     }
 
     @Override
-    public void onBackPressed() {
+    public void onUserLeaveHint() {
         //Forcefully update the widgets, this will handle any change in location
         //and also make sure that they get the same data the user is seeing on the
         //main activity.
@@ -131,7 +133,7 @@ public class AQHIMainActivity extends AQHIActivity {
             new OneTimeWorkRequest.Builder(AQHIWidgetUpdateWorker.class)
                 .setInitialDelay(0, TimeUnit.MINUTES)
                 .build());
-        super.onBackPressed();
+        super.onUserLeaveHint();
     }
 
     private boolean requestPermissions() {
@@ -252,6 +254,20 @@ public class AQHIMainActivity extends AQHIActivity {
         LinearLayout dailyHistoricalList = findViewById(R.id.daily_historical_list);
         updateDailyList(histData, dailyHistoricalList, true);
         renderHistoricalHeatMap(histData);
+
+        //UPDATE ALERTS
+        List<Alert> alerts = getAQHIService().getAlerts();
+        TextView txtAlerts = findViewById(R.id.lblAlerts);
+        View alertsSection = findViewById(R.id.clAlertsSection);
+        if(alerts.isEmpty()) {
+            txtAlerts.setVisibility(GONE);
+            alertsSection.setVisibility(GONE);
+        } else {
+            txtAlerts.setVisibility(VISIBLE);
+            alertsSection.setVisibility(VISIBLE);
+            LinearLayout alertList = findViewById(R.id.alert_list);
+            updateAlertList(alertList, alerts);
+        }
     }
 
     private float calculateGaugeArrowRotation(Double aqhi) {
@@ -372,6 +388,42 @@ public class AQHIMainActivity extends AQHIActivity {
 
                 dailyList.addView(itemView);
             });
+    }
+
+    private void updateAlertList(LinearLayout alertList, List<Alert> alerts) {
+        //Clear any old values
+        alertList.removeAllViews();
+        if (null == alerts || alerts.isEmpty()) return;
+
+        alerts.stream()
+                .forEach(alert -> {
+                    //Create the entry based on the layout
+                    View itemView = LayoutInflater.from(this).inflate(R.layout.alert_layout, alertList, false);
+
+                    //Set the title of the alert
+                    final TextView txtAlert = itemView.findViewById(R.id.txtAlertTitle);
+                    txtAlert.setText(alert.getAlertBannerText());
+
+                    //Set the correct icon
+                    final ImageView imgAlert = itemView.findViewById(R.id.imgAlertIcon);
+                    String level = alert.getType();
+                    if("watch".equals(level)) {
+                        imgAlert.setImageResource(R.drawable.alert_watch);
+                    } else if("warning".equals(level)) {
+                        imgAlert.setImageResource(R.drawable.alert_warn);
+                    } else {
+                        imgAlert.setImageResource(R.drawable.alert_statement);
+                    }
+
+                    //Register a click listener to show the details
+                    itemView.setOnClickListener(v -> {
+                       this.showDialog(alert.getAlertBannerText(),null, "<p><b>" + alert.getIssueTimeText() + "</b></p>" + alert.getText().replace("\n","<br>") ,null, null);
+
+                    });
+
+                    //Add the entry to the list
+                    alertList.addView(itemView);
+                });
     }
 
     private String getRiskFactor(Double aqhi) {

@@ -11,11 +11,13 @@ import android.util.Pair;
 
 import com.dbf.aqhi.R;
 import com.dbf.aqhi.Utils;
-import com.dbf.aqhi.geomet.GeoMetService;
-import com.dbf.aqhi.geomet.data.Data;
-import com.dbf.aqhi.geomet.data.forecast.ForecastData;
-import com.dbf.aqhi.geomet.data.realtime.RealtimeData;
-import com.dbf.aqhi.geomet.station.Station;
+import com.dbf.aqhi.api.geomet.GeoMetService;
+import com.dbf.aqhi.api.geomet.data.Data;
+import com.dbf.aqhi.api.geomet.data.forecast.ForecastData;
+import com.dbf.aqhi.api.geomet.data.realtime.RealtimeData;
+import com.dbf.aqhi.api.geomet.station.Station;
+import com.dbf.aqhi.api.weather.WeatherService;
+import com.dbf.aqhi.api.weather.alert.Alert;
 import com.dbf.aqhi.location.LocationService;
 import com.dbf.utils.stacktrace.StackTraceCompactor;
 import com.google.gson.Gson;
@@ -27,6 +29,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.lang.reflect.Type;
+import java.time.Instant;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
@@ -43,6 +46,7 @@ public class AQHIService {
 
     //Used for Gson conversion
     private static final Type gsonAQHIType = new TypeToken<Map<Date, Double>>(){}.getType();
+    private static final Type gsonAlertType = new TypeToken<List<Alert>>(){}.getType();
 
     //How long we can display the data on screen before we throw it out because its too old
     private static final long DATA_VALIDITY_DURATION = 30 * 60 * 1000; //30 minutes in milliseconds
@@ -68,6 +72,8 @@ public class AQHIService {
     private static final String HISTORICAL_AQHI_TS_KEY = "AQHI_HIST_TS";
     private static final String FORECAST_AQHI_VAL_KEY = "AQHI_FORE";
     private static final String FORECAST_AQHI_TS_KEY = "AQHI_FORE_TS";
+    private static final String ALERTS_VAL_KEY = "ALERTS_VAL";
+    private static final String ALERTS_TS_KEY = "ALERTS_TS";
 
     private static final Gson gson = new GsonBuilder()
             .setDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX") // ISO 8601 format
@@ -75,6 +81,7 @@ public class AQHIService {
             .create();
 
     private final GeoMetService geoMetService;
+    private final WeatherService weatherService;
     private final LocationService locationService;
     private final SharedPreferences aqhiPref;
 
@@ -112,6 +119,7 @@ public class AQHIService {
         Log.i(LOG_TAG, "Initializing AQHI service.");
         locationService = new LocationService(context);
         this.geoMetService = new GeoMetService(context);
+        this.weatherService = new WeatherService();
         this.onChange = onChange;
         this.aqhiPref = context.getSharedPreferences(AQHI_PREF_KEY, Context.MODE_PRIVATE);
         this.context = context;
@@ -207,6 +215,9 @@ public class AQHIService {
             } else {
                 Log.i(LOG_TAG, "Could not fetch fresh data for manually set station: " + currentStationCode);
             }
+
+            //Get the latest alerts
+            fetchLatestAlertData();
         }
     }
 
@@ -224,6 +235,8 @@ public class AQHIService {
                 .remove(HISTORICAL_AQHI_TS_KEY)
                 .remove(FORECAST_AQHI_VAL_KEY)
                 .remove(FORECAST_AQHI_TS_KEY)
+                .remove(ALERTS_VAL_KEY)
+                .remove(ALERTS_TS_KEY)
                 .apply();
     }
 
@@ -355,6 +368,31 @@ public class AQHIService {
             Log.i(LOG_TAG, "The closest NAPS site is " + closestNAPSID + ".");
         }
         return new Pair<Integer, Double>(closestNAPSID, closestTZ);
+    }
+
+    /**
+     * Retrieves a list of public alerts from the remote weather API service for the selected station.
+     * Fresh data will only be fetch if there is no cached data or the cache is older
+     * than DATA_REFRESH_MIN_DURATION milliseconds.
+     *
+     */
+    private void fetchLatestAlertData() {
+        //First determine if the data we have now is new enough to use as-is
+        //This avoids excessive calls to the API.
+        long ts = aqhiPref.getLong(ALERTS_TS_KEY, Integer.MIN_VALUE);
+        if(System.currentTimeMillis() - ts <= DATA_REFRESH_MIN_DURATION) {
+            return; //We have valid data already
+        }
+
+        //We need to fetch fresh data.
+        List<Alert> alerts = null;
+
+        Pair<Float, Float> latLon = getStationLatLon(true);
+        if(null != latLon) {
+            alerts = weatherService.getAlerts(latLon.first, latLon.second);
+        }
+
+        setAlerts(alerts); //Null is ok, will remove data and set the timestamp
     }
 
     /**
@@ -715,28 +753,64 @@ public class AQHIService {
     }
 
     /**
+     * Retrieves the most recent alerts for the current station.
+     * @return List<Alert> List of Alerts. Returns an empty list when no data is available.
+     */
+    public List<Alert> getAlerts(){
+        String alertsString = aqhiPref.getString(ALERTS_VAL_KEY, null);
+        if (null == alertsString || alertsString.isEmpty()) return Collections.emptyList();
+        try {
+            List<Alert> alerts = gson.fromJson(alertsString, gsonAlertType);
+            //Filter out expired alerts
+            final Instant now = new Date().toInstant();
+            return alerts.stream()
+                    .filter(a->Instant.parse(a.getEventEndTime()).isAfter(now))
+                    .filter(a->Instant.parse(a.getExpiryTime()).isAfter(now))
+                    .toList();
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "Failed to read the saved alert data: " + alertsString, e);
+            //No point continuing to save this data
+            aqhiPref.edit()
+                    .remove(ALERTS_TS_KEY)
+                    .remove(ALERTS_VAL_KEY)
+                    .apply();
+            return Collections.emptyList();
+        }
+    }
+
+    /**
      * Saves the historical AQHI data to the shared preferences.
-     * Only updates the timestamp when the value is null.
      *
      * @param val Map<Date, Double> historical AQHI data
      */
     private void setHistoricalAQHI(Map<Date, Double> val) {
         aqhiPref.edit()
-                .putString(HISTORICAL_AQHI_VAL_KEY, gson.toJson(val, gsonAQHIType))
+                .putString(HISTORICAL_AQHI_VAL_KEY, null == val ? null : gson.toJson(val, gsonAQHIType))
                 .putLong(HISTORICAL_AQHI_TS_KEY, System.currentTimeMillis())
                 .apply();
     }
 
     /**
      * Saves the forecast AQHI data to the shared preferences.
-     * Only updates the timestamp when the value is null.
      *
      * @param val Map<Date, Double> forecast AQHI data
      */
     private void setForecastAQHI(Map<Date, Double> val) {
         aqhiPref.edit()
-                .putString(FORECAST_AQHI_VAL_KEY, gson.toJson(val, gsonAQHIType))
+                .putString(FORECAST_AQHI_VAL_KEY, null == val ? null : gson.toJson(val, gsonAQHIType))
                 .putLong(FORECAST_AQHI_TS_KEY, System.currentTimeMillis())
+                .apply();
+    }
+
+    /**
+     * Saves the current alert data to the shared preferences.
+     *
+     * @param val List<Alert> Alert data
+     */
+    private void setAlerts(List<Alert> val) {
+        aqhiPref.edit()
+                .putString(ALERTS_VAL_KEY, null == val ? null : gson.toJson(val, gsonAlertType))
+                .putLong(ALERTS_TS_KEY, System.currentTimeMillis())
                 .apply();
     }
 

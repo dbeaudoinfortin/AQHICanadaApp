@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="2dp"
+    android:layout_marginTop="2dp"
+    android:gravity="center_vertical"
+    android:orientation="horizontal">
+
+    <!-- ALERT ICON -->
+    <ImageView
+        android:id="@+id/imgAlertIcon"
+        android:layout_width="32dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="center|start"
+        android:contentDescription="Alert"
+        android:src="@drawable/alert_warn" />
+
+    <!-- ALERT TEXT-->
+    <LinearLayout
+        android:id="@+id/alert_list_layout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingStart="10dp"
+        android:paddingEnd="0dp"
+        android:layout_marginBottom="2dp"
+        android:layout_marginTop="2dp"
+        android:layout_gravity="center">
+        <TextView
+            android:id="@+id/txtAlertTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:paddingEnd="10dp"
+            android:text="Special Air Quality Statement"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+</LinearLayout>

@@ -1,4 +1,4 @@
-package com.dbf.aqhi.geomet;
+package com.dbf.aqhi.api.geomet;
 
 public class Response {
     public String type;

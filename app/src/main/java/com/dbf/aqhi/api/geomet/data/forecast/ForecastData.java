@@ -1,7 +1,7 @@
-package com.dbf.aqhi.geomet.data.forecast;
+package com.dbf.aqhi.api.geomet.data.forecast;
 
-import com.dbf.aqhi.geomet.data.Data;
-import com.dbf.aqhi.geomet.data.DataProperties;
+import com.dbf.aqhi.api.geomet.data.Data;
+import com.dbf.aqhi.api.geomet.data.DataProperties;
 
 public class ForecastData extends Data {
     public ForecastProperties properties;

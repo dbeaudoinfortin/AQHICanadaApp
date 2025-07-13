@@ -105,8 +105,46 @@
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 
-            <!-- Current AQHI -->
+            <!-- Alerts -->
+            <TextView
+                android:id="@+id/lblAlerts"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/alerts"
+                android:paddingStart="2dp"
+                android:paddingEnd="0dp"
+                android:fontFamily="@font/roboto"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                app:layout_constraintTop_toBottomOf="@id/clLocationSection"
+                app:layout_constraintStart_toStartOf="parent"
+                android:paddingTop="10dp"/>
 
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/clAlertsSection"
+                android:layout_width="match_parent"
+                android:padding="0dp"
+                android:layout_marginTop="6dp"
+                android:layout_height="0dp"
+                app:layout_constraintTop_toBottomOf="@id/lblAlerts"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:background="@drawable/soft_border" >
+
+                <LinearLayout
+                    android:id="@+id/alert_list"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="vertical"
+                    android:padding="8dp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="@id/clAlertsSection"></LinearLayout>
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <!-- Current AQHI -->
             <TextView
                 android:id="@+id/lblCurrentAQHI"
                 android:layout_width="wrap_content"
@@ -117,7 +155,7 @@
                 android:paddingStart="2dp"
                 android:paddingEnd="0dp"
                 android:textStyle="bold"
-                app:layout_constraintTop_toBottomOf="@id/clLocationSection"
+                app:layout_constraintTop_toBottomOf="@id/clAlertsSection"
                 app:layout_constraintStart_toStartOf="parent"
                 android:paddingTop="10dp"/>
 

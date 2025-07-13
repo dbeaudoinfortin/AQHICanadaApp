@@ -1,6 +1,6 @@
-package com.dbf.aqhi.geomet.station;
+package com.dbf.aqhi.api.geomet.station;
 
-import com.dbf.aqhi.geomet.Response;
+import com.dbf.aqhi.api.geomet.Response;
 import com.google.gson.annotations.SerializedName;
 
 import java.util.List;

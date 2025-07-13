@@ -1,6 +1,6 @@
-package com.dbf.aqhi.geomet.data.realtime;
+package com.dbf.aqhi.api.geomet.data.realtime;
 
-import com.dbf.aqhi.geomet.data.DataResponse;
+import com.dbf.aqhi.api.geomet.data.DataResponse;
 import com.google.gson.annotations.SerializedName;
 
 import java.util.List;

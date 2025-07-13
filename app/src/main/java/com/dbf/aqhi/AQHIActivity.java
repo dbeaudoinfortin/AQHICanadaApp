@@ -32,17 +32,17 @@ public abstract class AQHIActivity extends Activity implements AQHIFeature {
 
     public void showPrivacy(View view) { showDialog("Privacy Statement", R.raw.privacy); }
 
-    protected void showDialog(String title, int resourceID) {
+    protected void showDialog(String title, Integer resourceID) {
         showDialog(title, resourceID, null, null, null);
     }
 
-    protected void showDialog(String title, int resourceID, String additionalHTML, Html.ImageGetter imageGetter, Html.TagHandler tagHandler){
+    protected void showDialog(String title, Integer resourceID, String additionalHTML, Html.ImageGetter imageGetter, Html.TagHandler tagHandler){
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(title);
 
         // Create a TextView to show the message
         TextView messageTextView = new TextView(this);
-        String contents = loadDialogContent(resourceID);
+        String contents = resourceID==null ? "" : loadDialogContent(resourceID);
         if(null != additionalHTML && !additionalHTML.isEmpty()) {
             contents += additionalHTML;
         }

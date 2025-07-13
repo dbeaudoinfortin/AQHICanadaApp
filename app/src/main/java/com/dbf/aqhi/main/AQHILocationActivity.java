@@ -16,7 +16,7 @@ import android.widget.ImageView;
 
 import com.dbf.aqhi.AQHIActivity;
 import com.dbf.aqhi.R;
-import com.dbf.aqhi.geomet.station.Station;
+import com.dbf.aqhi.api.geomet.station.Station;
 import com.dbf.aqhi.location.MapTransformer;
 import com.dbf.aqhi.permissions.PermissionService;
 import com.dbf.aqhi.service.AQHIService;

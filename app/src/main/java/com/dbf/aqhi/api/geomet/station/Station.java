@@ -1,4 +1,4 @@
-package com.dbf.aqhi.geomet.station;
+package com.dbf.aqhi.api.geomet.station;
 
 import java.util.List;
 

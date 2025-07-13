@@ -1,4 +1,4 @@
-package com.dbf.aqhi.geomet.data;
+package com.dbf.aqhi.api.geomet.data;
 
 public abstract class Data {
     public String type;

@@ -40,4 +40,5 @@
     <string name="low_risk">Low Risk</string>
     <string name="type_or_select_location">Type or select a location on the map</string>
     <string name="typical">Typical:</string>
+    <string name="alerts">Alerts</string>
 </resources>
