@@ -70,6 +70,7 @@ public class AQHIMainActivity extends AQHIActivity {
     private AQHIBackgroundWorker backgroundWorker;
     private boolean showHistoricalGridData = false;
     private boolean showForecastGridData = false;
+    private boolean showGaugeNumbers = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -177,6 +178,17 @@ public class AQHIMainActivity extends AQHIActivity {
                 arrowImage.setPivotX(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,6, getResources().getDisplayMetrics()));
                 arrowImage.setPivotY(arrowImage.getHeight() / 2f);
                 return true;
+            }
+        });
+
+        //Add a click listener to show the numbers on the guage
+        ImageView imgGauge = findViewById(R.id.imgAQHIGaugeBackground);
+        imgGauge.setOnClickListener(v -> {
+            showGaugeNumbers = !showGaugeNumbers;
+            if (showGaugeNumbers) {
+                imgGauge.setImageResource(R.drawable.gauge_background_numbers);
+            } else {
+                imgGauge.setImageResource(R.drawable.gauge_background);
             }
         });
 
