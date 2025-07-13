@@ -67,7 +67,7 @@ Alerts are displayed in the main app and in the large widget whenever Environmen
   <img src="https://github.com/user-attachments/assets/f09bc074-84dc-412a-83f0-66d2492f0051" width="400"/>
   <img src="https://github.com/user-attachments/assets/a6f859bb-5b30-4d9c-8834-ae80ee367e3c" width="400"/>
   <img src="https://github.com/user-attachments/assets/e1764e0f-27b6-4eb8-ba04-a43dc520ca4a" width="400"/>
-</p><img width="1080" height="2259" alt="Screenshot_20250713_141019_AQHI" src="" />
+</p>
 
 ## How it works
 AQHI Data is pulled from Environment and Climate Change Canada's public API using the closest active monitoring station to your current location. The station definitions, current location, and current AQHI readings are all cached to prevent excessive calls to the API. Data is shared between the main app and the widgets.
