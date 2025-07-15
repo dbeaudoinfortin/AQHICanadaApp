@@ -12,8 +12,8 @@ android {
         applicationId = "com.dbf.aqhi"
         minSdk = 34
         targetSdk = 34
-        versionCode = 3
-        versionName = "1.0.4"
+        versionCode = 4
+        versionName = "1.0.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

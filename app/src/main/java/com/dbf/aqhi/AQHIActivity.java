@@ -12,11 +12,17 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.TextView;
 
+import androidx.work.ExistingWorkPolicy;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkManager;
+
+import com.dbf.aqhi.widgets.AQHIWidgetUpdateWorker;
 import com.dbf.utils.stacktrace.StackTraceCompactor;
 
 import org.apache.commons.io.IOUtils;
 
 import java.nio.charset.Charset;
+import java.util.concurrent.TimeUnit;
 
 public abstract class AQHIActivity extends Activity implements AQHIFeature {
 
@@ -69,6 +75,17 @@ public abstract class AQHIActivity extends Activity implements AQHIFeature {
             Log.e(LOG_TAG, "Failed to load content.\n" + StackTraceCompactor.getCompactStackTrace(e));
             return "<p>Failed to content.</p>";
         }
+    }
+
+    protected void forceWidgetUpdate() {
+        //Forcefully update the widgets, this will handle any change in location
+        //and also make sure that they get the same data the user is seeing on the
+        //main activity.
+        WorkManager workManager = WorkManager.getInstance(this);
+        workManager.enqueueUniqueWork("widget_update_now", ExistingWorkPolicy.APPEND,
+                new OneTimeWorkRequest.Builder(AQHIWidgetUpdateWorker.class)
+                        .setInitialDelay(0, TimeUnit.MINUTES)
+                        .build());
     }
 
     protected abstract void initUI();

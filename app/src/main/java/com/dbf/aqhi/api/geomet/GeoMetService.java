@@ -113,8 +113,8 @@ public class GeoMetService extends APIService {
     public List<ForecastData> getForecastData(String stationID) {
         List<ForecastData> data = getData(stationID, FORECAST_URL, ForecastResponse.class);
         if(null != data) {
-            //Filter out expired forecasts
-            final Date now = new Date();
+            //Filter out expired forecasts. Subtract one hour since the time represents the start of the 1-hour period.
+            final Date now = new Date(System.currentTimeMillis() - (3600000));
             return data.stream().filter(d->d.getProperties().getDate().after(now)).toList();
         }
         return null;

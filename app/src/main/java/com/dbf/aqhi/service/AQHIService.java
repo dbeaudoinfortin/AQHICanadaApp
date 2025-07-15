@@ -217,7 +217,7 @@ public class AQHIService {
             }
 
             //Get the latest alerts
-            fetchLatestAlertData();
+            if (null != currentStationCode) fetchLatestAlertData();
         }
     }
 

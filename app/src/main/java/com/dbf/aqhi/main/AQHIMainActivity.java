@@ -28,13 +28,9 @@ import android.view.WindowMetrics;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
-import androidx.work.ExistingWorkPolicy;
-import androidx.work.OneTimeWorkRequest;
-import androidx.work.WorkManager;
 
 import com.dbf.aqhi.AQHIActivity;
 import com.dbf.aqhi.R;
@@ -43,7 +39,6 @@ import com.dbf.aqhi.api.weather.alert.Alert;
 import com.dbf.aqhi.permissions.PermissionService;
 import com.dbf.aqhi.service.AQHIBackgroundWorker;
 import com.dbf.aqhi.service.AQHIService;
-import com.dbf.aqhi.widgets.AQHIWidgetUpdateWorker;
 import com.dbf.heatmaps.android.HeatMap;
 import com.dbf.heatmaps.android.HeatMapGradient;
 import com.dbf.heatmaps.android.HeatMapOptions;
@@ -59,7 +54,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class AQHIMainActivity extends AQHIActivity {
@@ -111,30 +105,17 @@ public class AQHIMainActivity extends AQHIActivity {
 
     @Override
     protected void onDestroy() {
-        super.onDestroy();
         Log.i(LOG_TAG, "AQHI Main Activity destroyed.");
         backgroundWorker.stop();
-        //TODO: Force a widget update so the widgets aren't out of sync.
+        super.onDestroy();
     }
 
     @Override
     protected void onPause() {
-        super.onPause();
         Log.i(LOG_TAG, "AQHI Main Activity paused.");
+        forceWidgetUpdate();
         backgroundWorker.stop();
-    }
-
-    @Override
-    public void onUserLeaveHint() {
-        //Forcefully update the widgets, this will handle any change in location
-        //and also make sure that they get the same data the user is seeing on the
-        //main activity.
-        WorkManager workManager = WorkManager.getInstance(this);
-        workManager.enqueueUniqueWork("widget_update_now", ExistingWorkPolicy.APPEND,
-            new OneTimeWorkRequest.Builder(AQHIWidgetUpdateWorker.class)
-                .setInitialDelay(0, TimeUnit.MINUTES)
-                .build());
-        super.onUserLeaveHint();
+        super.onPause();
     }
 
     private boolean requestPermissions() {

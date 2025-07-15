@@ -81,8 +81,12 @@ public class AQHILocationActivity extends AQHIActivity {
 
         //Station drop-down
         AutoCompleteTextView stationDropDown = findViewById(R.id.ddLocation);
-        stationDropDown.setText(null == stationName ? "" : stationName);
-        stationDropDown.setEnabled(!stationAuto);
+        if (!("" + stationDropDown.getText()).equals(stationName)) {
+            stationDropDown.setText(null == stationName ? "" : stationName);
+        }
+        if(stationDropDown.isEnabled() != !stationAuto) {
+            stationDropDown.setEnabled(!stationAuto);
+        }
 
         //Populate the dropdown
         Map<String, Station> stations = getStations();
@@ -102,28 +106,7 @@ public class AQHILocationActivity extends AQHIActivity {
         //Close Button Handler
         findViewById(R.id.btnSaveLocation).setOnClickListener(v -> {
             Intent resultValue = new Intent();
-            //Check to make sure the user has selected a location before leaving
-            boolean stationAuto = aqhiService.isStationAuto();
-            if(!stationAuto) {
-                String stationName  = aqhiService.getStationName(true);
-                if(null == stationName || stationName.isEmpty()) {
-                    //Create a pop-up warning the user that no location has been selected
-                    new AlertDialog.Builder(this)
-                        .setTitle("No Location Selected")
-                        .setMessage("No location has been selected. Are you sure you want to exit?")
-                        .setPositiveButton("Exit Anyway", (dialog, which) -> {
-                            setResult(RESULT_CANCELED, resultValue);
-                            finish();
-                        })
-                        .setNegativeButton("Cancel", (dialog, which) -> {
-                            // Dismiss the dialog and let the user select a location.
-                            dialog.dismiss();
-                        }).show();
-                    return;
-                }
-            }
-            setResult(RESULT_OK, resultValue);
-            finish();
+            warnNoLocation(resultValue);
         });
 
         //Create the map, do this before updating the UI!
@@ -180,6 +163,46 @@ public class AQHILocationActivity extends AQHIActivity {
                 aqhiService.update();
             }
         });
+    }
+
+    @Override
+    public void onPause() {
+        Log.i(LOG_TAG, "AQHI Location Activity paused.");
+        forceWidgetUpdate();
+        super.onPause();
+    }
+
+    @Override
+    public void onBackPressed() {
+
+        Intent resultValue = new Intent();
+        warnNoLocation(resultValue);
+        //super.onBackPressed();
+    }
+
+    private void warnNoLocation(Intent resultValue) {
+        //Check to make sure the user has selected a location before leaving
+        boolean stationAuto = aqhiService.isStationAuto();
+        if(!stationAuto) {
+            String stationName  = aqhiService.getStationName(true);
+            if(null == stationName || stationName.isEmpty()) {
+                //Create a pop-up warning the user that no location has been selected
+                new AlertDialog.Builder(this)
+                        .setTitle("No Location Selected")
+                        .setMessage("No location has been selected. Are you sure you want to close?")
+                        .setPositiveButton("Close Anyway", (dialog, which) -> {
+                            setResult(RESULT_CANCELED, resultValue);
+                            finish();
+                        })
+                        .setNegativeButton("Cancel", (dialog, which) -> {
+                            // Dismiss the dialog and let the user select a location.
+                            dialog.dismiss();
+                        }).show();
+                return;
+            }
+        }
+        setResult(RESULT_OK, resultValue);
+        finish();
     }
 
     private Station getStation(String stationID) {
