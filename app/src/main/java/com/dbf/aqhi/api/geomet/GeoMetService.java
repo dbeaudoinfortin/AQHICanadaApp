@@ -107,7 +107,13 @@ public class GeoMetService extends APIService {
     }
 
     public List<RealtimeData> getRealtimeData(String stationID) {
-        return getData(stationID, REALTIME_URL, RealtimeResponse.class);
+        List<RealtimeData> data = getData(stationID, REALTIME_URL, RealtimeResponse.class);
+        if(null != data) {
+            //Filter out bad data
+            return data.stream().filter(d->d.getProperties()!= null && "AQHI-Observation".equals(d.getProperties().aqhi_type))
+                    .toList();
+        }
+        return null;
     }
 
     public List<ForecastData> getForecastData(String stationID) {
@@ -115,7 +121,9 @@ public class GeoMetService extends APIService {
         if(null != data) {
             //Filter out expired forecasts. Subtract one hour since the time represents the start of the 1-hour period.
             final Date now = new Date(System.currentTimeMillis() - (3600000));
-            return data.stream().filter(d->d.getProperties().getDate().after(now)).toList();
+            return data.stream().filter(d->d.getProperties()!= null && "AQHI-Forecast".equals(d.getProperties().aqhi_type))
+                    .filter(d->d.getProperties().getDate() !=null && d.getProperties().getDate().after(now))
+                    .toList();
         }
         return null;
     }

@@ -136,7 +136,7 @@ public class AQHIMainActivity extends AQHIActivity {
                 backgroundWorker.updateNow();
             } else {
                 Log.i(LOG_TAG, "Location permission was not granted. Disabling location auto-discovery.");
-                showNoPermission(this);
+                showNoPermission(this, true);
             }
         }
     }
@@ -354,7 +354,7 @@ public class AQHIMainActivity extends AQHIActivity {
 
         if (null == data || data.isEmpty()) return;
 
-        final DecimalFormat decimalFormatter = new DecimalFormat(decimals ? AQHI_DIGIT_FORMAT : AQHI_NO_DIGIT_FORMAT);
+        final String decimalFormat = decimals ? AQHI_DIGIT_FORMAT : AQHI_NO_DIGIT_FORMAT;
         final SimpleDateFormat dateDisplayFormat = new SimpleDateFormat("MMM d", Locale.CANADA);//MAR 3
         final SimpleDateFormat dayDisplayFormat  = new SimpleDateFormat("E", Locale.CANADA);
 
@@ -377,8 +377,7 @@ public class AQHIMainActivity extends AQHIActivity {
                 txtDay.setText(dayDisplayFormat.format(value.getKey()));    //MON
                 txtMonth.setText(dateDisplayFormat.format(value.getKey())); //MAR 3
                 txtForecastRisk.setText(getRiskFactor(value.getValue())); //Low Risk
-                txtForecastValue.setText(decimalFormatter.format(value.getValue())); //3.00 or 3
-
+                txtForecastValue.setText(this.formatAQHIValue(value.getValue(), decimalFormat));
                 dailyList.addView(itemView);
             });
     }

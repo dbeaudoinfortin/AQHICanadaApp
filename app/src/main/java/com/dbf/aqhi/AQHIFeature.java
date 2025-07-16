@@ -46,25 +46,34 @@ public interface AQHIFeature {
         return formatAQHIValue(typicalAQHI);
     }
 
-    public default void showNoPermission(Context context) {
+    public default void showNoPermission(Context context, boolean wipeData) {
         Toast.makeText(context, R.string.Location_perm_required, Toast.LENGTH_LONG).show();
-        getAQHIService().setStationAuto(false);
-        //AQHI data and station information are no longer valid
-        getAQHIService().clearAllPreferences();
-        //No point trying to update the AQHI data now, we don't have a station.
+        if(wipeData) {
+            getAQHIService().setStationAuto(false);
+            //AQHI data and station information are no longer valid
+            getAQHIService().clearAllPreferences();
+            //No point trying to update the AQHI data now, we don't have a station.
+        }
+    }
+    public default String formatAQHIValue(Double aqhi){
+        return formatAQHIValue(aqhi, AQHI_DIGIT_FORMAT);
     }
 
-    public default String formatAQHIValue(Double aqhi){
+    public default String formatAQHIValue(Double aqhi, String format){
         if(null == aqhi) {
             return "…"; //Still fetching the value
         } else if(aqhi < 0.0) {
             return "?"; //Unknown
+        } else if(aqhi <= 1.0) {
+            return "1"; //AQHI has a minimum lower bound of 1 by definition
+        } else if(aqhi >= 11.0) {
+            return "11+";
         } else if(aqhi % 1.0 == 0.0) {
             //No fraction
-            return aqhi.toString();
+            return "" + aqhi.intValue();
         }
         //2-digit fractional number
-        DecimalFormat df = new DecimalFormat(AQHI_DIGIT_FORMAT); // Not thread safe
+        DecimalFormat df = new DecimalFormat(format); // Not thread safe
         return df.format(aqhi);
     }
 }

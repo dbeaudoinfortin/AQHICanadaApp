@@ -150,7 +150,7 @@ public class AQHILocationActivity extends AQHIActivity {
         rbAuto.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if(isChecked && !PermissionService.checkLocationPermission(this)) {
                 Log.i(LOG_TAG, "Location permission was not granted. Disabling location auto-discovery.");
-                showNoPermission(this);
+                showNoPermission(this, false);
                 rbAuto.setChecked(false);
                 return;
             }
