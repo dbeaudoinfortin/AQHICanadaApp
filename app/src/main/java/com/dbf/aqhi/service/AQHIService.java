@@ -557,6 +557,22 @@ public class AQHIService {
         for(RealtimeData dataPoint : data) {
             if(null == dataPoint.properties) continue;
             if(dataPoint.properties.latest) {
+                if(null == dataPoint.properties.aqhi) break;
+
+                Date latestAQHIDate;
+                try {
+                    latestAQHIDate = dataPoint.properties.getDate();
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "Failed to parse the latest AQHI date.", e);
+                    return null;
+                }
+
+                //Sanity check, the latest AQHI reading can be more than 2 hours old
+                final Date twoHoursAgo = new Date(System.currentTimeMillis() - (7200000));
+                if(latestAQHIDate.before(twoHoursAgo)) {
+                    Log.w(LOG_TAG, "Latest AQHI data is too old: " + latestAQHIDate);
+                    return null;
+                }
                 return dataPoint.properties.aqhi;
             }
         }
