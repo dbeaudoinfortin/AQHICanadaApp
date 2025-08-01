@@ -1,10 +1,19 @@
 # Canada AQHI Android App <img src="https://github.com/user-attachments/assets/2aa9f5e2-b4b7-4dc5-a3df-0d04fb6171a7" height="35"/>
 
-Android app and widgets for displaying Canadian Air Quality Health Index (AQHI) conditions, alerts, forecast and historical readings.
+A no-nonsense Android app & widgets for displaying Canadian Air Quality Health Index (AQHI) conditions, alerts, forecasts and historical readings.
 <p align="center">&nbsp;</p>
 <p align="center">
 <a href="https://github.com/dbeaudoinfortin/AQHICanadaApp/releases/latest"><b>Download and install the latest release.</b></a>
 </p>
+
+Features:
+- View the latest air quality readings from the nearest monitoring station to your location.
+- See AQHI forecasts for the next several days.
+- Receive alerts when ECCC issues warnings for your selected area.
+- Explore daily and hourly trends, including median “typical” values based on a 10-year analysis of air quality data.
+- Choose from two configurable home screen widgets to monitor AQHI at a glance.
+- Automatically switches between light and dark mode based on your system settings.
+- Maps are entirely offline, with no location data sent to any server.
 
 ## Main App
 <p align="center">
