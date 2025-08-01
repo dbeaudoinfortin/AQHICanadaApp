@@ -11,7 +11,7 @@ Features:
 - See AQHI forecasts for the next several days.
 - Receive alerts when ECCC issues warnings for your selected area.
 - Explore daily and hourly trends, including median “typical” values based on a 10-year analysis of air quality data.
-- Choose from two configurable home screen widgets to monitor AQHI at a glance.
+- Choose from three configurable home screen widgets to monitor AQHI at a glance.
 - Automatically switches between light and dark mode based on your system settings.
 - Maps are entirely offline, with no location data sent to any server.
 
@@ -46,7 +46,7 @@ Features:
 
 ## Widgets
 
-Two widgets are provided: a small widget that displays the most recent AQHI reading at your location, and a larger, wider widget that shows the AQHI reading on a relative scale.
+Three widgets are provided: a small widget that displays the most recent AQHI reading at your location, a larger, wider widget that shows the AQHI reading on a relative scale, and a fun emoji smiley face widget that changes with the current AQHI reading.
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/a27f71ca-6110-43d9-9bfe-3b1914a128e6" />
@@ -56,6 +56,12 @@ Two widgets are provided: a small widget that displays the most recent AQHI read
 <p align="center">
   <img src="https://github.com/user-attachments/assets/7e22940d-4ab8-4e21-9f03-9f397eb8dbc3" width="400"/>
   <img src="https://github.com/user-attachments/assets/742c6ad0-ecdb-46c8-81be-d08509e88693" width="400"/>
+</p>
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/68e678ff-03c1-4b07-af1e-4254791a7d1e" width="300"/>
+  <img src="https://github.com/user-attachments/assets/7a6e63f1-3756-4e72-97f0-a00d0e358937" width="300"/>
+  <img src="https://github.com/user-attachments/assets/890a0a9e-a0e7-4019-9030-b5bbb5af89ce" width="300"/>
 </p>
 
 Widgets are configurable: you can set the background transparency as well as the light/dark mode. A preview of the widget is shown as you configure it.
@@ -84,13 +90,13 @@ AQHI Data is pulled from Environment and Climate Change Canada's public API usin
 The rendering of heat maps is entirely written from scratch by myself. My [GitHub project](https://github.com/dbeaudoinfortin/HeatMaps) contains rendering libraries for both Android and Java2D. Check it out if you want to add beautiful, customizable heat maps to you own Java project.
 
 ## About AQHI
-The Canadian Air Quality Health Index (AQHI) is a made-in-Canada scale developed by Environment and Climate Change Canada (ECCC) to provide real-time information about the health risks associated with air pollution. It combines measurements from ground-level ozone, fine particulate matter (PM2.5), and nitrogen dioxide into a single numerical value on a scale from 1 (low risk) to 10 (high risk). All values above 10 are assigned a reading of 10+, indicating a very high risk.
+The Canadian Air Quality Health Index (AQHI) is a made-in-Canada scale developed by Environment and Climate Change Canada (ECCC) to provide real-time information about the health risks associated with air pollution. It combines measurements from ground-level ozone, fine particulate matter (PM2.5), and nitrogen dioxide into a single numerical value on a scale from 1 (low risk) to 10 (high risk). All values above 10 are assigned a reading of 11+, indicating a very high risk.
 
 **Scale:**
 - 1-3 Low health risk
 - 4-6 Moderate health risk
 - 7-10 High health risk
-- 10+  Very high health risk
+- 11+  Very high health risk
 
 As per ECCC, the calculation of the AQHI may change over time to reflect new understanding associated with air pollution health effects. AQHI values are calculated automatically using observations from a network of air quality monitoring stations across Canada. These measurements are collected in real-time and are not verified prior to publication. Forecast and historical AQHI values are reported on an hourly basis.
 
