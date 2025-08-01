@@ -38,6 +38,7 @@ public class AQHIWidgetUpdateWorker extends Worker {
         aqhiService.setOnChange(() -> {
             updateWidgets(context, new AQHIWidgetProviderLarge(aqhiService), appWidgetManager, appWidgetManager.getAppWidgetIds(new ComponentName(context, AQHIWidgetProviderLarge.class)));
             updateWidgets(context, new AQHIWidgetProviderSmall(aqhiService), appWidgetManager, appWidgetManager.getAppWidgetIds(new ComponentName(context, AQHIWidgetProviderSmall.class)));
+            updateWidgets(context, new AQHIWidgetProviderFace(aqhiService), appWidgetManager, appWidgetManager.getAppWidgetIds(new ComponentName(context, AQHIWidgetProviderFace.class)));
         });
         aqhiService.update();
         return Result.success();

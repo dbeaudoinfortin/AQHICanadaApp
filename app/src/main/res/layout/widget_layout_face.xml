@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:id="@+id/widget_root">
+
+    <!-- Background Image -->
+    <ImageView
+        android:id="@+id/widget_background"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:src="@drawable/widget_background"
+        android:scaleType="centerCrop" />
+
+    <LinearLayout
+        xmlns:tools="http://schemas.android.com/tools"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="8dp">
+
+        <ImageView
+            android:id="@+id/imgAQHIFace"
+            android:layout_gravity="top"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:src="@drawable/emoji_0"
+            android:contentDescription="@string/aqhi_emoji"/>
+
+        <TextView
+            android:id="@+id/txtAQHI"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top"
+            android:gravity="center|top"
+            android:fontFamily="@font/roboto"
+            android:includeFontPadding="false"
+            android:text="---"
+            android:textColor="@color/widget_text_color"
+            android:textSize="28dp"
+            android:textStyle="bold"
+            tools:ignore="HardcodedText,SpUsage" />
+
+    </LinearLayout>
+</FrameLayout>

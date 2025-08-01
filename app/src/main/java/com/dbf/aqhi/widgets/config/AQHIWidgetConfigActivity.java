@@ -16,6 +16,7 @@ import androidx.appcompat.app.AppCompatDelegate;
 
 import com.dbf.aqhi.R;
 import com.dbf.aqhi.widgets.AQHIWidgetProvider;
+import com.dbf.aqhi.widgets.AQHIWidgetProviderFace;
 import com.dbf.aqhi.widgets.AQHIWidgetProviderLarge;
 import com.dbf.aqhi.widgets.AQHIWidgetProviderSmall;
 
@@ -142,8 +143,14 @@ public class AQHIWidgetConfigActivity extends Activity  {
         previewContainer.addView(widgetPreview);
 
         //Now update the preview widget UI
-        AQHIWidgetProvider provider = (info.initialLayout == R.layout.widget_layout_large) ?
-                new AQHIWidgetProviderLarge() : new AQHIWidgetProviderSmall();
+        AQHIWidgetProvider provider;
+        if(info.initialLayout == R.layout.widget_layout_large) {
+            provider = new AQHIWidgetProviderLarge();
+        } else if(info.initialLayout == R.layout.widget_layout_small) {
+            provider = new AQHIWidgetProviderSmall();
+        } else {
+            provider = new AQHIWidgetProviderFace();
+        }
 
         //AQHIService is not initialized automatically since it needs a context
         provider.initAQHIService(this, appWidgetManager, new int[] {appWidgetId});

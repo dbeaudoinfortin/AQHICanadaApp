@@ -49,6 +49,21 @@
                 android:resource="@xml/widget_info_small" />
         </receiver>
 
+        <!-- EMOJI ANDROID WIDGET -->
+        <receiver
+            android:name=".widgets.AQHIWidgetProviderFace"
+            android:theme="@style/Theme.AQHIWidget"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_face" />
+        </receiver>
+
         <!-- LARGE ANDROID WIDGET -->
         <receiver
             android:name=".widgets.AQHIWidgetProviderLarge"
