@@ -62,6 +62,7 @@ Three widgets are provided: a small widget that displays the most recent AQHI re
   <img src="https://github.com/user-attachments/assets/68e678ff-03c1-4b07-af1e-4254791a7d1e" width="200"/>
   <img src="https://github.com/user-attachments/assets/7a6e63f1-3756-4e72-97f0-a00d0e358937" width="200"/>
   <img src="https://github.com/user-attachments/assets/890a0a9e-a0e7-4019-9030-b5bbb5af89ce" width="200"/>
+  <img src="https://github.com/user-attachments/assets/865d9162-67c6-4798-90f9-1c6e90afb2cd" width="200"/>
 </p>
 
 Widgets are configurable: you can set the background transparency as well as the light/dark mode. A preview of the widget is shown as you configure it.
