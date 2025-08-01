@@ -10,6 +10,6 @@ This app determines your nearest air quality monitoring station by comparing you
 
 This app does not use any third-party data collection SDKs, such as analytics, advertising, or crash-reporting SDKs. Because no data is collected or retained, there is no need for data-retention controls or a data-retention period.
 
-You can view the latest privacy policy anytime by tapping the "Privacy" link in the bottom right footer of the app, or viewing it on [GitHub](https://github.com/dbeaudoinfortin/AQHICanadaApp/blob/main/PRIVACY.md). Questions related to privacy can be sent to David Fortin at the e-mail address davidfortindev@gmail.com.
+You can view the latest privacy policy anytime by tapping the "Privacy" link in the bottom right footer of the app, or viewing it on [GitHub](https://github.com/dbeaudoinfortin/AQHICanadaApp/blob/main/PRIVACY.md).
 
 This app is fully open-source. You can review all source code on [GitHub](https://github.com/dbeaudoinfortin/AQHICanadaApp)</a>.

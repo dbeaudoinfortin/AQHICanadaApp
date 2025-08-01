@@ -404,37 +404,63 @@ public class AQHIService {
      * @return true if the station has valid fresh data, false otherwise.
      */
     private boolean fetchLatestAQHIData(String stationCode) {
-        //First determine if the data we have now is new enough to use as-is
-        //This avoids excessive calls to the API.
+
+        //Load the realtime and forecast data from the API
+        boolean haveRealtime = fetchLatestRealtimeData(stationCode);
+        boolean haveForecast = fetchLatestForecastData(stationCode);
+
+        //Determine the typical AQHI for this time of day and time of year, if we have the data for it
+        if(loadTypicalAQHI) determineTypicalAQHI();
+
+        //If both are false then we could not get any valid data from any API call
+        return haveRealtime || haveForecast;
+    }
+
+
+    private boolean fetchLatestRealtimeData(String stationCode) {
+        //First determine if the data we have now is new enough to use as-is. This avoids excessive calls to the API.
+        boolean haveRealtime = false;
         long ts = aqhiPref.getLong(LATEST_AQHI_TS_KEY, Integer.MIN_VALUE);
         if(System.currentTimeMillis() - ts <= DATA_REFRESH_MIN_DURATION) {
-            float currentAQHIValue = aqhiPref.getFloat(LATEST_AQHI_VAL_KEY, -1f);
-            if (currentAQHIValue>=0) return true; //We have valid data already
+            haveRealtime = getLatestAQHI(true) >= 0; //We have valid data already
         }
 
-        //We need to fetch fresh data.
-        //Get the latest AQHI reading for the station.
-        List<RealtimeData> realtimeData = geoMetService.getRealtimeData(stationCode); //station may be null at this time
-        Double latestAQHI = extractLatestAQHIValue(realtimeData);
+        if(!haveRealtime) {
+            //We need to fetch fresh data. Get the latest realtime AQHI reading for the station.
+            final List<RealtimeData> realtimeData = geoMetService.getRealtimeData(stationCode); //station may be null at this time
+            if(null != realtimeData) {
+                haveRealtime = true; //As long as the call succeeds then this is true, even if the realtime data list is empty.
+                Double latestAQHI = extractLatestAQHIValue(realtimeData);
+                //Note: Don't pass null to setLatestAQHI() since that will wipe out the previously
+                // stored value and this might be a temporary API problem
+                if(null != latestAQHI) setLatestAQHI(latestAQHI);//We have a legitimate updated AQHI value, save it.
 
-        if(null != latestAQHI) {
-            //We have a legitimate updated AQHI value, save it.
-            setLatestAQHI(latestAQHI);
+                //We know we have at least one data point at this time, so we can update the historical data
+                setHistoricalAQHI(extractPerDateAQHIValues(realtimeData));
+            }
+        }
 
-            //We know we have at least one data point at this time, so we can update the historical data
-            setHistoricalAQHI(extractPerDateAQHIValues(realtimeData));
+        return haveRealtime ;
+    }
 
-            //Determine the typical AQHI for this time of day and time of year, if we have the data for it
-            if(loadTypicalAQHI) determineTypicalAQHI();
+    private boolean fetchLatestForecastData(String stationCode) {
+        //Try to fetch the forecast as well. Also determine if the forecast data we have now is new enough to use as-is.
+        boolean haveForecast = false;
+        long ts = aqhiPref.getLong(FORECAST_AQHI_TS_KEY, Integer.MIN_VALUE);
+        if(System.currentTimeMillis() - ts <= DATA_REFRESH_MIN_DURATION) {
+            final String forecastAQHI = aqhiPref.getString(FORECAST_AQHI_VAL_KEY, null);
+            haveForecast = (null != forecastAQHI && !forecastAQHI.isEmpty());
+        }
 
-            //Try to fetch the forecast as well
+        if(!haveForecast) {
             List<ForecastData> forecastData = geoMetService.getForecastData(stationCode);
             if(null != forecastData) {
+                haveForecast = true; //As long as the call succeeds then this is true, even if the forecast data list is empty.
                 setForecastAQHI(extractPerDateAQHIValues(forecastData));
             }
-            return true;
         }
-        return false; //We could not get any valid data
+
+        return  haveForecast;
     }
 
     public synchronized Map<Integer, Map<Integer, Float>> getTypicalAQHIMap(Integer napsID) {

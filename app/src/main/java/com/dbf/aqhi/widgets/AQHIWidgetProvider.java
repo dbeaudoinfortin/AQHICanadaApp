@@ -143,8 +143,7 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQ
         for (int appWidgetId : appWidgetIds) {
             //Create the new remote view that will replace the existing one
             RemoteViews views = createRemoteViews(context);
-            //Attach a Click Listener that will open the main activity when you click on the widget
-            addClickListeners(context, views);
+
             //Manually update the widget UI using stale data
             updateWidgetUI(context, views, appWidgetManager, appWidgetId);
         }
@@ -177,8 +176,6 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQ
                 for (int appWidgetId : appWidgetIds) {
                     //Create the new remote view that will replace the existing one
                     RemoteViews view = createRemoteViews(context);
-                    //Attach a Click Listener that will open the main activity when you click on the widget
-                    addClickListeners(context, view);
                     updateWidgetUI(context, view, appWidgetManager, appWidgetId);
                 }
             });
@@ -235,6 +232,9 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQ
     }
 
     public void updateWidgetUI(Context context, RemoteViews views, AppWidgetManager appWidgetManager, int appWidgetId) {
+
+        //Attach a Click Listener that will open the main activity when you click on the widget
+        addClickListeners(context, views);
 
         WidgetConfig widgetConfig = new WidgetConfig(context, appWidgetId);
         final int lightDarkMode = widgetConfig.getNightMode();
