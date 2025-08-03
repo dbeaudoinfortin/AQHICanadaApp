@@ -19,7 +19,7 @@ import com.dbf.aqhi.R;
 import com.dbf.aqhi.api.geomet.station.Station;
 import com.dbf.aqhi.location.MapTransformer;
 import com.dbf.aqhi.permissions.PermissionService;
-import com.dbf.aqhi.service.AQHIService;
+import com.dbf.aqhi.aqhiservice.AQHIService;
 import com.dbf.utils.stacktrace.StackTraceCompactor;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 

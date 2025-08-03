@@ -1,10 +1,9 @@
 package com.dbf.aqhi;
 
 import android.content.Context;
-import android.util.Log;
 import android.widget.Toast;
 
-import com.dbf.aqhi.service.AQHIService;
+import com.dbf.aqhi.aqhiservice.AQHIService;
 
 import java.text.DecimalFormat;
 

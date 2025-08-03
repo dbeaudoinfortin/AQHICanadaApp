@@ -1,4 +1,4 @@
-package com.dbf.aqhi.service;
+package com.dbf.aqhi.aqhiservice;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -11,6 +11,8 @@ import android.util.Pair;
 
 import com.dbf.aqhi.R;
 import com.dbf.aqhi.Utils;
+import com.dbf.aqhi.api.datamart.DatamartService;
+import com.dbf.aqhi.api.datamart.Pollutant;
 import com.dbf.aqhi.api.geomet.GeoMetService;
 import com.dbf.aqhi.api.geomet.data.Data;
 import com.dbf.aqhi.api.geomet.data.forecast.ForecastData;
@@ -18,6 +20,7 @@ import com.dbf.aqhi.api.geomet.data.realtime.RealtimeData;
 import com.dbf.aqhi.api.geomet.station.Station;
 import com.dbf.aqhi.api.weather.WeatherService;
 import com.dbf.aqhi.api.weather.alert.Alert;
+import com.dbf.aqhi.grib2.Grib2Parser;
 import com.dbf.aqhi.location.LocationService;
 import com.dbf.utils.stacktrace.StackTraceCompactor;
 import com.google.gson.Gson;
@@ -28,6 +31,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
 import java.lang.reflect.Type;
 import java.time.Instant;
 import java.util.Calendar;
@@ -164,6 +168,16 @@ public class AQHIService {
      *
      */
     private void updateAQHISync() {
+        //TEMP
+
+        try {
+            Grib2Parser.parse((new DatamartService()).getObservation(Pollutant.PM25));
+            //Grib2Parser.parse((new DatamartService()).getForecast(Pollutant.PM25_SMOKE));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+
         if(!isInternetAvailable()) {
             Log.i(LOG_TAG, "Network is down. Skipping update.");
             return;

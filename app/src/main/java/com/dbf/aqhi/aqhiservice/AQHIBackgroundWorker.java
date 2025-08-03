@@ -1,4 +1,4 @@
-package com.dbf.aqhi.service;
+package com.dbf.aqhi.aqhiservice;
 
 import android.content.Context;
 import android.util.Log;

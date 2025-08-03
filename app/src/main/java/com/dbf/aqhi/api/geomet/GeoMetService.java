@@ -5,7 +5,7 @@ import static com.dbf.aqhi.Utils.earthDistanceMagnitude;
 import android.content.Context;
 import android.util.Log;
 
-import com.dbf.aqhi.api.APIService;
+import com.dbf.aqhi.api.JsonAPIService;
 import com.dbf.aqhi.api.geomet.data.Data;
 import com.dbf.aqhi.api.geomet.data.DataResponse;
 import com.dbf.aqhi.api.geomet.data.forecast.ForecastData;
@@ -31,7 +31,7 @@ import java.util.Map;
 import okhttp3.Request;
 import okhttp3.Response;
 
-public class GeoMetService extends APIService {
+public class GeoMetService extends JsonAPIService {
 
     private static final String LOG_TAG = "GeoMetService";
 

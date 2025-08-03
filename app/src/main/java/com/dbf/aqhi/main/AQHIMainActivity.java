@@ -37,8 +37,8 @@ import com.dbf.aqhi.R;
 import com.dbf.aqhi.Utils;
 import com.dbf.aqhi.api.weather.alert.Alert;
 import com.dbf.aqhi.permissions.PermissionService;
-import com.dbf.aqhi.service.AQHIBackgroundWorker;
-import com.dbf.aqhi.service.AQHIService;
+import com.dbf.aqhi.aqhiservice.AQHIBackgroundWorker;
+import com.dbf.aqhi.aqhiservice.AQHIService;
 import com.dbf.heatmaps.android.HeatMap;
 import com.dbf.heatmaps.android.HeatMapGradient;
 import com.dbf.heatmaps.android.HeatMapOptions;
@@ -47,7 +47,6 @@ import com.dbf.heatmaps.axis.StringAxis;
 import com.dbf.heatmaps.data.BasicDataRecord;
 import com.dbf.heatmaps.data.DataRecord;
 
-import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.LinkedHashMap;

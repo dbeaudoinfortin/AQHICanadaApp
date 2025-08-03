@@ -8,7 +8,6 @@ import static android.widget.RemoteViews.MARGIN_TOP;
 import android.app.Activity;
 import android.appwidget.AppWidgetManager;
 import android.content.Context;
-import android.opengl.Visibility;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.View;
@@ -17,7 +16,7 @@ import android.widget.RemoteViews;
 import androidx.appcompat.app.AppCompatDelegate;
 
 import com.dbf.aqhi.R;
-import com.dbf.aqhi.service.AQHIService;
+import com.dbf.aqhi.aqhiservice.AQHIService;
 
 import com.dbf.aqhi.api.weather.alert.Alert;
 
