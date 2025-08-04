@@ -119,11 +119,13 @@ Typical AQHI data is provided by David Fortin under the terms of the [MIT Licens
 
 ## Map Data
 
-The map used for viewing and selecting locations is stored entirely on-device, as I do not want to send your location off-device. The base map data comes from [CBCT3978](https://maps-cartes.services.geo.ca/server2_serveur2/rest/services/BaseMaps/CBCT3978/MapServer), which is freely provided by Natural Resources Canada under the terms of the [Canadian Open Government Licence](https://open.canada.ca/en/open-government-licence-canada). 
+The map used for viewing and selecting locations is stored entirely on-device, as I do not want to send your location off-device. 
 
-The map uses the Lambert Conformal Conic projection, which minimizes distortion across Canada. I cleaned up visible JPEG compression artifacts using a neural filter, then manually stitched together the tiles into a single 1-gigapixel image (35,000 × 30,000 pixels).
+The map uses the Lambert Conformal Conic projection, which minimizes distortion across Canada. Latitude and longitude pairs are first projected using the Lambert projection constants, and then an affine transformation is applied using 3 well spaced control points to account for the scaling and rotation of the map.
 
-This high-resolution map was then tiled into 8 zoom levels and compressed in WebP format. The result is a folder structure containing approximately 21,500 files, taking up only about 160MB of space. The map is diplayed in the app using [Pierre Laurence's MapView library](https://github.com/p-lr/MapView). Check out his project!
+The base map data comes from [CBCT3978](https://maps-cartes.services.geo.ca/server2_serveur2/rest/services/BaseMaps/CBCT3978/MapServer), which is freely provided by Natural Resources Canada under the terms of the [Canadian Open Government Licence](https://open.canada.ca/en/open-government-licence-canada). I cleaned up visible JPEG compression artifacts using a neural filter, then manually stitched together the tiles into a single 1-gigapixel image (35,000 × 30,000 pixels). This high-resolution map was then tiled into 8 zoom levels and compressed in WebP format. The result is a folder structure containing approximately 21,500 files, taking up only about 160MB of space. 
+
+The map is diplayed in the app using [Pierre Laurence's MapView library](https://github.com/p-lr/MapView). Check out his project!
 
 ## Requirements
 - This app was developed for and tested on Android 14. 
