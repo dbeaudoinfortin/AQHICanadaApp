@@ -20,7 +20,7 @@ public class DatamartService extends APIService {
     private static final String LOG_TAG = "DatamartService";
 
     private static final DateTimeFormatter DATAMART_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
-    private static final DateTimeFormatter DATAMART_HOUR_FORMAT = DateTimeFormatter.ofPattern("hh");
+    private static final DateTimeFormatter DATAMART_HOUR_FORMAT = DateTimeFormatter.ofPattern("HH");
 
     private static final String DATAMART_BASE_URL = "https://dd.weather.gc.ca";
     private static final String DATAMART_SUB_DIR = "WXO-DD";
@@ -40,20 +40,21 @@ public class DatamartService extends APIService {
 
     private byte[] getRDAQAObservation(String pollutant, boolean allowPrelim) {
         //Preliminary results are available 1 hour later and final results are available 2 hours later
-        ZonedDateTime modelDate = ZonedDateTime.now(ZoneOffset.UTC).minusHours(1);
+        ZonedDateTime modelDate = ZonedDateTime.now(ZoneOffset.UTC);
 
-        byte[] data = getRDAQAObservation(pollutant, modelDate, false, false);
-        if(null == data && allowPrelim) {
-            //Try again, with prelim data
-            data = getRDAQAObservation(pollutant, modelDate, true, false);
+        //We try up to 3 hours before giving up
+        for(int i =0; i < 3; i++) {
+            modelDate = modelDate.minusHours(1);
+
+            byte[] data = getRDAQAObservation(pollutant, modelDate, false, false);
+            if(null != data) return data;
+
+            if(allowPrelim) { //Try again, with prelim data
+                data = getRDAQAObservation(pollutant, modelDate, true, false);
+                if(null != data) return data;
+            }
         }
-
-        if(null == data ) {
-            //Try again with the previous hour's data
-            data = getRDAQAObservation(pollutant, modelDate.minusHours(1), true, false);
-        }
-
-        return data;
+        return null;
     }
 
     private byte[] getRDAQAObservation(String pollutant, ZonedDateTime modelDate, boolean prelim, boolean firework) {

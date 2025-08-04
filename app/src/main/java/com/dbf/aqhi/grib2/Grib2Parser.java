@@ -1,10 +1,14 @@
 package com.dbf.aqhi.grib2;
 
+import android.graphics.Bitmap;
 import android.util.Log;
 
+import com.dbf.aqhi.codec.Jpeg2000Decoder;
+import com.dbf.aqhi.codec.RawImage;
+
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.List;
 
 public class Grib2Parser {
 
@@ -13,7 +17,7 @@ public class Grib2Parser {
     private static final long MAX_BYTES = 100*1024*1024; //100mb, reasonable upper limit
     private static final byte[] GRIB_HEADER = {71, 82, 73, 66}; //"GRIB"
 
-    public static List<DataPoint> parse(byte[] bytes) throws IOException {
+    public static Bitmap parse(byte[] bytes) throws IOException {
         if(null == bytes || bytes.length == 0) return null;
 
         checkHeader(bytes);
@@ -35,8 +39,7 @@ public class Grib2Parser {
                     dataTemplateNumber = parseDataRep(bytes, sectionStart);
                     break;
                 case DATA:
-                    parseData(bytes, sectionStart, sectionLength, dataTemplateNumber);
-                    break;
+                    return parseData(bytes, sectionStart, sectionLength, dataTemplateNumber);
                 default:
                     break;
             }
@@ -47,9 +50,14 @@ public class Grib2Parser {
         return null;
     }
 
-    private static void parseData(byte[] bytes, int sectionStart, long sectionLength, int dataTemplateNumber) {
+    private static Bitmap parseData(byte[] bytes, int sectionStart, long sectionLength, int dataTemplateNumber) {
         if(dataTemplateNumber != 40)
             throw new IllegalArgumentException("Invalid data type. Only JPEG 2000 codestream is supported.");
+
+        RawImage img = Jpeg2000Decoder.decodeJpeg2000(bytes, sectionStart + 5, (int) (sectionLength-4));
+        Bitmap bitmap = Bitmap.createBitmap(img.width, img.height, Bitmap.Config.ALPHA_8);
+        bitmap.copyPixelsFromBuffer(ByteBuffer.wrap(img.pixels));
+        return bitmap;
     }
 
     private static int parseDataRep(byte[] bytes, int sectionStart) {

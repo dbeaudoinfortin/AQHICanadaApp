@@ -3,6 +3,7 @@ package com.dbf.aqhi.aqhiservice;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
@@ -31,6 +32,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.time.Instant;
@@ -155,7 +158,7 @@ public class AQHIService {
                 //The latest AQHI number may be the same but the station may have changed, or the historical data may have changed.
                 if(null != onChange) onChange.run();
             } catch (Throwable t) { //Catch all
-                Log.e(LOG_TAG, "Failed to update AQHI data.", t);
+                Log.e(LOG_TAG, "Failed to update AQHI data.\n" + StackTraceCompactor.getCompactStackTrace(t));
             }
         }).start();
     }
@@ -168,15 +171,6 @@ public class AQHIService {
      *
      */
     private void updateAQHISync() {
-        //TEMP
-
-        try {
-            Grib2Parser.parse((new DatamartService()).getObservation(Pollutant.PM25));
-            //Grib2Parser.parse((new DatamartService()).getForecast(Pollutant.PM25_SMOKE));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
 
         if(!isInternetAvailable()) {
             Log.i(LOG_TAG, "Network is down. Skipping update.");
@@ -186,6 +180,15 @@ public class AQHIService {
 
         //This code is stateful, we don't want to run multiple updates at the same time
         synchronized (GLOBAL_SYNC_OBJECT) {
+
+
+            //TODO: FINISH ME
+            try {
+                Bitmap image = Grib2Parser.parse((new DatamartService()).getObservation(Pollutant.PM25));
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "Failed to parse image data from Datamart.\n" + StackTraceCompactor.getCompactStackTrace(e));
+            }
+
             final boolean stationAuto = isStationAuto();
             final String previousStationCode = aqhiPref.getString(STATION_CODE_KEY, null);
             String currentStationCode;
