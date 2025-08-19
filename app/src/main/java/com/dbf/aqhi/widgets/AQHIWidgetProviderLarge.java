@@ -16,7 +16,7 @@ import android.widget.RemoteViews;
 import androidx.appcompat.app.AppCompatDelegate;
 
 import com.dbf.aqhi.R;
-import com.dbf.aqhi.aqhiservice.AQHIService;
+import com.dbf.aqhi.data.AQHIDataService;
 
 import com.dbf.aqhi.api.weather.alert.Alert;
 
@@ -37,8 +37,8 @@ public class AQHIWidgetProviderLarge extends AQHIWidgetProvider {
         super();
     }
 
-    public AQHIWidgetProviderLarge(AQHIService aqhiService) {
-        super(aqhiService);
+    public AQHIWidgetProviderLarge(AQHIDataService aqhiDataService) {
+        super(aqhiDataService);
     }
 
     public void updateWidgetUI(Context context, int lightDarkMode, RemoteViews views, AppWidgetManager appWidgetManager, int appWidgetId) {

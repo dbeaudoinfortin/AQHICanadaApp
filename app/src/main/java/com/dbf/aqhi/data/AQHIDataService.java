@@ -1,9 +1,8 @@
-package com.dbf.aqhi.aqhiservice;
+package com.dbf.aqhi.data;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.graphics.Bitmap;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
@@ -12,8 +11,6 @@ import android.util.Pair;
 
 import com.dbf.aqhi.R;
 import com.dbf.aqhi.Utils;
-import com.dbf.aqhi.api.datamart.DatamartService;
-import com.dbf.aqhi.api.datamart.Pollutant;
 import com.dbf.aqhi.api.geomet.GeoMetService;
 import com.dbf.aqhi.api.geomet.data.Data;
 import com.dbf.aqhi.api.geomet.data.forecast.ForecastData;
@@ -21,7 +18,6 @@ import com.dbf.aqhi.api.geomet.data.realtime.RealtimeData;
 import com.dbf.aqhi.api.geomet.station.Station;
 import com.dbf.aqhi.api.weather.WeatherService;
 import com.dbf.aqhi.api.weather.alert.Alert;
-import com.dbf.aqhi.grib2.Grib2Parser;
 import com.dbf.aqhi.location.LocationService;
 import com.dbf.utils.stacktrace.StackTraceCompactor;
 import com.google.gson.Gson;
@@ -32,9 +28,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.lang.reflect.Type;
 import java.time.Instant;
 import java.util.Calendar;
@@ -46,7 +39,7 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.TreeMap;
 
-public class AQHIService {
+public class AQHIDataService extends DataService {
 
     private static final String LOG_TAG = "AQHIService";
     private static final Object GLOBAL_SYNC_OBJECT = new Object();
@@ -92,9 +85,6 @@ public class AQHIService {
     private final LocationService locationService;
     private final SharedPreferences aqhiPref;
 
-    //Callback to make when the data changes.
-    private Runnable onChange;
-
     //Cheap in-memory cache, fall-back to preferences if null
     private double[] lastLatLong = null;
 
@@ -116,21 +106,18 @@ public class AQHIService {
     //May also be needed is the background location permission is not set
     private boolean allowStaleLocation = true;
 
-    private final Context context;
-
-    public AQHIService(Context context, Runnable onChange) {
-        this(context, onChange, false);
+    public AQHIDataService(Context context, Runnable onUpdate) {
+        this(context, onUpdate, false);
     }
 
-    public AQHIService(Context context, Runnable onChange, boolean loadTypicalAQHI) {
-        Log.i(LOG_TAG, "Initializing AQHI service.");
+    public AQHIDataService(Context context, Runnable onUpdate, boolean loadTypicalAQHI) {
+        super(context, onUpdate);
         locationService = new LocationService(context);
         this.geoMetService = new GeoMetService(context);
         this.weatherService = new WeatherService();
-        this.onChange = onChange;
         this.aqhiPref = context.getSharedPreferences(AQHI_PREF_KEY, Context.MODE_PRIVATE);
-        this.context = context;
         this.loadTypicalAQHI = loadTypicalAQHI;
+        Log.i(LOG_TAG, "AQHI service initialized.");
     }
 
     public void update() {
@@ -145,9 +132,9 @@ public class AQHIService {
     }
 
     /**
-     * Updates AQHI data asynchronously by executing {@link AQHIService#updateAQHISync} in a new thread.
+     * Updates AQHI data asynchronously by executing {@link AQHIDataService#updateAQHISync} in a new thread.
      * This may take several minutes to complete depending on the internet connection quality.
-     * The optional callback onChange will be executed after the update is complete.
+     * The optional callback onUpdate will be executed after the update is complete.
      */
     public void updateAQHI(){
         //We want to perform these calls not on the main thread
@@ -156,7 +143,7 @@ public class AQHIService {
                 updateAQHISync();
                 //Always consider this a change in data.
                 //The latest AQHI number may be the same but the station may have changed, or the historical data may have changed.
-                if(null != onChange) onChange.run();
+                onUpdate();
             } catch (Throwable t) { //Catch all
                 Log.e(LOG_TAG, "Failed to update AQHI data.\n" + StackTraceCompactor.getCompactStackTrace(t));
             }
@@ -166,28 +153,20 @@ public class AQHIService {
     /**
      * Updates both the latest, historical and forecast AQHI readings based on the user's current location. The user's closest station will be first updated if necessary.
      * These updates are done via external API calls to the GeoMet service. The data is stored in SharedPreferences and can be retrieved
-     * via {@link AQHIService#getLatestAQHI}, {@link AQHIService#getStationName}, {@link AQHIService#getHistoricalAQHI}, and
+     * via {@link AQHIDataService#getLatestAQHI}, {@link AQHIDataService#getStationName}, {@link AQHIDataService#getHistoricalAQHI}, and
      * The update is executed synchronously and may take several minutes to complete depending on the internet connection quality.
      *
      */
     private void updateAQHISync() {
 
         if(!isInternetAvailable()) {
-            Log.i(LOG_TAG, "Network is down. Skipping update.");
+            Log.i(LOG_TAG, "Network is down. Skipping AQHI update.");
             return;
         }
         Log.i(LOG_TAG, "Attempting to update the AQHI data for the current location.");
 
         //This code is stateful, we don't want to run multiple updates at the same time
         synchronized (GLOBAL_SYNC_OBJECT) {
-
-
-            //TODO: FINISH ME
-            try {
-                Bitmap image = Grib2Parser.parse((new DatamartService()).getObservation(Pollutant.PM25));
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "Failed to parse image data from Datamart.\n" + StackTraceCompactor.getCompactStackTrace(e));
-            }
 
             final boolean stationAuto = isStationAuto();
             final String previousStationCode = aqhiPref.getString(STATION_CODE_KEY, null);
@@ -654,7 +633,7 @@ public class AQHIService {
      * Retrieves the station name of the station either selected by the user or closest to the most recently updated user location.
      *
      * @param allowStale boolean, if false only return the Station value if it has been validated during the
-     *                   last {@link AQHIService#DATA_VALIDITY_DURATION} milliseconds. Only applies if the station is set to automatic.
+     *                   last {@link AQHIDataService#DATA_VALIDITY_DURATION} milliseconds. Only applies if the station is set to automatic.
      *
      * @return String, station name.
      */
@@ -668,7 +647,7 @@ public class AQHIService {
 
     /**
      * Retrieves the station name of the station either selected by the user or closest to the most recently updated user location.
-     * @return String, station name, if it has been validated during the last {@link AQHIService#DATA_VALIDITY_DURATION} milliseconds. Otherwise returns null.
+     * @return String, station name, if it has been validated during the last {@link AQHIDataService#DATA_VALIDITY_DURATION} milliseconds. Otherwise returns null.
      */
     public String getStationName(){
         return getStationName(false);
@@ -678,7 +657,7 @@ public class AQHIService {
      * Retrieves the station code of the station either selected by the user or closest to the most recently updated user location.
      *
      * @param allowStale boolean, if false only return the Station value if it has been validated during the
-     *                   last {@link AQHIService#DATA_VALIDITY_DURATION} milliseconds. Only applies if the station is set to automatic.
+     *                   last {@link AQHIDataService#DATA_VALIDITY_DURATION} milliseconds. Only applies if the station is set to automatic.
      *
      * @return String, station code.
      */
@@ -694,7 +673,7 @@ public class AQHIService {
      * Retrieves the latitude & longitude coordinates of the station either selected by the user or closest to the most recently updated user location.
      *
      * @param allowStale boolean, if false only return the coordinates if they have been validated during the
-     *                   last {@link AQHIService#DATA_VALIDITY_DURATION} milliseconds. Only applies if the station is set to automatic.
+     *                   last {@link AQHIDataService#DATA_VALIDITY_DURATION} milliseconds. Only applies if the station is set to automatic.
      *
      * @return Pair<Float, Float> station Latitude and Longitude coordinates.
      */
@@ -742,7 +721,7 @@ public class AQHIService {
     /**
      * Retrieves the last saved AQHI value for the current station.
      *
-     * @param allowStale boolean, if false only return the AQHI value if it has been updated within the last {@link AQHIService#DATA_VALIDITY_DURATION} milliseconds.
+     * @param allowStale boolean, if false only return the AQHI value if it has been updated within the last {@link AQHIDataService#DATA_VALIDITY_DURATION} milliseconds.
      * @return Double, AQHI value, or returns -1 if stale or not present.
      */
     public Double getLatestAQHI(boolean allowStale){
@@ -756,7 +735,7 @@ public class AQHIService {
     /**
      * Retrieves the most recent AQHI value for the current station.
      *
-     * @return Double AQHI value if it has been updated within the last {@link AQHIService#DATA_VALIDITY_DURATION} milliseconds. Otherwise returns -1.
+     * @return Double AQHI value if it has been updated within the last {@link AQHIDataService#DATA_VALIDITY_DURATION} milliseconds. Otherwise returns -1.
      */
     public Double getLatestAQHI(){
         return getLatestAQHI(false);
@@ -764,7 +743,7 @@ public class AQHIService {
 
     /**
      * Retrieves the most recent AQHI historical values for the current station.
-     * @return Map<Date, Double> of historical AQHI values if they have been updated within the last {@link AQHIService#DATA_VALIDITY_DURATION} milliseconds. Otherwise returns null.
+     * @return Map<Date, Double> of historical AQHI values if they have been updated within the last {@link AQHIDataService#DATA_VALIDITY_DURATION} milliseconds. Otherwise returns null.
      */
     public Map<Date, Double> getHistoricalAQHI(){
         final long ts = aqhiPref.getLong(HISTORICAL_AQHI_TS_KEY, Integer.MIN_VALUE);
@@ -786,7 +765,7 @@ public class AQHIService {
 
     /**
      * Retrieves the most recent AQHI forecast values for the current station.
-     * @return Map<Date, Double> of forecast AQHI values if they have been updated within the last {@link AQHIService#DATA_VALIDITY_DURATION} milliseconds. Otherwise returns null.
+     * @return Map<Date, Double> of forecast AQHI values if they have been updated within the last {@link AQHIDataService#DATA_VALIDITY_DURATION} milliseconds. Otherwise returns null.
      */
     public Map<Date, Double> getForecastAQHI(){
         final long ts = aqhiPref.getLong(FORECAST_AQHI_TS_KEY, Integer.MIN_VALUE);
@@ -945,33 +924,12 @@ public class AQHIService {
         editor.apply();
     }
 
-    private boolean isInternetAvailable() {
-        ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-        if (connectivityManager == null)
-            return false;
-
-        Network network = connectivityManager.getActiveNetwork();
-        if (network == null)
-            return false;
-
-        NetworkCapabilities networkCapabilities = connectivityManager.getNetworkCapabilities(network);
-        if (networkCapabilities == null)
-            return false;
-
-        return networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-                networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
-    }
-
     public boolean isAllowStaleLocation() {
         return allowStaleLocation;
     }
 
     public void setAllowStaleLocation(boolean allowStaleLocation) {
         this.allowStaleLocation = allowStaleLocation;
-    }
-
-    public void setOnChange(Runnable onChange) {
-        this.onChange = onChange;
     }
 
     public GeoMetService getGeoMetService() {

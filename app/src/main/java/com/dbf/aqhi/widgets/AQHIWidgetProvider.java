@@ -20,7 +20,7 @@ import com.dbf.aqhi.main.AQHIMainActivity;
 import com.dbf.aqhi.R;
 import com.dbf.aqhi.widgets.config.WidgetConfig;
 import com.dbf.aqhi.permissions.PermissionService;
-import com.dbf.aqhi.aqhiservice.AQHIService;
+import com.dbf.aqhi.data.AQHIDataService;
 
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
@@ -29,13 +29,13 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQ
 
     private static final String LOG_TAG = "AQHIWidgetProvider";
 
-    private AQHIService aqhiService;
+    private AQHIDataService aqhiDataService;
 
     public AQHIWidgetProvider() {}
 
-    public AQHIWidgetProvider(AQHIService aqhiService) {
+    public AQHIWidgetProvider(AQHIDataService aqhiDataService) {
         //AQHI Service will not be created on-the-fly
-        this.aqhiService = aqhiService;
+        this.aqhiDataService = aqhiDataService;
     }
 
     @Override
@@ -170,8 +170,8 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQ
     }
 
     public synchronized void initAQHIService(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
-        if(null == aqhiService) {
-            aqhiService = new AQHIService(context, ()->{
+        if(null == aqhiDataService) {
+            aqhiDataService = new AQHIDataService(context, ()->{
                 Log.i(LOG_TAG, "AQHI Service update complete. Updating UIs for widget IDs: " +  Arrays.toString(appWidgetIds));
                 for (int appWidgetId : appWidgetIds) {
                     //Create the new remote view that will replace the existing one
@@ -180,7 +180,7 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQ
                 }
             });
             //True for widgets because they may not have background location updates enabled
-            aqhiService.setAllowStaleLocation(true);
+            aqhiDataService.setAllowStaleLocation(true);
         }
     }
 
@@ -227,8 +227,8 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQ
     }
 
     @Override
-    public synchronized AQHIService getAQHIService() {
-        return aqhiService;
+    public synchronized AQHIDataService getAQHIService() {
+        return aqhiDataService;
     }
 
     public void updateWidgetUI(Context context, RemoteViews views, AppWidgetManager appWidgetManager, int appWidgetId) {

@@ -35,10 +35,14 @@ import androidx.core.app.ActivityCompat;
 import com.dbf.aqhi.AQHIActivity;
 import com.dbf.aqhi.R;
 import com.dbf.aqhi.Utils;
+import com.dbf.aqhi.api.datamart.Pollutant;
 import com.dbf.aqhi.api.weather.alert.Alert;
+import com.dbf.aqhi.codec.RawImage;
+import com.dbf.aqhi.data.SpatialDataService;
+import com.dbf.aqhi.map.CompositeTileProvider;
 import com.dbf.aqhi.permissions.PermissionService;
-import com.dbf.aqhi.aqhiservice.AQHIBackgroundWorker;
-import com.dbf.aqhi.aqhiservice.AQHIService;
+import com.dbf.aqhi.data.BackgroundDataWorker;
+import com.dbf.aqhi.data.AQHIDataService;
 import com.dbf.heatmaps.android.HeatMap;
 import com.dbf.heatmaps.android.HeatMapGradient;
 import com.dbf.heatmaps.android.HeatMapOptions;
@@ -55,15 +59,21 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import ovh.plrapps.mapview.MapView;
+import ovh.plrapps.mapview.MapViewConfiguration;
+import ovh.plrapps.mapview.api.MinimumScaleMode;
+
 public class AQHIMainActivity extends AQHIActivity {
     private static final String LOG_TAG = "AQHIMainActivity";
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
 
-    private AQHIBackgroundWorker backgroundWorker;
+    private BackgroundDataWorker backgroundWorker;
     private boolean showHistoricalGridData = false;
     private boolean showForecastGridData = false;
     private boolean showGaugeNumbers = false;
+
+    private CompositeTileProvider tileProvider;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,7 +86,7 @@ public class AQHIMainActivity extends AQHIActivity {
 
         //Initialize a background thread that will periodically refresh the
         //user's location and the latest AQHI data.
-        backgroundWorker = new AQHIBackgroundWorker(this, ()->{
+        backgroundWorker = new BackgroundDataWorker(this, ()->{
             //Must always run on the UI thread
             runOnUiThread(this::updateUI);
         });
@@ -143,6 +153,15 @@ public class AQHIMainActivity extends AQHIActivity {
     protected void initUI() {
         Log.i(LOG_TAG, "Initializing AQHI Main Activity UI.");
 
+        //Create the map, regardless if we have overlay data or not.
+        //Overlays will be applied in the updateUI() method.
+        tileProvider = new CompositeTileProvider(getMapTileProvider());
+        MapView mapView = findViewById(R.id.mapView);
+        MapViewConfiguration config = getMapConfiguration(tileProvider);
+        config.setMaxScale(3);
+        config.setMinimumScaleMode(MinimumScaleMode.FILL);
+        mapView.configure(config);
+
         //Add a click listener for the change location text
         findViewById(R.id.txtChangeLocationLink).setOnClickListener(v -> {
             Intent intent = new Intent(AQHIMainActivity.this, AQHILocationActivity.class);
@@ -161,7 +180,7 @@ public class AQHIMainActivity extends AQHIActivity {
             }
         });
 
-        //Add a click listener to show the numbers on the guage
+        //Add a click listener to show the numbers on the gauge
         ImageView imgGauge = findViewById(R.id.imgAQHIGaugeBackground);
         imgGauge.setOnClickListener(v -> {
             showGaugeNumbers = !showGaugeNumbers;
@@ -259,6 +278,20 @@ public class AQHIMainActivity extends AQHIActivity {
             alertsSection.setVisibility(VISIBLE);
             LinearLayout alertList = findViewById(R.id.alert_list);
             updateAlertList(alertList, alerts);
+        }
+
+        //UPDATE POLLUTANT MAP
+        MapView mapView = findViewById(R.id.mapView);
+        TextView mapText = findViewById(R.id.lblMap);
+        //TODO: Don't reload this from disk every time. Use the in-memory data if it still is correct
+        RawImage pollutantOverlay = getSpatialDataService().readCachedData(Pollutant.PM25);
+        tileProvider.setOverlay(pollutantOverlay);
+        if (null == pollutantOverlay) {
+            mapText.setVisibility(GONE);
+            mapView.setVisibility(GONE);
+        } else {
+            mapText.setVisibility(VISIBLE);
+            mapView.setVisibility(VISIBLE);
         }
     }
 
@@ -527,7 +560,11 @@ public class AQHIMainActivity extends AQHIActivity {
     }
 
     @Override
-    public AQHIService getAQHIService() {
+    public AQHIDataService getAQHIService() {
         return backgroundWorker.getAQHIService();
+    }
+
+    public SpatialDataService getSpatialDataService() {
+        return backgroundWorker.getSpatialDataService();
     }
 }

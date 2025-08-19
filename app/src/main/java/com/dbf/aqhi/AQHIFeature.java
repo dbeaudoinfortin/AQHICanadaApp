@@ -3,7 +3,7 @@ package com.dbf.aqhi;
 import android.content.Context;
 import android.widget.Toast;
 
-import com.dbf.aqhi.aqhiservice.AQHIService;
+import com.dbf.aqhi.data.AQHIDataService;
 
 import java.text.DecimalFormat;
 
@@ -12,7 +12,7 @@ public interface AQHIFeature {
     public static final String AQHI_DIGIT_FORMAT = "0.00";
     public static final String AQHI_NO_DIGIT_FORMAT = "0";
 
-    public AQHIService getAQHIService();
+    public AQHIDataService getAQHIService();
 
     public default String getLatestAQHIString() {
         //For widgets, we want to allow stale values since the update are only guaranteed to happen once per 30 minutes

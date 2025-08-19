@@ -137,6 +137,7 @@ Java_com_dbf_aqhi_codec_Jpeg2000Decoder_decodeJpeg2000(
     opj_image_comp_t* comp = &l_image->comps[0];
     const int precision = comp->prec;     // e.g., 12, 16, 8
     const int is_signed = comp->sgnd;
+    const int factor = comp->factor;
     const int width  = comp->w;
     const int height = comp->h;
     const int pixelCount = width * height;
@@ -146,8 +147,8 @@ Java_com_dbf_aqhi_codec_Jpeg2000Decoder_decodeJpeg2000(
     const int min_val = is_signed ? -(1 << (precision - 1)) : 0;
     const int max_val = is_signed ? (1 << (precision - 1)) - 1 : (1 << precision) - 1;
 
-    LOG_INFO("Image data: components=%d, precision=%d, signed=%d, min_val=%d, max_val=%d, width=%d, height=%d, pixelCount=%d",
-             l_image->numcomps, comp->prec, comp->sgnd, min_val, max_val, width, height, pixelCount);
+    LOG_INFO("Image data: components=%d, precision=%d, signed=%d, factor=%d, min_val=%d, max_val=%d, width=%d, height=%d, pixelCount=%d",
+             l_image->numcomps, precision, is_signed, factor, min_val, max_val, width, height, pixelCount);
 
     //Allocate and fill the output pixel array
     jbyteArray pixelArray = (*env)->NewByteArray(env, pixelCount);

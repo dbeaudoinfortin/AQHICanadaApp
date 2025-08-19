@@ -17,13 +17,11 @@ import android.widget.ImageView;
 import com.dbf.aqhi.AQHIActivity;
 import com.dbf.aqhi.R;
 import com.dbf.aqhi.api.geomet.station.Station;
-import com.dbf.aqhi.location.MapTransformer;
+import com.dbf.aqhi.map.MapTransformer;
 import com.dbf.aqhi.permissions.PermissionService;
-import com.dbf.aqhi.aqhiservice.AQHIService;
-import com.dbf.utils.stacktrace.StackTraceCompactor;
+import com.dbf.aqhi.data.AQHIDataService;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 
-import java.io.IOException;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -32,7 +30,6 @@ import ovh.plrapps.mapview.MapView;
 import ovh.plrapps.mapview.MapViewConfiguration;
 import ovh.plrapps.mapview.api.MarkerApiKt;
 import ovh.plrapps.mapview.api.MinimumScaleMode;
-import ovh.plrapps.mapview.core.TileStreamProvider;
 import ovh.plrapps.mapview.markers.MarkerTapListener;
 
 public class AQHILocationActivity extends AQHIActivity {
@@ -40,7 +37,7 @@ public class AQHILocationActivity extends AQHIActivity {
     private static final String LOG_TAG = "AQHILocationActivity";
     public static final String SELECTED = "SELECTED";
 
-    private AQHIService aqhiService;
+    private AQHIDataService aqhiDataService;
     private MapView mapView;
     private Map<String, Station> stationsCache;
     private final Object  stationsCacheSync = new Object();
@@ -54,16 +51,16 @@ public class AQHILocationActivity extends AQHIActivity {
         initAQHIService(this);
         initUI();
         //This is async on a separate thread, it will call updateUI() when done
-        aqhiService.update();
+        aqhiDataService.update();
     }
 
     private synchronized void initAQHIService(Context context) {
-        if(null == aqhiService) {
-            aqhiService = new AQHIService(context, ()-> {
+        if(null == aqhiDataService) {
+            aqhiDataService = new AQHIDataService(context, ()-> {
                 Log.i(LOG_TAG, "AQHI Service update complete. Updating the change location UI.");
-                //Refresh the station cache on tha background thread
+                //Refresh the station cache on the background thread
                 synchronized (stationsCacheSync) {
-                    stationsCache = aqhiService.getGeoMetService().loadStations(false, true);
+                    stationsCache = aqhiDataService.getGeoMetService().loadStations(false, true);
                 }
                 //Update the UI, must always run on the UI thread
                 runOnUiThread(this::updateUI);
@@ -72,8 +69,8 @@ public class AQHILocationActivity extends AQHIActivity {
     }
 
     private synchronized void updateUI() {
-        boolean stationAuto = aqhiService.isStationAuto();
-        String stationName  = aqhiService.getStationName(true);
+        boolean stationAuto = aqhiDataService.isStationAuto();
+        String stationName  = aqhiDataService.getStationName(true);
 
         //Auto Toggle Switch
         SwitchMaterial rbAuto = findViewById(R.id.swtAutomatic);
@@ -129,7 +126,7 @@ public class AQHILocationActivity extends AQHIActivity {
                     mapView.setLayoutParams(params);
                 }
                 //Remove the listener so it doesn't keep firing
-                //Will be re-added on rotation
+                //Will be re-added on device rotation
                 mapView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
             }
         });
@@ -155,12 +152,12 @@ public class AQHILocationActivity extends AQHIActivity {
                 return;
             }
 
-            aqhiService.setStationAuto(isChecked);
-            aqhiService.clearAllPreferences();
+            aqhiDataService.setStationAuto(isChecked);
+            aqhiDataService.clearAllPreferences();
             updateUI();
             if(isChecked) {
                 //Rediscover a new station and load all fresh data
-                aqhiService.update();
+                aqhiDataService.update();
             }
         });
     }
@@ -182,9 +179,9 @@ public class AQHILocationActivity extends AQHIActivity {
 
     private void warnNoLocation(Intent resultValue) {
         //Check to make sure the user has selected a location before leaving
-        boolean stationAuto = aqhiService.isStationAuto();
+        boolean stationAuto = aqhiDataService.isStationAuto();
         if(!stationAuto) {
-            String stationName  = aqhiService.getStationName(true);
+            String stationName  = aqhiDataService.getStationName(true);
             if(null == stationName || stationName.isEmpty()) {
                 //Create a pop-up warning the user that no location has been selected
                 new AlertDialog.Builder(this)
@@ -216,7 +213,7 @@ public class AQHILocationActivity extends AQHIActivity {
         synchronized(stationsCacheSync) {
             if(null == stationsCache) {
                 //Set allowRemote to false to avoid potentially doing a network call on the main thread.
-                stationsCache = aqhiService.getGeoMetService().loadStations(false, false);
+                stationsCache = aqhiDataService.getGeoMetService().loadStations(false, false);
             }
             if(null == stationsCache) {
                 Log.w(LOG_TAG, "Failed to load the station definition list.");
@@ -238,10 +235,10 @@ public class AQHILocationActivity extends AQHIActivity {
 
         Station newStation = getStation(stationID);
         if(null != newStation) {
-            aqhiService.setStation(newStation);
-            aqhiService.clearAllData();
+            aqhiDataService.setStation(newStation);
+            aqhiDataService.clearAllData();
             updateUI();
-            aqhiService.updateAQHI(); //Wise idea to fetch fresh data now
+            aqhiDataService.updateAQHI(); //Wise idea to fetch fresh data now
             return true;
         }
 
@@ -250,8 +247,8 @@ public class AQHILocationActivity extends AQHIActivity {
     }
 
     private void updateMapMarkers(boolean stationAuto) {
-        Pair<Float, Float> latLon = aqhiService.getStationLatLon(true);
-        String stationID = aqhiService.getStationCode(true);
+        Pair<Float, Float> latLon = aqhiDataService.getStationLatLon(true);
+        String stationID = aqhiDataService.getStationCode(true);
 
         if(stationAuto) {
             clearMarkers(); //We can safely clear all markers in this case
@@ -320,7 +317,7 @@ public class AQHILocationActivity extends AQHIActivity {
         //Create a new pin image each time
         MarkerView pinView = new MarkerView(this, markerName);
         pinView.setImageResource(selected ? R.drawable.location_pin_selected : R.drawable.location_pin);
-        final Pair<Integer, Integer> coordinates = MapTransformer.transform(lat,lon);
+        final Pair<Integer, Integer> coordinates = MapTransformer.transformLatLon(lat,lon);
 
         synchronized (markers) {
             mapView.getMarkerLayout().addMarker(pinView, coordinates.first, coordinates.second, -0.5f, -0.8f, 0f, 0f, markerName);
@@ -330,40 +327,24 @@ public class AQHILocationActivity extends AQHIActivity {
     }
 
     private MapViewConfiguration getMapViewConfiguration() {
-        TileStreamProvider tsp = (row, col, zoomLvl) -> {
-            try {
-                return getAssets().open("map_tiles/" + zoomLvl + "/" + row + "/" + col + ".webp");
-            } catch (IOException e) {
-                Log.e(LOG_TAG, "Failed to load map tile row: "+ row + ", col: " + col + ", lvl:"
-                        + zoomLvl + ".\n" + StackTraceCompactor.getCompactStackTrace(e));
-            }
-            return null;
-        };
-        MapViewConfiguration config = new MapViewConfiguration(9,35000,29699,256,tsp);
+        MapViewConfiguration config = getMapConfiguration();
         config.setMaxScale(3);
         config.setMinimumScaleMode(MinimumScaleMode.FILL);
         return config;
     }
 
     @Override
-    public AQHIService getAQHIService() {
-        return aqhiService;
+    public AQHIDataService getAQHIService() {
+        return aqhiDataService;
     }
 
-    private static class StationEntry {
-        public final String id;
-        public final String label;
-
-        public StationEntry(String id, String label) {
-            this.id = id;
-            this.label = label;
-        }
+    private record StationEntry(String id, String label) {
 
         @Override
-        public String toString() {
-            return label;
+            public String toString() {
+                return label;
+            }
         }
-    }
 
     @SuppressLint("AppCompatCustomView")
     private static class MarkerView extends ImageView {
