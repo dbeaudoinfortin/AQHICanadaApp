@@ -6,6 +6,7 @@ import android.util.Log;
 import com.dbf.aqhi.api.datamart.DatamartService;
 import com.dbf.aqhi.api.datamart.Pollutant;
 import com.dbf.aqhi.codec.RawImage;
+import com.dbf.aqhi.grib2.Grib2;
 import com.dbf.aqhi.grib2.Grib2Parser;
 import com.dbf.utils.stacktrace.StackTraceCompactor;
 
@@ -95,14 +96,19 @@ public class SpatialDataService extends DataService {
             cacheFile.delete();
         }
 
-        RawImage rawImg = null;
+        Grib2 grib2 = null;
         try {
-            rawImg = Grib2Parser.parse(datamartService.getObservation(pollutant));
+            grib2 = Grib2Parser.parse(datamartService.getObservation(pollutant));
         } catch (Exception e) {
-            Log.e(LOG_TAG, "Failed to parse image data for " + pollutant + " from Datamart.\n" + StackTraceCompactor.getCompactStackTrace(e));
+            Log.e(LOG_TAG, "Failed to parse grib2 data for " + pollutant + " from Datamart.\n" + StackTraceCompactor.getCompactStackTrace(e));
             return;
         }
 
+        if(null == grib2) {
+            Log.e(LOG_TAG, "Failed to parse grib2 data for " + pollutant + " from Datamart.");
+            return;
+        }
+        RawImage rawImg = grib2.getRawImage();
         //Sanity Check
         if (null == rawImg || null == rawImg.pixels || rawImg.pixels.length < 1) {
             Log.e(LOG_TAG, "No image data returned for " + pollutant + " from Datamart.");

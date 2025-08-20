@@ -59,7 +59,7 @@ public class DatamartService extends APIService {
 
     private byte[] getRDAQAObservation(String pollutant, ZonedDateTime modelDate, boolean prelim, boolean firework) {
         final String model = prelim ? RDAQA_MODEL + "-Prelim" : (firework ? RDAQA_MODEL + "-FW" : RDAQA_MODEL);
-        return getData(RDAQA_MODEL, RDAQA_DIR, RDAQA_FILE_SUFFIX, pollutant, modelDate.format(DATAMART_DATE_FORMAT), modelDate.format(DATAMART_HOUR_FORMAT), null);
+        return getData(RDAQA_MODEL, null, RDAQA_DIR, RDAQA_FILE_SUFFIX, pollutant, modelDate.format(DATAMART_DATE_FORMAT), null, modelDate.format(DATAMART_HOUR_FORMAT), null);
     }
 
     public byte[] getForecast(Pollutant pollutant) {
@@ -95,18 +95,19 @@ public class DatamartService extends APIService {
         }
         final String hour = StringUtils.leftPad("" + modelOffset,3,'0');
         final String fileSuffix = RAQDPS_FILE_TRANSFORM + hour +  RAQDPS_FILE_SUFFIX;
-        return getData(RAQDPS_MODEL, RAQDPS_DIR, fileSuffix, pollutant, modelDate.format(DATAMART_DATE_FORMAT), modelRunTime, hour);
+        final String dateString = modelDate.format(DATAMART_DATE_FORMAT);
+        return getData(RAQDPS_MODEL, DATAMART_SUB_DIR, RAQDPS_DIR, fileSuffix, pollutant, dateString, dateString, modelRunTime, hour);
     }
 
     private long determineModelTime(ZonedDateTime modelDate) {
         return Duration.between(modelDate, ZonedDateTime.now(ZoneOffset.UTC)).toHours(); //TODO: Round to the closest hour. 55 minutes past the hour shouldn't result in the previous hour
     }
 
-    private byte[] getData(String model, String modelDir, String fileSuffix, String pollutant, String date, String modelRunTime, String hour) {
+    private byte[] getData(String model, String subDir, String modelDir, String fileSuffix, String pollutant, String date, String dateDir, String modelRunTime, String hour) {
         //Example URL: https://dd.weather.gc.ca/20250802/WXO-DD/model_raqdps/10km/grib2/12/025/20250802T12Z_MSC_RAQDPS_PM10-WildfireSmokePlume_Sfc_RLatLon0.09_PT025H.grib2
         //Or           https://dd.weather.gc.ca/20250803/WXO-DD/model_rdaqa/10km/13/20250803T13Z_MSC_RDAQA_PM2.5_Sfc_RLatLon0.09_PT0H.grib2
         final String fileName = buildFileName(date, modelRunTime, model, pollutant, fileSuffix);
-        final String url = buildUrl(DATAMART_BASE_URL, date, DATAMART_SUB_DIR, modelDir, modelRunTime, hour, fileName);
+        final String url = buildUrl(DATAMART_BASE_URL, dateDir, subDir, modelDir, modelRunTime, hour, fileName);
         return callDatamart(url);
     }
 
@@ -148,16 +149,16 @@ public class DatamartService extends APIService {
         return sb.toString();
     }
 
-    private static String buildUrl(String baseUrl, String date, String subDir, String modelDir, String modelRunTime, String hour, String fileName) {
+    private static String buildUrl(String baseUrl, String dateDir, String subDir, String modelDir, String modelRunTime, String hour, String fileName) {
         StringBuilder sb = new StringBuilder();
         sb.append(baseUrl)
             .append("/")
-            .append(date)
-            .append("/")
-            .append(subDir)
-            .append("/")
-            .append(modelDir)
-            .append("/")
+            .append(dateDir == null ? "" : dateDir)
+            .append(dateDir == null ? "" : "/")
+            .append(subDir == null ? "" : subDir)
+            .append(subDir == null ? "" : "/")
+            .append(modelDir == null ? "" : modelDir)
+            .append(modelDir == null ? "" :"/")
             .append(modelRunTime)
             .append("/")
             .append(hour == null ? "" : hour)
