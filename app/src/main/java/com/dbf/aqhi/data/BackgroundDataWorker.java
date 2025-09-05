@@ -3,6 +3,8 @@ package com.dbf.aqhi.data;
 import android.content.Context;
 import android.util.Log;
 
+import com.dbf.aqhi.data.aqhi.AQHIDataService;
+import com.dbf.aqhi.data.spatial.SpatialDataService;
 import com.dbf.utils.stacktrace.StackTraceCompactor;
 
 import java.util.concurrent.Executors;

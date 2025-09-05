@@ -3,7 +3,7 @@ package com.dbf.aqhi;
 import android.content.Context;
 import android.widget.Toast;
 
-import com.dbf.aqhi.data.AQHIDataService;
+import com.dbf.aqhi.data.aqhi.AQHIDataService;
 
 import java.text.DecimalFormat;
 

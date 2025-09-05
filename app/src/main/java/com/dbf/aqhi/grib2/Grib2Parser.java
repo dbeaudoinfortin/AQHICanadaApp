@@ -2,8 +2,8 @@ package com.dbf.aqhi.grib2;
 
 import android.util.Log;
 
-import com.dbf.aqhi.codec.Jpeg2000Decoder;
-import com.dbf.aqhi.codec.RawImage;
+import com.dbf.aqhi.jpeg.Jpeg2000Decoder;
+import com.dbf.aqhi.jpeg.RawImage;
 
 import java.io.IOException;
 import java.util.Arrays;

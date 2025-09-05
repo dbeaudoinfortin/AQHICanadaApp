@@ -37,12 +37,12 @@ import com.dbf.aqhi.R;
 import com.dbf.aqhi.Utils;
 import com.dbf.aqhi.api.datamart.Pollutant;
 import com.dbf.aqhi.api.weather.alert.Alert;
-import com.dbf.aqhi.codec.RawImage;
-import com.dbf.aqhi.data.SpatialDataService;
+import com.dbf.aqhi.data.spatial.SpatialData;
+import com.dbf.aqhi.data.spatial.SpatialDataService;
 import com.dbf.aqhi.map.CompositeTileProvider;
 import com.dbf.aqhi.permissions.PermissionService;
 import com.dbf.aqhi.data.BackgroundDataWorker;
-import com.dbf.aqhi.data.AQHIDataService;
+import com.dbf.aqhi.data.aqhi.AQHIDataService;
 import com.dbf.heatmaps.android.HeatMap;
 import com.dbf.heatmaps.android.HeatMapGradient;
 import com.dbf.heatmaps.android.HeatMapOptions;
@@ -283,15 +283,25 @@ public class AQHIMainActivity extends AQHIActivity {
         //UPDATE POLLUTANT MAP
         MapView mapView = findViewById(R.id.mapView);
         TextView mapText = findViewById(R.id.lblMap);
-        //TODO: Don't reload this from disk every time. Use the in-memory data if it still is correct
-        RawImage pollutantOverlay = getSpatialDataService().readCachedData(Pollutant.PM25);
-        tileProvider.setOverlay(pollutantOverlay);
-        if (null == pollutantOverlay) {
+
+        //Don't reload this from disk every time. Use the in-memory data if it is still fresh.
+        SpatialData oldSpatialData = tileProvider.getOverlay();
+        //If we already have an overlay then get just load the meta data, not the image data.
+        SpatialData newSpatialData = (null == oldSpatialData) ? getSpatialDataService().getSpatialData(Pollutant.PM25) : getSpatialDataService().getSpatialMetaData(Pollutant.PM25);
+        if (null == newSpatialData) {
             mapText.setVisibility(GONE);
             mapView.setVisibility(GONE);
+            tileProvider.setOverlay(null);
         } else {
             mapText.setVisibility(VISIBLE);
             mapView.setVisibility(VISIBLE);
+            if(null == oldSpatialData) {
+                //The new spatial data object contains full image data loaded
+                tileProvider.setOverlay(newSpatialData);
+            } else if(!oldSpatialData.getModel().equals(newSpatialData.getModel())) {
+                //Re-fetch the spatial meta data, along with the actual image data, since it might have changed in the last few moments
+                tileProvider.setOverlay(getSpatialDataService().getSpatialData(Pollutant.PM25));
+            }
         }
     }
 

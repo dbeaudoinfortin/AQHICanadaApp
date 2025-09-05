@@ -34,11 +34,23 @@ public class DatamartService extends APIService {
     private static final String RDAQA_DIR = "model_rdaqa/10km";
     private static final String RDAQA_FILE_SUFFIX = "_RLatLon0.09_PT0H.grib2";
 
-    public byte[] getObservation(Pollutant pollutant) {
-        return getRDAQAObservation(pollutant.getValue(), false);
+    public DatamartData getObservation(Pollutant pollutant) {
+        return getObservation(pollutant, false);
     }
 
-    private byte[] getRDAQAObservation(String pollutant, boolean allowPrelim) {
+    public DatamartData getObservation(Pollutant pollutant, boolean metaOnly) {
+        return getRDAQAObservation(pollutant.getValue(), false, metaOnly);
+    }
+
+    public DatamartData getForecast(Pollutant pollutant) {
+        return getForecast(pollutant, false);
+    }
+
+    public DatamartData getForecast(Pollutant pollutant, boolean metaOnly) {
+        return getRAQDPSForecast(pollutant.getValue(), metaOnly);
+    }
+
+    private DatamartData getRDAQAObservation(String pollutant, boolean allowPrelim, boolean metaOnly) {
         //Preliminary results are available 1 hour later and final results are available 2 hours later
         ZonedDateTime modelDate = ZonedDateTime.now(ZoneOffset.UTC);
 
@@ -46,48 +58,44 @@ public class DatamartService extends APIService {
         for(int i =0; i < 3; i++) {
             modelDate = modelDate.minusHours(1);
 
-            byte[] data = getRDAQAObservation(pollutant, modelDate, false, false);
+            DatamartData data = getRDAQAObservation(pollutant, modelDate, false, false, metaOnly);
             if(null != data) return data;
 
             if(allowPrelim) { //Try again, with prelim data
-                data = getRDAQAObservation(pollutant, modelDate, true, false);
+                data = getRDAQAObservation(pollutant, modelDate, true, false, metaOnly);
                 if(null != data) return data;
             }
         }
         return null;
     }
 
-    private byte[] getRDAQAObservation(String pollutant, ZonedDateTime modelDate, boolean prelim, boolean firework) {
+    private DatamartData getRDAQAObservation(String pollutant, ZonedDateTime modelDate, boolean prelim, boolean firework, boolean metaOnly) {
         final String model = prelim ? RDAQA_MODEL + "-Prelim" : (firework ? RDAQA_MODEL + "-FW" : RDAQA_MODEL);
-        return getData(RDAQA_MODEL, null, RDAQA_DIR, RDAQA_FILE_SUFFIX, pollutant, modelDate.format(DATAMART_DATE_FORMAT), null, modelDate.format(DATAMART_HOUR_FORMAT), null);
+        return getData(RDAQA_MODEL, null, RDAQA_DIR, RDAQA_FILE_SUFFIX, pollutant, modelDate.format(DATAMART_DATE_FORMAT), null, modelDate.format(DATAMART_HOUR_FORMAT), null, metaOnly);
     }
 
-    public byte[] getForecast(Pollutant pollutant) {
-        return getRAQDPSForecast(pollutant.getValue());
-    }
-
-    private byte[] getRAQDPSForecast(String pollutant) {
+    private DatamartData getRAQDPSForecast(String pollutant, boolean metaOnly) {
         ZonedDateTime modelDate = ZonedDateTime.now(ZoneOffset.UTC).toLocalDate().atStartOfDay(ZoneOffset.UTC);
-        byte[] data = getRAQDPSForecast(pollutant, modelDate);
+        DatamartData data = getRAQDPSForecast(pollutant, modelDate, metaOnly);
         if(null == data) {
             //Try the previous day
             modelDate.minusDays(1);
-            data = getRAQDPSForecast(pollutant, modelDate);
+            data = getRAQDPSForecast(pollutant, modelDate, metaOnly);
         }
         return data;
     }
 
-    private byte[] getRAQDPSForecast(String pollutant, ZonedDateTime modelDate) {
+    private DatamartData getRAQDPSForecast(String pollutant, ZonedDateTime modelDate, boolean metaOnly) {
         //The model is run at 0 and 12 hours UTC each day. Try the 12 model run first, if it exists.
-        byte[] data = getRAQDPSForecast(pollutant, modelDate.plusHours(12), "12");
+        DatamartData data = getRAQDPSForecast(pollutant, modelDate.plusHours(12), "12", metaOnly);
         if(null == data) {
             //Try the 0 model run now
-            data = getRAQDPSForecast(pollutant, modelDate, "00");
+            data = getRAQDPSForecast(pollutant, modelDate, "00", metaOnly);
         }
         return data;
     }
 
-    private byte[] getRAQDPSForecast(String pollutant, ZonedDateTime modelDate, String modelRunTime) {
+    private DatamartData getRAQDPSForecast(String pollutant, ZonedDateTime modelDate, String modelRunTime, boolean metaOnly) {
         long modelOffset = determineModelTime(modelDate);
         if(modelOffset < 0) {
             //Model hasn't run yet!
@@ -96,24 +104,31 @@ public class DatamartService extends APIService {
         final String hour = StringUtils.leftPad("" + modelOffset,3,'0');
         final String fileSuffix = RAQDPS_FILE_TRANSFORM + hour +  RAQDPS_FILE_SUFFIX;
         final String dateString = modelDate.format(DATAMART_DATE_FORMAT);
-        return getData(RAQDPS_MODEL, DATAMART_SUB_DIR, RAQDPS_DIR, fileSuffix, pollutant, dateString, dateString, modelRunTime, hour);
+        return getData(RAQDPS_MODEL, DATAMART_SUB_DIR, RAQDPS_DIR, fileSuffix, pollutant, dateString, dateString, modelRunTime, hour, metaOnly);
     }
 
     private long determineModelTime(ZonedDateTime modelDate) {
         return Duration.between(modelDate, ZonedDateTime.now(ZoneOffset.UTC)).toHours(); //TODO: Round to the closest hour. 55 minutes past the hour shouldn't result in the previous hour
     }
 
-    private byte[] getData(String model, String subDir, String modelDir, String fileSuffix, String pollutant, String date, String dateDir, String modelRunTime, String hour) {
+    private DatamartData getData(String model, String subDir, String modelDir, String fileSuffix, String pollutant, String date, String dateDir, String modelRunTime, String hour, boolean metaOnly) {
         //Example URL: https://dd.weather.gc.ca/20250802/WXO-DD/model_raqdps/10km/grib2/12/025/20250802T12Z_MSC_RAQDPS_PM10-WildfireSmokePlume_Sfc_RLatLon0.09_PT025H.grib2
         //Or           https://dd.weather.gc.ca/20250803/WXO-DD/model_rdaqa/10km/13/20250803T13Z_MSC_RDAQA_PM2.5_Sfc_RLatLon0.09_PT0H.grib2
         final String fileName = buildFileName(date, modelRunTime, model, pollutant, fileSuffix);
         final String url = buildUrl(DATAMART_BASE_URL, dateDir, subDir, modelDir, modelRunTime, hour, fileName);
-        return callDatamart(url);
+        final byte[] rawData = callDatamart(url, metaOnly);
+        if (null == rawData) return null;
+        return new DatamartData(model, pollutant, date, modelRunTime, hour, rawData);
     }
 
-    private byte[] callDatamart(String url) {
+    private byte[] callDatamart(String url, boolean metaOnly) {
         Log.i(LOG_TAG, "Calling the Datamart HTTP service. URL: " + url);
-        try (Response response = client.newCall(new Request.Builder().url(url).build()).execute()) {
+        try (Response response = client.newCall(new Request.Builder()
+                    .method(metaOnly ? "HEAD" : "GET", null)
+                    .url(url)
+                    .build())
+                .execute()) {
+
             if (response.code() == 404) {
                 Log.i(LOG_TAG, "No data returned from Datamart (404). URL: " + url);
                 return null;
@@ -123,7 +138,10 @@ public class DatamartService extends APIService {
                 Log.w(LOG_TAG, "Call to Datamart failed. URL: " + url + ". HTTP Code: " + response.code());
                 return null;
             }
-            if(response.body() == null) {
+
+            if(metaOnly) return new byte[0]; //HEAD requests have no body
+
+            if (response.body() == null) {
                 Log.e(LOG_TAG, "Call to Datamart API failed. URL: " + url + ". Empty response body.");
                 return null;
             }

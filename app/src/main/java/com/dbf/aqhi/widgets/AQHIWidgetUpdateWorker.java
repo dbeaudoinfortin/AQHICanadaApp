@@ -9,7 +9,7 @@ import androidx.annotation.NonNull;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
-import com.dbf.aqhi.data.AQHIDataService;
+import com.dbf.aqhi.data.aqhi.AQHIDataService;
 
 import java.util.Arrays;
 

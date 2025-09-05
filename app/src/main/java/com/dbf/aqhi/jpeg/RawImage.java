@@ -1,4 +1,4 @@
-package com.dbf.aqhi.codec;
+package com.dbf.aqhi.jpeg;
 
 public class RawImage {
     public final int width;

@@ -163,12 +163,12 @@ Java_com_dbf_aqhi_codec_Jpeg2000Decoder_decodeJpeg2000(
         int gray = ((comp->data[i] - min_val) * 255) / (max_val - min_val);
         if (gray < 0) gray = 0;
         if (gray > 255) gray = 255;
-        outPixels[i] = (jbyte)gray;
+        outPixels[i] = 100;//(jbyte)gray;
     }
     (*env)->ReleaseByteArrayElements(env, pixelArray, outPixels, 0);
 
     //Manually invoke the constructor of the output object (RawImage type)
-    jclass rawImageCls = (*env)->FindClass(env, "com/dbf/aqhi/codec/RawImage");
+    jclass rawImageCls = (*env)->FindClass(env, "com/dbf/aqhi/jpeg/RawImage");
     if (!rawImageCls) {
         LOG_ERROR("Could not find RawImage class.");
         goto cleanup;

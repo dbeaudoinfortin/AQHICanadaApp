@@ -16,7 +16,7 @@ import android.widget.RemoteViews;
 import androidx.appcompat.app.AppCompatDelegate;
 
 import com.dbf.aqhi.R;
-import com.dbf.aqhi.data.AQHIDataService;
+import com.dbf.aqhi.data.aqhi.AQHIDataService;
 
 import com.dbf.aqhi.api.weather.alert.Alert;
 

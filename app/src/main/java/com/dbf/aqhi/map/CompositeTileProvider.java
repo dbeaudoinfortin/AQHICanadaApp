@@ -8,7 +8,7 @@ import android.util.Pair;
 
 import androidx.annotation.Nullable;
 
-import com.dbf.aqhi.codec.RawImage;
+import com.dbf.aqhi.data.spatial.SpatialData;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -33,7 +33,8 @@ public class CompositeTileProvider implements TileStreamProvider {
     public final int gridHeight = 599;
 
     private final TileStreamProvider baseTileProvider;
-    private RawImage rawOverlay;
+    private SpatialData overlay;
+    private byte[] rawPixels;
 
     // Precompute rotation parameters (radians)
     private final double phiP = Math.toRadians(rLatNorthPole);
@@ -48,7 +49,7 @@ public class CompositeTileProvider implements TileStreamProvider {
     @Override
     public InputStream getTileStream(int row, int col, int zoomLvl) {
         try (InputStream base = baseTileProvider.getTileStream(row, col, zoomLvl)) {
-            if(null == rawOverlay) return base;
+            if(null == overlay) return base;
             if (base == null) return null;
 
             //Load the base image from disk
@@ -99,12 +100,12 @@ public class CompositeTileProvider implements TileStreamProvider {
                     //convert from rotated coordinates to grid fractional indices (i,j)
                     double rlatDeg = Math.toDegrees(phiR);
                     double rlonDeg = Math.toDegrees(lamR);
-                    // normalize rlonDeg near your grid convention if needed (e.g., [-180,180) vs [0,360))
+
                     double fi = (rlonDeg - rLonZero) / gridScaleDegrees;
                     double fj = (rlatDeg - rLatZero) / gridScaleDegrees;
 
                     int color = 0; // transparent by default
-                    int a = sampleAlphaBilinear(fi, fj, rawOverlay, gridWidth, gridHeight);
+                    int a = sampleAlphaBilinear(fi, fj, rawPixels, gridWidth, gridHeight);
                     if (a > 0) {
                         // Compose ARGB with per-pixel alpha (only computedOverlay color)
                         color = (a & 0xFF) << 24 | (overlayColour & 0x00FFFFFF);
@@ -113,12 +114,12 @@ public class CompositeTileProvider implements TileStreamProvider {
                 }
             }
 
-            // 4) Blend computedOverlay into base
+            //Blend computedOverlay into base
             Bitmap overlayBmp = Bitmap.createBitmap(computedOverlay, tileSize, tileSize, Bitmap.Config.ARGB_8888);
             Canvas c = new Canvas(baseBmp);
             c.drawBitmap(overlayBmp, 0f, 0f, null);
 
-            // 5) Encode result (lossless WebP keeps alpha; PNG is fine too)
+            //Encode result (lossless WebP keeps alpha; PNG is fine too)
             ByteArrayOutputStream baos = new ByteArrayOutputStream(32 * 1024);
             // Prefer WEBP_LOSSLESS on API >= 30, else fallback to PNG
             boolean ok = baseBmp.compress(Bitmap.CompressFormat.WEBP_LOSSLESS, 100, baos);
@@ -135,7 +136,7 @@ public class CompositeTileProvider implements TileStreamProvider {
     }
 
     /** Bilinear sample of 8-bit grid at fractional (fi,fj). Returns [0..255]. */
-    private static int sampleAlphaBilinear(double fi, double fj, RawImage img, int w, int h) {
+    private static int sampleAlphaBilinear(double fi, double fj, final byte[] pixels, int w, int h) {
         // Outside grid → transparent
         if (fi < 0 || fj < 0 || fi > w - 1 || fj > h - 1) return 0;
 
@@ -152,10 +153,10 @@ public class CompositeTileProvider implements TileStreamProvider {
         int idx01 = j1 * w + i0;
         int idx11 = j1 * w + i1;
 
-        int a00 = img.pixels[idx00] & 0xFF;
-        int a10 = img.pixels[idx10] & 0xFF;
-        int a01 = img.pixels[idx01] & 0xFF;
-        int a11 = img.pixels[idx11] & 0xFF;
+        int a00 = pixels[idx00] & 0xFF;
+        int a10 = pixels[idx10] & 0xFF;
+        int a01 = pixels[idx01] & 0xFF;
+        int a11 = pixels[idx11] & 0xFF;
 
         double a0 = a00 + dx * (a10 - a00);
         double a1 = a01 + dx * (a11 - a01);
@@ -164,11 +165,12 @@ public class CompositeTileProvider implements TileStreamProvider {
         return (a < 0) ? 0 : (a > 255 ? 255 : a);
     }
 
-    public RawImage getOverlay() {
-        return rawOverlay;
+    public SpatialData getOverlay() {
+        return overlay;
     }
 
-    public void setOverlay(RawImage overlay) {
-        this.rawOverlay = overlay;
+    public void setOverlay(SpatialData overlay) {
+        this.overlay = overlay;
+        this.rawPixels = overlay.getGrib2().getRawImage().pixels;
     }
 }

@@ -1,12 +1,12 @@
 package com.dbf.aqhi.grib2;
 
-import com.dbf.aqhi.codec.RawImage;
+import com.dbf.aqhi.jpeg.RawImage;
 
 public class Grib2 {
 
     private final Grib2GridMetaData gridMetaData;
     private final Grib2DataMetaData dataMetaData;
-    private final RawImage rawImage;
+    private RawImage rawImage;
 
     public Grib2(Grib2GridMetaData gridMeta, Grib2DataMetaData dataMetaData, RawImage rawImage) {
         this.gridMetaData = gridMeta;
@@ -22,8 +22,11 @@ public class Grib2 {
         return dataMetaData;
     }
 
+    public void setRawImage(RawImage rawImage) {
+        this.rawImage = rawImage;
+    }
+
     public RawImage getRawImage() {
         return rawImage;
     }
-
 }

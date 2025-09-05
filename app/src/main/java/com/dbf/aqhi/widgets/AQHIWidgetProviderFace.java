@@ -5,7 +5,7 @@ import android.content.Context;
 import android.widget.RemoteViews;
 
 import com.dbf.aqhi.R;
-import com.dbf.aqhi.data.AQHIDataService;
+import com.dbf.aqhi.data.aqhi.AQHIDataService;
 
 public class AQHIWidgetProviderFace extends AQHIWidgetProviderSmall {
 

@@ -1,11 +1,8 @@
-package com.dbf.aqhi.data;
+package com.dbf.aqhi.data.aqhi;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.net.ConnectivityManager;
-import android.net.Network;
-import android.net.NetworkCapabilities;
 import android.util.Log;
 import android.util.Pair;
 
@@ -18,10 +15,9 @@ import com.dbf.aqhi.api.geomet.data.realtime.RealtimeData;
 import com.dbf.aqhi.api.geomet.station.Station;
 import com.dbf.aqhi.api.weather.WeatherService;
 import com.dbf.aqhi.api.weather.alert.Alert;
+import com.dbf.aqhi.data.DataService;
 import com.dbf.aqhi.location.LocationService;
 import com.dbf.utils.stacktrace.StackTraceCompactor;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import org.json.JSONArray;
@@ -48,14 +44,7 @@ public class AQHIDataService extends DataService {
     private static final Type gsonAQHIType = new TypeToken<Map<Date, Double>>(){}.getType();
     private static final Type gsonAlertType = new TypeToken<List<Alert>>(){}.getType();
 
-    //How long we can display the data on screen before we throw it out because its too old
-    private static final long DATA_VALIDITY_DURATION = 30 * 60 * 1000; //30 minutes in milliseconds
-
-    //How long we need to wait before loading fresh data, so we don't make to many API calls
-    private static final long DATA_REFRESH_MIN_DURATION = 5 * 60 * 1000; //5 minutes in milliseconds
-
     //Shared preferences keys
-    private static final String AQHI_PREF_KEY = "com.dbf.aqhi.service";
     private static final String STATION_NAME_KEY = "STATION_NAME";
     private static final String STATION_NAPS_ID_KEY = "STATION_NAPS_ID";
     private static final String STATION_TZ_KEY = "STATION_TZ";
@@ -75,15 +64,9 @@ public class AQHIDataService extends DataService {
     private static final String ALERTS_VAL_KEY = "ALERTS_VAL";
     private static final String ALERTS_TS_KEY = "ALERTS_TS";
 
-    private static final Gson gson = new GsonBuilder()
-            .setDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX") // ISO 8601 format
-            .enableComplexMapKeySerialization() //Wow! https://github.com/google/gson/issues/1328
-            .create();
-
     private final GeoMetService geoMetService;
     private final WeatherService weatherService;
     private final LocationService locationService;
-    private final SharedPreferences aqhiPref;
 
     //Cheap in-memory cache, fall-back to preferences if null
     private double[] lastLatLong = null;
@@ -115,7 +98,6 @@ public class AQHIDataService extends DataService {
         locationService = new LocationService(context);
         this.geoMetService = new GeoMetService(context);
         this.weatherService = new WeatherService();
-        this.aqhiPref = context.getSharedPreferences(AQHI_PREF_KEY, Context.MODE_PRIVATE);
         this.loadTypicalAQHI = loadTypicalAQHI;
         Log.i(LOG_TAG, "AQHI service initialized.");
     }
@@ -169,7 +151,7 @@ public class AQHIDataService extends DataService {
         synchronized (GLOBAL_SYNC_OBJECT) {
 
             final boolean stationAuto = isStationAuto();
-            final String previousStationCode = aqhiPref.getString(STATION_CODE_KEY, null);
+            final String previousStationCode = sharedPreferences.getString(STATION_CODE_KEY, null);
             String currentStationCode;
             if (stationAuto) {
                 //Station is determined automatically based on the user's location
@@ -222,7 +204,7 @@ public class AQHIDataService extends DataService {
      */
     public void clearAllData() {
         Log.i(LOG_TAG, "Clearing all AQHI data.");
-        aqhiPref.edit()
+        sharedPreferences.edit()
                 .remove(TYPICAL_AQHI_VAL_KEY)
                 .remove(TYPICAL_AQHI_TS_KEY)
                 .remove(LATEST_AQHI_VAL_KEY)
@@ -241,7 +223,7 @@ public class AQHIDataService extends DataService {
      */
     public void clearAllPreferences() {
         clearAllData();
-        aqhiPref.edit()
+        sharedPreferences.edit()
                 .remove(STATION_NAME_KEY)
                 .remove(STATION_NAPS_ID_KEY)
                 .remove(STATION_CODE_KEY)
@@ -375,7 +357,7 @@ public class AQHIDataService extends DataService {
     private void fetchLatestAlertData() {
         //First determine if the data we have now is new enough to use as-is
         //This avoids excessive calls to the API.
-        long ts = aqhiPref.getLong(ALERTS_TS_KEY, Integer.MIN_VALUE);
+        long ts = sharedPreferences.getLong(ALERTS_TS_KEY, Integer.MIN_VALUE);
         if(System.currentTimeMillis() - ts <= DATA_REFRESH_MIN_DURATION) {
             return; //We have valid data already
         }
@@ -416,7 +398,7 @@ public class AQHIDataService extends DataService {
     private boolean fetchLatestRealtimeData(String stationCode) {
         //First determine if the data we have now is new enough to use as-is. This avoids excessive calls to the API.
         boolean haveRealtime = false;
-        long ts = aqhiPref.getLong(LATEST_AQHI_TS_KEY, Integer.MIN_VALUE);
+        long ts = sharedPreferences.getLong(LATEST_AQHI_TS_KEY, Integer.MIN_VALUE);
         if(System.currentTimeMillis() - ts <= DATA_REFRESH_MIN_DURATION) {
             haveRealtime = getLatestAQHI(true) >= 0; //We have valid data already
         }
@@ -442,9 +424,9 @@ public class AQHIDataService extends DataService {
     private boolean fetchLatestForecastData(String stationCode) {
         //Try to fetch the forecast as well. Also determine if the forecast data we have now is new enough to use as-is.
         boolean haveForecast = false;
-        long ts = aqhiPref.getLong(FORECAST_AQHI_TS_KEY, Integer.MIN_VALUE);
+        long ts = sharedPreferences.getLong(FORECAST_AQHI_TS_KEY, Integer.MIN_VALUE);
         if(System.currentTimeMillis() - ts <= DATA_REFRESH_MIN_DURATION) {
-            final String forecastAQHI = aqhiPref.getString(FORECAST_AQHI_VAL_KEY, null);
+            final String forecastAQHI = sharedPreferences.getString(FORECAST_AQHI_VAL_KEY, null);
             haveForecast = (null != forecastAQHI && !forecastAQHI.isEmpty());
         }
 
@@ -613,7 +595,7 @@ public class AQHIDataService extends DataService {
      * @return Integer, NAPS ID, may be null.
      */
     public Integer getStationNAPSID() {
-        long rawID = aqhiPref.getLong(STATION_NAPS_ID_KEY, -1L);
+        long rawID = sharedPreferences.getLong(STATION_NAPS_ID_KEY, -1L);
         if(rawID < 0) return null;
         return (int) rawID;
     }
@@ -624,7 +606,7 @@ public class AQHIDataService extends DataService {
      * @return Float, time zone offset, may be null
      */
     public Float getStationTZ() {
-        float rawTZ = aqhiPref.getFloat(STATION_TZ_KEY, -100L);
+        float rawTZ = sharedPreferences.getFloat(STATION_TZ_KEY, -100L);
         if(rawTZ < -50) return null;
         return rawTZ;
     }
@@ -639,10 +621,10 @@ public class AQHIDataService extends DataService {
      */
     public String getStationName(boolean allowStale){
         if(!allowStale && isStationAuto()) {
-            long ts = aqhiPref.getLong(STATION_TS_KEY, Integer.MIN_VALUE);
+            long ts = sharedPreferences.getLong(STATION_TS_KEY, Integer.MIN_VALUE);
             if (System.currentTimeMillis() - ts > DATA_VALIDITY_DURATION) return null;
         }
-        return aqhiPref.getString(STATION_NAME_KEY, null);
+        return sharedPreferences.getString(STATION_NAME_KEY, null);
     }
 
     /**
@@ -663,10 +645,10 @@ public class AQHIDataService extends DataService {
      */
     public String getStationCode(boolean allowStale){
         if(!allowStale && isStationAuto()) {
-            long ts = aqhiPref.getLong(STATION_TS_KEY, Integer.MIN_VALUE);
+            long ts = sharedPreferences.getLong(STATION_TS_KEY, Integer.MIN_VALUE);
             if (System.currentTimeMillis() - ts > DATA_VALIDITY_DURATION) return null;
         }
-        return aqhiPref.getString(STATION_CODE_KEY, null);
+        return sharedPreferences.getString(STATION_CODE_KEY, null);
     }
 
     /**
@@ -679,10 +661,10 @@ public class AQHIDataService extends DataService {
      */
     public Pair<Float, Float> getStationLatLon(boolean allowStale){
         if(!allowStale && isStationAuto()) {
-            long ts = aqhiPref.getLong(STATION_TS_KEY, Integer.MIN_VALUE);
+            long ts = sharedPreferences.getLong(STATION_TS_KEY, Integer.MIN_VALUE);
             if (System.currentTimeMillis() - ts > DATA_VALIDITY_DURATION) return null;
         }
-        return new Pair<Float, Float>(aqhiPref.getFloat(STATION_LAT_KEY, -500f), aqhiPref.getFloat(STATION_LON_KEY, -500f));
+        return new Pair<Float, Float>(sharedPreferences.getFloat(STATION_LAT_KEY, -500f), sharedPreferences.getFloat(STATION_LON_KEY, -500f));
     }
 
     /**
@@ -691,7 +673,7 @@ public class AQHIDataService extends DataService {
      * @return boolean, true if the station is automatically selected based on the user's location, false otherwise.
      */
     public boolean isStationAuto(){
-        return aqhiPref.getBoolean(STATION_AUTO_KEY, true);
+        return sharedPreferences.getBoolean(STATION_AUTO_KEY, true);
     }
 
     /**
@@ -700,7 +682,7 @@ public class AQHIDataService extends DataService {
      * @param val boolean, true if the station should be automatically selected based on the user's location, false otherwise.
      */
     public void setStationAuto(boolean val) {
-        aqhiPref.edit().putBoolean(STATION_AUTO_KEY, val).apply();
+        sharedPreferences.edit().putBoolean(STATION_AUTO_KEY, val).apply();
     }
 
     /**
@@ -709,13 +691,13 @@ public class AQHIDataService extends DataService {
      * @return Double, AQHI value, or returns -1 if stale or not present.
      */
     public Double getTypicalAQHI(){
-        long ts = aqhiPref.getLong(TYPICAL_AQHI_TS_KEY, Integer.MIN_VALUE);
+        long ts = sharedPreferences.getLong(TYPICAL_AQHI_TS_KEY, Integer.MIN_VALUE);
         if(System.currentTimeMillis() - ts > DATA_VALIDITY_DURATION) {
             //If the last update was handled by a widget then this value is likely stale
             determineTypicalAQHI();
         }
 
-        return (double) aqhiPref.getFloat(TYPICAL_AQHI_VAL_KEY, -1f);
+        return (double) sharedPreferences.getFloat(TYPICAL_AQHI_VAL_KEY, -1f);
     }
 
     /**
@@ -726,10 +708,10 @@ public class AQHIDataService extends DataService {
      */
     public Double getLatestAQHI(boolean allowStale){
         if(!allowStale) {
-            long ts = aqhiPref.getLong(LATEST_AQHI_TS_KEY, Integer.MIN_VALUE);
+            long ts = sharedPreferences.getLong(LATEST_AQHI_TS_KEY, Integer.MIN_VALUE);
             if(System.currentTimeMillis() - ts > DATA_VALIDITY_DURATION) return -1d;
         }
-        return (double) aqhiPref.getFloat(LATEST_AQHI_VAL_KEY, -1f);
+        return (double) sharedPreferences.getFloat(LATEST_AQHI_VAL_KEY, -1f);
     }
 
     /**
@@ -746,16 +728,16 @@ public class AQHIDataService extends DataService {
      * @return Map<Date, Double> of historical AQHI values if they have been updated within the last {@link AQHIDataService#DATA_VALIDITY_DURATION} milliseconds. Otherwise returns null.
      */
     public Map<Date, Double> getHistoricalAQHI(){
-        final long ts = aqhiPref.getLong(HISTORICAL_AQHI_TS_KEY, Integer.MIN_VALUE);
+        final long ts = sharedPreferences.getLong(HISTORICAL_AQHI_TS_KEY, Integer.MIN_VALUE);
         if(System.currentTimeMillis() - ts > DATA_VALIDITY_DURATION) return null;
-        String historicalAQHI = aqhiPref.getString(HISTORICAL_AQHI_VAL_KEY, null);
+        String historicalAQHI = sharedPreferences.getString(HISTORICAL_AQHI_VAL_KEY, null);
         if (null == historicalAQHI || historicalAQHI.isEmpty()) return Collections.EMPTY_MAP;
         try {
             return gson.fromJson(historicalAQHI, gsonAQHIType);
         } catch (Exception e) {
             Log.e(LOG_TAG, "Failed to read the saved historical AQHI data: " + historicalAQHI, e);
-            //No point continuing to save this data
-            aqhiPref.edit()
+            //No point keeping this bad data
+            sharedPreferences.edit()
                     .remove(HISTORICAL_AQHI_TS_KEY)
                     .remove(HISTORICAL_AQHI_VAL_KEY)
                     .apply();
@@ -768,16 +750,16 @@ public class AQHIDataService extends DataService {
      * @return Map<Date, Double> of forecast AQHI values if they have been updated within the last {@link AQHIDataService#DATA_VALIDITY_DURATION} milliseconds. Otherwise returns null.
      */
     public Map<Date, Double> getForecastAQHI(){
-        final long ts = aqhiPref.getLong(FORECAST_AQHI_TS_KEY, Integer.MIN_VALUE);
+        final long ts = sharedPreferences.getLong(FORECAST_AQHI_TS_KEY, Integer.MIN_VALUE);
         if(System.currentTimeMillis() - ts > DATA_VALIDITY_DURATION) return null;
-        String forecastAQHI = aqhiPref.getString(FORECAST_AQHI_VAL_KEY, null);
+        String forecastAQHI = sharedPreferences.getString(FORECAST_AQHI_VAL_KEY, null);
         if (null == forecastAQHI || forecastAQHI.isEmpty()) return Collections.EMPTY_MAP;
         try {
             return gson.fromJson(forecastAQHI, gsonAQHIType);
         } catch (Exception e) {
             Log.e(LOG_TAG, "Failed to read the saved forecast AQHI data: " + forecastAQHI, e);
             //No point continuing to save this data
-            aqhiPref.edit()
+            sharedPreferences.edit()
                     .remove(FORECAST_AQHI_TS_KEY)
                     .remove(FORECAST_AQHI_VAL_KEY)
                     .apply();
@@ -790,7 +772,7 @@ public class AQHIDataService extends DataService {
      * @return List<Alert> List of Alerts. Returns an empty list when no data is available.
      */
     public List<Alert> getAlerts(){
-        String alertsString = aqhiPref.getString(ALERTS_VAL_KEY, null);
+        String alertsString = sharedPreferences.getString(ALERTS_VAL_KEY, null);
         if (null == alertsString || alertsString.isEmpty()) return Collections.emptyList();
         try {
             List<Alert> alerts = gson.fromJson(alertsString, gsonAlertType);
@@ -803,7 +785,7 @@ public class AQHIDataService extends DataService {
         } catch (Exception e) {
             Log.e(LOG_TAG, "Failed to read the saved alert data: " + alertsString, e);
             //No point continuing to save this data
-            aqhiPref.edit()
+            sharedPreferences.edit()
                     .remove(ALERTS_TS_KEY)
                     .remove(ALERTS_VAL_KEY)
                     .apply();
@@ -817,7 +799,7 @@ public class AQHIDataService extends DataService {
      * @param val Map<Date, Double> historical AQHI data
      */
     private void setHistoricalAQHI(Map<Date, Double> val) {
-        aqhiPref.edit()
+        sharedPreferences.edit()
                 .putString(HISTORICAL_AQHI_VAL_KEY, null == val ? null : gson.toJson(val, gsonAQHIType))
                 .putLong(HISTORICAL_AQHI_TS_KEY, System.currentTimeMillis())
                 .apply();
@@ -829,7 +811,7 @@ public class AQHIDataService extends DataService {
      * @param val Map<Date, Double> forecast AQHI data
      */
     private void setForecastAQHI(Map<Date, Double> val) {
-        aqhiPref.edit()
+        sharedPreferences.edit()
                 .putString(FORECAST_AQHI_VAL_KEY, null == val ? null : gson.toJson(val, gsonAQHIType))
                 .putLong(FORECAST_AQHI_TS_KEY, System.currentTimeMillis())
                 .apply();
@@ -841,7 +823,7 @@ public class AQHIDataService extends DataService {
      * @param val List<Alert> Alert data
      */
     private void setAlerts(List<Alert> val) {
-        aqhiPref.edit()
+        sharedPreferences.edit()
                 .putString(ALERTS_VAL_KEY, null == val ? null : gson.toJson(val, gsonAlertType))
                 .putLong(ALERTS_TS_KEY, System.currentTimeMillis())
                 .apply();
@@ -855,7 +837,7 @@ public class AQHIDataService extends DataService {
      * @param napsStation A Pair<Integer, Double> representing the NAPS site ID and time zone offset.
      */
     private void setStation(Station station, Pair<Integer, Double> napsStation) {
-        SharedPreferences.Editor editor = aqhiPref.edit();
+        SharedPreferences.Editor editor = sharedPreferences.edit();
         editor.putLong(STATION_TS_KEY, System.currentTimeMillis());
         //When everything is null we update just the timestamp (refresh)
         if (null != station || null != napsStation) {
@@ -894,7 +876,7 @@ public class AQHIDataService extends DataService {
      * @param val Double the latest AQHI reading for the user's current station.
      */
     private void setLatestAQHI(Double val) {
-        SharedPreferences.Editor editor = aqhiPref.edit();
+        SharedPreferences.Editor editor = sharedPreferences.edit();
         if(null != val) {
             editor.putFloat(LATEST_AQHI_VAL_KEY, val.floatValue());
             editor.putLong(LATEST_AQHI_TS_KEY, System.currentTimeMillis());
@@ -913,7 +895,7 @@ public class AQHIDataService extends DataService {
      * @param val Float the typical AQHI value
      */
     private void setTypicalAQHI(Float val) {
-        SharedPreferences.Editor editor = aqhiPref.edit();
+        SharedPreferences.Editor editor = sharedPreferences.edit();
         if(null != val) {
             editor.putFloat(TYPICAL_AQHI_VAL_KEY, val);
             editor.putLong(TYPICAL_AQHI_TS_KEY, System.currentTimeMillis());

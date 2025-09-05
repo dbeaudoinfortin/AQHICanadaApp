@@ -20,7 +20,7 @@ import com.dbf.aqhi.main.AQHIMainActivity;
 import com.dbf.aqhi.R;
 import com.dbf.aqhi.widgets.config.WidgetConfig;
 import com.dbf.aqhi.permissions.PermissionService;
-import com.dbf.aqhi.data.AQHIDataService;
+import com.dbf.aqhi.data.aqhi.AQHIDataService;
 
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
