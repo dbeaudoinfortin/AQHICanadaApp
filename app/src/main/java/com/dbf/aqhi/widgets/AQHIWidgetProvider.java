@@ -13,6 +13,7 @@ import android.widget.RemoteViews;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.work.ExistingWorkPolicy;
 import androidx.work.OneTimeWorkRequest;
+import androidx.work.Operation;
 import androidx.work.WorkManager;
 
 import com.dbf.aqhi.AQHIFeature;
@@ -21,8 +22,10 @@ import com.dbf.aqhi.R;
 import com.dbf.aqhi.widgets.config.WidgetConfig;
 import com.dbf.aqhi.permissions.PermissionService;
 import com.dbf.aqhi.data.aqhi.AQHIDataService;
+import com.dbf.utils.stacktrace.StackTraceCompactor;
 
 import java.util.Arrays;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQHIFeature {
@@ -95,20 +98,25 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQ
         //The maximum refresh period of 30 minutes is not enough
         //Enqueue a new task that will for a refresh after 10 and 20 minutes
         WorkManager workManager = WorkManager.getInstance(context);
-        workManager.enqueueUniqueWork("widget_update_10", ExistingWorkPolicy.KEEP,
+        for (int i = 10; i <= 30; i+=10) {
+            final int minutes = i;
+            Operation op = workManager.enqueueUniqueWork("widget_update_" + minutes, ExistingWorkPolicy.KEEP,
                 new OneTimeWorkRequest.Builder(AQHIWidgetUpdateWorker.class)
-                    .setInitialDelay(10, TimeUnit.MINUTES)
+                            .setInitialDelay(minutes, TimeUnit.MINUTES)
                     .build());
-
-        workManager.enqueueUniqueWork("widget_update_20", ExistingWorkPolicy.KEEP,
-                new OneTimeWorkRequest.Builder(AQHIWidgetUpdateWorker.class)
-                    .setInitialDelay(20, TimeUnit.MINUTES)
-                    .build());
-
-        workManager.enqueueUniqueWork("widget_update_30", ExistingWorkPolicy.KEEP,
-                new OneTimeWorkRequest.Builder(AQHIWidgetUpdateWorker.class)
-                    .setInitialDelay(30, TimeUnit.MINUTES)
-                    .build());
+            op.getResult().addListener(() -> {
+                try {
+                    Operation.State state = op.getResult().get();
+                    if (state != null) {
+                        Log.d(LOG_TAG, "Successfully enqueued background AQHI widget update for " + minutes + " minutes from now.");
+                    } else {
+                        Log.e(LOG_TAG, "Failed to enqueue background AQHI widget update for " + minutes + " minutes from now.");
+    }
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "Error while checking enqueue result for background AQHI widget for " + minutes + " minutes from now.\n" + StackTraceCompactor.getCompactStackTrace(e));
+                }
+            }, Executors.newSingleThreadExecutor());
+        }
     }
 
     public void onRestored(Context context, int[] oldWidgetIds, int[] newWidgetIds) {

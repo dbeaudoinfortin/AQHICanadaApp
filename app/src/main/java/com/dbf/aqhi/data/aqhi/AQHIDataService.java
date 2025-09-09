@@ -104,12 +104,12 @@ public class AQHIDataService extends DataService {
 
     public void update() {
         Log.i(LOG_TAG, "Updating AQHI data.");
+        updateAQHI();
         if(this.isStationAuto()) {
             //Asynchronously update the AQHI data only once the location update has finished.
+            //This may or may not produce a location update.
+            //AQHI data will only be re-fetched if the location actually changed.
             locationService.updateLocation(this::updateAQHI);
-        } else {
-            //No need for a location update, update the AQHI data now.
-            updateAQHI();
         }
     }
 
@@ -140,11 +140,6 @@ public class AQHIDataService extends DataService {
      *
      */
     private void updateAQHISync() {
-
-        if(!isInternetAvailable()) {
-            Log.i(LOG_TAG, "Network is down. Skipping AQHI update.");
-            return;
-        }
         Log.i(LOG_TAG, "Attempting to update the AQHI data for the current location.");
 
         //This code is stateful, we don't want to run multiple updates at the same time
@@ -167,6 +162,11 @@ public class AQHIDataService extends DataService {
                 clearAllData();
             }
 
+            if(!isInternetAvailable()) {
+                Log.i(LOG_TAG, "Network is down. Skipping AQHI update.");
+                return;
+            }
+            //Get the latest AQHI reading for the station.
             //Get the latest AQHI reading for the station.
             if (null != currentStationCode && fetchLatestAQHIData(currentStationCode)) {
                 Log.i(LOG_TAG, "Fresh data found for station " + currentStationCode);

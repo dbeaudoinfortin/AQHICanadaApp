@@ -19,6 +19,7 @@ import java.text.ParseException;
 public class LocationService {
 
     private static final String LOG_TAG = "LocationService";
+    private static final Object GLOBAL_SYNC_OBJECT = new Object();
 
     private static final long DATA_VALIDITY_DURATION = 600000; //10 minutes in milliseconds
 
@@ -54,7 +55,7 @@ public class LocationService {
      * Only changes that result in approximately at least {@link LocationService#MIN_CHANGE_DISTANCE} meters of distance will result in an update.
      * The location is stored in SharedPreferences and can be retrieved via {@link LocationService#getRecentLocation()}.
      *
-     * @param @Nullable callback Optional callback executed when the location has been successfully updated.
+     * @param @Nullable callback Optional callback executed when the location has been successfully updated and differs from the previous location.
      */
     @SuppressLint("MissingPermission")
     public void updateLocation(Runnable callback) {
@@ -68,34 +69,40 @@ public class LocationService {
             if(null != currentLocation) {
                 Log.i(LOG_TAG, "Location update received. Provider: " + currentLocation.getProvider() + ", Latitude: " + currentLocation.getLatitude()  + ", Longitude: " + currentLocation.getLongitude() + ", Accuracy: " + currentLocation.getAccuracy());
 
-                //Extract the previous stored location, if present
-                double[] oldLatLong = parseLocationCoordinates(locationPref.getString(LOCATION_COORDINATES_KEY,""));
-                if(null == oldLatLong) {
-                    //Location has never been saved, or is corrupt (unparsable). Force an update of the preferences.
-                    setRecentLocation(currentLocation.getLatitude(), currentLocation.getLongitude());
-                } else if (oldLatLong[0] == currentLocation.getLatitude() && oldLatLong[1] == currentLocation.getLongitude()) {
-                    //The location coordinates match exactly. Update only the timestamp.
-                    setRecentLocation(null, null);
-                } else {
-                    //Determine if the location differs enough to update and to make the callback
-                    final double distance = Utils.earthDistanceMeters(currentLocation.getLongitude(), currentLocation.getLatitude(), oldLatLong[1], oldLatLong[0]);
-                    if(distance >= MIN_CHANGE_DISTANCE) {
-                        //The location is sufficiently different from the last saved location. Update the saved location
+                boolean locationChanged = false;
+                synchronized (GLOBAL_SYNC_OBJECT) {
+                    //Extract the previous stored location, if present
+                    double[] oldLatLong = parseLocationCoordinates(locationPref.getString(LOCATION_COORDINATES_KEY,""));
+                    if(null == oldLatLong) {
+                        //Location has never been saved, or is corrupt (unparsable). Force an update of the preferences.
                         setRecentLocation(currentLocation.getLatitude(), currentLocation.getLongitude());
-                    } else {
-                        //Update only the timestamp
+                        locationChanged = true;
+                    } else if (oldLatLong[0] == currentLocation.getLatitude() && oldLatLong[1] == currentLocation.getLongitude()) {
+                        //The location coordinates match exactly. Update only the timestamp.
                         setRecentLocation(null, null);
+                    } else {
+                        //Determine if the location differs enough to update and to make the callback
+                        final double distance = Utils.earthDistanceMeters(currentLocation.getLongitude(), currentLocation.getLatitude(), oldLatLong[1], oldLatLong[0]);
+                        if(distance >= MIN_CHANGE_DISTANCE) {
+                            //The location is sufficiently different from the last saved location. Update the saved location
+                            setRecentLocation(currentLocation.getLatitude(), currentLocation.getLongitude());
+                            locationChanged = true;
+                        } else {
+                            //Update only the timestamp
+                            setRecentLocation(null, null);
+                        }
                     }
                 }
+
+                //Perform the callback now that the saved location has been updated
+                if(null != callback && locationChanged) callback.run();
             } else {
                 //The location lookup was successful and yet the location object is null.
                 //This might happen if the location update is happening in the background and the user hasn't allowed the ACCESS_BACKGROUND_LOCATION permission.
+                //No callback is performed in this scenario
                 Log.i(LOG_TAG, "Unable to update location, null location object received. Is the background location permission allowed?");
             }
-
-            //Perform the callback now that the saved location has been updated
-            if(null != callback) callback.run();
-        }).addOnFailureListener(e -> Log.e(LOG_TAG, "Failed to update the current location." + "\n" + StackTraceCompactor.getCompactStackTrace(e)));
+        }).addOnFailureListener(e -> Log.e(LOG_TAG, "Failed to update the current location." + "\n" + StackTraceCompactor.getCompactStackTrace(e))); //No callback on failure
     }
 
     /**
@@ -140,11 +147,13 @@ public class LocationService {
      * @return double[] An array of length 2 in the form of double[latitude, longitude].
      */
     public double[] getRecentLocation(boolean allowStale){
-        if(!allowStale) {
-            long ts = locationPref.getLong(LOCATION_COORDINATES_TS_KEY, Integer.MIN_VALUE);
-            if (System.currentTimeMillis() - ts > DATA_VALIDITY_DURATION) return null;
+        synchronized (GLOBAL_SYNC_OBJECT) {
+            if (!allowStale) {
+                long ts = locationPref.getLong(LOCATION_COORDINATES_TS_KEY, Integer.MIN_VALUE);
+                if (System.currentTimeMillis() - ts > DATA_VALIDITY_DURATION) return null;
+            }
+            return parseLocationCoordinates(locationPref.getString(LOCATION_COORDINATES_KEY, null));
         }
-        return parseLocationCoordinates(locationPref.getString(LOCATION_COORDINATES_KEY, null));
     }
 
     /**
