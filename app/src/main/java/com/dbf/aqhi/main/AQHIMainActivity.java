@@ -40,6 +40,7 @@ import com.dbf.aqhi.api.weather.alert.Alert;
 import com.dbf.aqhi.data.spatial.SpatialData;
 import com.dbf.aqhi.data.spatial.SpatialDataService;
 import com.dbf.aqhi.map.CompositeTileProvider;
+import com.dbf.aqhi.map.OverlayTileProvider;
 import com.dbf.aqhi.permissions.PermissionService;
 import com.dbf.aqhi.data.BackgroundDataWorker;
 import com.dbf.aqhi.data.aqhi.AQHIDataService;
@@ -285,22 +286,24 @@ public class AQHIMainActivity extends AQHIActivity {
         TextView mapText = findViewById(R.id.lblMap);
 
         //Don't reload this from disk every time. Use the in-memory data if it is still fresh.
-        SpatialData oldSpatialData = tileProvider.getOverlay();
+        SpatialData oldSpatialData = (null == tileProvider.getOverlayTileProvider()) ? null : tileProvider.getOverlayTileProvider().getOverlay();
         //If we already have an overlay then get just load the meta data, not the image data.
         SpatialData newSpatialData = (null == oldSpatialData) ? getSpatialDataService().getSpatialData(Pollutant.PM25) : getSpatialDataService().getSpatialMetaData(Pollutant.PM25);
         if (null == newSpatialData) {
             mapText.setVisibility(GONE);
             mapView.setVisibility(GONE);
-            tileProvider.setOverlay(null);
+            tileProvider.setOverlayTileProvider(null);
         } else {
             mapText.setVisibility(VISIBLE);
             mapView.setVisibility(VISIBLE);
+
             if(null == oldSpatialData) {
                 //The new spatial data object contains full image data loaded
-                tileProvider.setOverlay(newSpatialData);
+                tileProvider.setOverlayTileProvider(new OverlayTileProvider(newSpatialData));
             } else if(!oldSpatialData.getModel().equals(newSpatialData.getModel())) {
                 //Re-fetch the spatial meta data, along with the actual image data, since it might have changed in the last few moments
-                tileProvider.setOverlay(getSpatialDataService().getSpatialData(Pollutant.PM25));
+                newSpatialData = getSpatialDataService().getSpatialData(Pollutant.PM25);
+                tileProvider.setOverlayTileProvider(null == newSpatialData ? null : new OverlayTileProvider(newSpatialData));
             }
         }
     }

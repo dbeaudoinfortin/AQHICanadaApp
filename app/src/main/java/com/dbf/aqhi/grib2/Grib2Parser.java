@@ -2,6 +2,7 @@ package com.dbf.aqhi.grib2;
 
 import android.util.Log;
 
+import com.dbf.aqhi.Utils;
 import com.dbf.aqhi.jpeg.Jpeg2000Decoder;
 import com.dbf.aqhi.jpeg.RawImage;
 
@@ -73,13 +74,13 @@ public class Grib2Parser {
         final int dataTemplateNumber = readUInt16(bytes, sectionStart + 9);
         Log.i(LOG_TAG, "Grib2 file contains " + dataPoints + " data point(s) of type " + dataTemplateNumber);
 
-        final float R = readFloat32(bytes, sectionStart + 11);
-        short E  = readInt16(bytes, sectionStart + 15);
-        short D  = readInt16(bytes, sectionStart + 17);
-        int nb = readUInt16(bytes, sectionStart + 19);
-        int originalType = readUInt16(bytes, sectionStart + 21);
+        final float R   = readFloat32(bytes, sectionStart + 11);
+        final short E   = readInt16(bytes, sectionStart + 15);
+        final short D   = readInt16(bytes, sectionStart + 17);
+        final int nb    = readUByte8(bytes, sectionStart + 19);
+        final int originalType = readUByte8(bytes, sectionStart + 20);
 
-        return new Grib2DataMetaData(R, E, D, nb, dataTemplateNumber, dataPoints);
+        return new Grib2DataMetaData(R, E, D, nb, originalType, dataTemplateNumber, dataPoints);
     }
 
     private static void checkHeader(byte[] bytes) {
@@ -108,48 +109,62 @@ public class Grib2Parser {
         int idx = offset;
 
         //Common to all 3.x templates
-        int shapeEarth = readUByte8(bytes, idx++);
+        final int shapeEarth = readUByte8(bytes, idx++);
 
-        int scaleFactorEarthSphere = readUByte8(bytes, idx++);
-        long scaleValueEarthSphere = readUInt32(bytes, idx); idx += 4;
+        final int  scaleFactorEarthSphere = readUByte8(bytes, idx++);
+        final long scaleValueEarthSphere = readUInt32(bytes, idx); idx += 4;
 
-        int scaleFactorEarthOblateMajor = readUByte8(bytes, idx++);
-        long scaleValueEarthOblateMajor = readUInt32(bytes, idx); idx += 4;
+        final int  scaleFactorEarthOblateMajor = readUByte8(bytes, idx++);
+        final long scaleValueEarthOblateMajor = readUInt32(bytes, idx); idx += 4;
 
-        int scaleFactorEarthOblateMinor = readUByte8(bytes, idx++);
-        long scaleValueEarthOblateMinor = readUInt32(bytes, idx); idx += 4;
+        final int  scaleFactorEarthOblateMinor = readUByte8(bytes, idx++);
+        final long scaleValueEarthOblateMinor = readUInt32(bytes, idx); idx += 4;
 
-        int Ni = (int) readUInt32(bytes, idx); idx += 4;
-        int Nj = (int) readUInt32(bytes, idx); idx += 4;
+        final int gridWidth = (int) readUInt32(bytes, idx); idx += 4; //Ni — number of points along a parallel
+        final int gridHeight = (int) readUInt32(bytes, idx); idx += 4; //Nj — number of points along a meridian
 
-        long basicAngle = readUInt32(bytes, idx); idx += 4;
-        long subDiv     = readUInt32(bytes, idx); idx += 4;
-        final double degPerUnit = (basicAngle != 0 && subDiv != 0)
+        final long basicAngle = readUInt32(bytes, idx); idx += 4;
+        final long subDiv     = readUInt32(bytes, idx); idx += 4;
+
+        // If either basicAngle or subDiv is 0 or "missing" (0xFFFFFFFF), units are microdegrees.
+        final boolean basicMissing = (basicAngle == 0L || basicAngle == 0xFFFFFFFFL);
+        final boolean subMissing   = (subDiv     == 0L || subDiv     == 0xFFFFFFFFL);
+        final double degPerUnit = (!basicMissing && !subMissing)
                 ? ((double) basicAngle / (double) subDiv)
                 : 1e-6; //default is microdegrees
 
-        int La1_i = readInt32(bytes, idx); idx += 4;
-        int Lo1_i = readInt32(bytes, idx); idx += 4;
-        double La1 = La1_i * degPerUnit;
-        double Lo1 = Lo1_i * degPerUnit;
+        final int lat1 = readInt32(bytes, idx); idx += 4; //latitude of first grid point
+        final int lon1 = readInt32(bytes, idx); idx += 4; //longitude of first grid point
+        double lat1Deg = lat1 * degPerUnit;
+        double lon1Deg = Utils.wrapLongitude(lon1 * degPerUnit);
 
-        int resFlags = readUByte8(bytes, idx++);
+        final int resFlags = readUByte8(bytes, idx++); //Resolution and component flags
 
-        int La2_i = readInt32(bytes, idx); idx += 4;
-        int Lo2_i = readInt32(bytes, idx); idx += 4;
-        int Di_i  = readInt32(bytes, idx); idx += 4;
-        int Dj_i  = readInt32(bytes, idx); idx += 4;
-        int scan  = readUByte8(bytes, idx++);
+        final int lat2   = readInt32(bytes, idx); idx += 4; //latitude of last grid point
+        final int lon2   = readInt32(bytes, idx); idx += 4; //longitude of last grid point
+        final double lat2Deg = lat2 * degPerUnit;
+        final double lon2Deg = Utils.wrapLongitude(lon2 * degPerUnit);
 
-        double dLon = Di_i * degPerUnit;
-        double dLat = Dj_i * degPerUnit;
+        final long dirI  = readUInt32(bytes, idx); idx += 4;
+        final long dirJ  = readUInt32(bytes, idx); idx += 4;
+        final int scan   = readUByte8(bytes, idx++); //Scanning mode
 
         //Scan mode (Table 3.4): bit7 i-direction, bit6 j-direction
-        boolean iScansNegatively = (scan & 0x80) != 0; // 1 = westward
-        boolean jScansPositively = (scan & 0x40) == 0; // 1 = northward
+        final boolean iScansNegatively = (scan & 0x80) != 0; // 1 = westward
+        final boolean jScansPositively = (scan & 0x40) == 0; // 1 = northward
+
+        double dLon = dirI * degPerUnit;
+        double dLat = dirJ * degPerUnit;
 
         if (iScansNegatively) dLon = -dLon;
         if (!jScansPositively) dLat = -dLat;
+
+        //Some files may have corrupted first grid point coordinates.
+        //Fall back to using last grid point coordinates
+        if(lat1Deg > 90 || lat1Deg < -90) {
+            lat1Deg = lat2Deg - (gridHeight - 1) * dLat;
+            lon1Deg = Utils.wrapLongitude(lon2Deg - (gridWidth  - 1) * dLon);
+        }
 
         double southPoleLat = Double.NaN;
         double southPoleLon = Double.NaN;
@@ -157,17 +172,18 @@ public class Grib2Parser {
 
         if (gridTemplate == 1) { //Rotated
             //Rotated LL: extra 12 octets
-            int latSP_i = readInt32(bytes, idx); idx += 4;
-            int lonSP_i = readInt32(bytes, idx); idx += 4;
-            int angle_i = readInt32(bytes, idx); idx += 4;
-            southPoleLat = latSP_i * degPerUnit;
-            southPoleLon = lonSP_i * degPerUnit;
-            angleRotDeg  = angle_i  * degPerUnit;
+            final int latSP = readInt32(bytes, idx); idx += 4; //Latitude of the southern pole of projection
+            final int lonSP = readInt32(bytes, idx); idx += 4; //Longitude of the southern pole of projection
+            final int angle = readInt32(bytes, idx); idx += 4; //Angle of rotation of projection
+            southPoleLat = latSP * degPerUnit;
+            southPoleLon = lonSP * degPerUnit;
+            angleRotDeg  = angle  * degPerUnit;
         }
 
         return new Grib2GridMetaData(
-                gridTemplate, Ni, Nj,
-                La1, Lo1,
+                gridTemplate, gridWidth, gridHeight,
+                lat1Deg, lon1Deg,
+                lat2Deg, lon2Deg,
                 dLon, dLat, scan,
                 southPoleLat, southPoleLon, angleRotDeg
         );
