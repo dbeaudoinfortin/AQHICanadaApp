@@ -18,8 +18,10 @@ import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
 import android.text.Html;
 import android.util.Log;
+import android.util.Pair;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.view.WindowInsets;
@@ -40,6 +42,7 @@ import com.dbf.aqhi.api.weather.alert.Alert;
 import com.dbf.aqhi.data.spatial.SpatialData;
 import com.dbf.aqhi.data.spatial.SpatialDataService;
 import com.dbf.aqhi.map.CompositeTileProvider;
+import com.dbf.aqhi.map.MapTransformer;
 import com.dbf.aqhi.map.OverlayTileProvider;
 import com.dbf.aqhi.permissions.PermissionService;
 import com.dbf.aqhi.data.BackgroundDataWorker;
@@ -62,12 +65,14 @@ import java.util.stream.Collectors;
 
 import ovh.plrapps.mapview.MapView;
 import ovh.plrapps.mapview.MapViewConfiguration;
+import ovh.plrapps.mapview.api.MarkerApiKt;
 import ovh.plrapps.mapview.api.MinimumScaleMode;
 
 public class AQHIMainActivity extends AQHIActivity {
     private static final String LOG_TAG = "AQHIMainActivity";
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
+    private static final String MAP_MARKER_TAG = "MAP_MARKER_TAG";
 
     private BackgroundDataWorker backgroundWorker;
     private boolean showHistoricalGridData = false;
@@ -162,6 +167,20 @@ public class AQHIMainActivity extends AQHIActivity {
         config.setMaxScale(3);
         config.setMinimumScaleMode(MinimumScaleMode.FILL);
         mapView.configure(config);
+        mapView.setOnTouchListener((view, event) -> { //Prevent the map scrolling from fighting the main activity scolling
+            switch (event.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                case MotionEvent.ACTION_POINTER_DOWN:
+                case MotionEvent.ACTION_MOVE:
+                    view.getParent().requestDisallowInterceptTouchEvent(true);
+                    break;
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    view.getParent().requestDisallowInterceptTouchEvent(false);
+                    break;
+            }
+            return false;
+        });
 
         //Add a click listener for the change location text
         findViewById(R.id.txtChangeLocationLink).setOnClickListener(v -> {
@@ -282,6 +301,10 @@ public class AQHIMainActivity extends AQHIActivity {
         }
 
         //UPDATE POLLUTANT MAP
+        updateMapUI();
+    }
+
+    private void updateMapUI() {
         MapView mapView = findViewById(R.id.mapView);
         TextView mapText = findViewById(R.id.lblMap);
 
@@ -290,20 +313,48 @@ public class AQHIMainActivity extends AQHIActivity {
         //If we already have an overlay then get just load the meta data, not the image data.
         SpatialData newSpatialData = (null == oldSpatialData) ? getSpatialDataService().getSpatialData(Pollutant.PM25) : getSpatialDataService().getSpatialMetaData(Pollutant.PM25);
         if (null == newSpatialData) {
+            //We have no spatial data, hide the map
             mapText.setVisibility(GONE);
             mapView.setVisibility(GONE);
             tileProvider.setOverlayTileProvider(null);
+            View marker  = mapView.getMarkerLayout().getMarkerByTag(MAP_MARKER_TAG);
+            if(null != marker) mapView.getMarkerLayout().removeMarker(marker);
         } else {
+            //We have spatial data, show the map
             mapText.setVisibility(VISIBLE);
             mapView.setVisibility(VISIBLE);
+
+            //Update the station location marker
+            View marker = mapView.getMarkerLayout().getMarkerByTag(MAP_MARKER_TAG);
+            final Pair<Float, Float> latLon = getAQHIService().getStationLatLon(false);
+            if(null == latLon || latLon.first < -400 || latLon.second < -400) {
+                //There is no selected location yet
+                if(null != marker) mapView.getMarkerLayout().removeMarker(marker);
+                mapView.setScaleFromCenter(0.02f); //Zoom out
+                mapView.scrollTo(1000,1200);
+            } else {
+                //There is a valid selected location
+                final Pair<Integer, Integer> xyCoordinates = MapTransformer.transformLatLon(latLon.first, latLon.second);
+                if(null == marker) {
+                    //This is the first time and we need to create the marker
+                    ImageView newMarker = new ImageView(this);
+                    newMarker.setImageResource(R.drawable.location_pin_selected);
+                    mapView.getMarkerLayout().addMarker(newMarker, xyCoordinates.first, xyCoordinates.second, -0.5f, -0.8f, 0f, 0f, MAP_MARKER_TAG);
+                    marker = newMarker;
+                }
+                mapView.getMarkerLayout().moveMarker(marker, xyCoordinates.first, xyCoordinates.second);
+                MarkerApiKt.moveToMarker(mapView, marker, 0.5f, false);
+            }
 
             if(null == oldSpatialData) {
                 //The new spatial data object contains full image data loaded
                 tileProvider.setOverlayTileProvider(new OverlayTileProvider(newSpatialData));
+                mapView.redrawTiles();
             } else if(!oldSpatialData.getModel().equals(newSpatialData.getModel())) {
                 //Re-fetch the spatial meta data, along with the actual image data, since it might have changed in the last few moments
                 newSpatialData = getSpatialDataService().getSpatialData(Pollutant.PM25);
                 tileProvider.setOverlayTileProvider(null == newSpatialData ? null : new OverlayTileProvider(newSpatialData));
+                mapView.redrawTiles();
             }
         }
     }

@@ -21,6 +21,14 @@ public class CompositeTileProvider implements TileStreamProvider {
     private final TileStreamProvider baseTileProvider;
     private OverlayTileProvider overlayTileProvider;
 
+    private static final BitmapFactory.Options DECODE_OPTS = new BitmapFactory.Options();
+
+    static {
+        DECODE_OPTS.inPreferredConfig = Bitmap.Config.ARGB_8888;
+        DECODE_OPTS.inMutable = true;
+    }
+
+
     public CompositeTileProvider(TileStreamProvider baseTileProvider) {
         this.baseTileProvider = baseTileProvider;
     }
@@ -37,24 +45,23 @@ public class CompositeTileProvider implements TileStreamProvider {
             if(null == overlayTileProvider) return base;
             if (base == null) return null;
 
-            //Load the base image from disk
-            Bitmap baseBmp = BitmapFactory.decodeStream(base);
+            //Load the base map tile image from disk
+            Bitmap baseBmp = BitmapFactory.decodeStream(base, null, DECODE_OPTS);
             if (baseBmp == null) return null;
 
-            if (!baseBmp.isMutable()) {
-                baseBmp = baseBmp.copy(Bitmap.Config.ARGB_8888, true);
-            } else if (baseBmp.getConfig() != Bitmap.Config.ARGB_8888) {
+            if (!baseBmp.isMutable() || baseBmp.getConfig() != Bitmap.Config.ARGB_8888) {
                 baseBmp = baseBmp.copy(Bitmap.Config.ARGB_8888, true);
             }
 
-            //Blend computedOverlay into base
-            Bitmap overlayBmp = overlayTileProvider.getTile(row, col, zoomLvl);
-            Canvas c = new Canvas(baseBmp);
-            c.drawBitmap(overlayBmp, 0f, 0f, null);
+            //Blend overlay into base map tile image
+            overlayTileProvider.drawOverlay(new Canvas(baseBmp), row, col, zoomLvl);
 
-            //Encode result (lossless WebP keeps alpha; PNG is fine too)
-            ByteArrayOutputStream baos = new ByteArrayOutputStream(32 * 1024);
-            boolean ok = baseBmp.compress(Bitmap.CompressFormat.PNG, 100, baos);
+            //Encode the blended image
+            ByteArrayOutputStream baos = new ByteArrayOutputStream(baseBmp.getByteCount());
+            if(!baseBmp.compress(Bitmap.CompressFormat.PNG, 100, baos)) {
+                Log.w(LOG_TAG, "Failed to compress map tile.");
+                return null;
+            }
             return new ByteArrayInputStream(baos.toByteArray());
         } catch (Throwable t) {
             Log.e(LOG_TAG, String.format("Composite tile failed row:%d column:%d zoom:%d:\n%s", row, col, zoomLvl, StackTraceCompactor.getCompactStackTrace(t)));

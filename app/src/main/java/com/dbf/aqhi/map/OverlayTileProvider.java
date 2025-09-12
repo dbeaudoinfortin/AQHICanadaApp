@@ -1,7 +1,9 @@
 package com.dbf.aqhi.map;
 
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.util.Pair;
 
 import com.dbf.aqhi.Utils;
@@ -59,22 +61,22 @@ public class OverlayTileProvider {
     }
 
     /** Bilinear sample of 8-bit grid at fractional (fi,fj). Returns [0..255]. */
-    private static int sampleAlphaBilinear(double fi, double fj, final byte[] pixels, int w, int h) {
-        // Outside grid → transparent
-        if (fi < 0 || fj < 0 || fi > w - 1 || fj > h - 1) return 0;
+    private static int sampleAlphaBilinear(double fi, double fj, final byte[] pixels, int width, int height) {
+        //Outside grid → transparent
+        if (fi < 0 || fj < 0 || fi > width - 1 || fj > height - 1) return 0;
 
-        int i0 = (int) Math.floor(fi);
-        int j0 = (int) Math.floor(fj);
-        int i1 = Math.min(i0 + 1, w - 1);
-        int j1 = Math.min(j0 + 1, h - 1);
+        final int i0 = (int) fi;
+        final int j0 = (int) fj;
+        final int i1 = Math.min(i0 + 1, width - 1);
+        final int j1 = Math.min(j0 + 1, height - 1);
 
-        double dx = fi - i0;
-        double dy = fj - j0;
+        final double dx = fi - i0;
+        final double dy = fj - j0;
 
-        int idx00 = j0 * w + i0;
-        int idx10 = j0 * w + i1;
-        int idx01 = j1 * w + i0;
-        int idx11 = j1 * w + i1;
+        final int idx00 = j0 * width + i0;
+        final int idx10 = j0 * width + i1;
+        final int idx01 = j1 * width + i0;
+        final int idx11 = j1 * width + i1;
 
         int a00 = pixels[idx00] & 0xFF;
         int a10 = pixels[idx10] & 0xFF;
@@ -92,12 +94,13 @@ public class OverlayTileProvider {
         return overlay;
     }
 
-    public Bitmap getTile(int row, int col, int zoomLvl) {
+    public void drawOverlay(Canvas canvas, int row, int col, int zoomLvl) {
         //Determine the current scaling of the base bitmap image based on the tile level
         final double scale = Math.pow(2.0, zoomLvl - (levelCount - 1));
+        final double invScale = 1.0 / scale;
 
-        //Determine the absolute x&y coordinates of the top left of this current tile
-        final double tileScale = ((double) tileSize) /scale;
+        //Determine the absolute x and y coordinates of the top left of this current tile
+        final double tileScale = tileSize * invScale;
         final double tileWorldOriginX = col * tileScale;
         final double tileOriginY = row * tileScale;
 
@@ -106,18 +109,18 @@ public class OverlayTileProvider {
 
         //For each pixel in the tile, sample the RawImage with bilinear interpolation
         int idx = 0;
+        double[] latLon = new double[2]; //Allocated once, better performance
         for (int tileY = 0; tileY < tileSize; tileY++) {
-            double worldY = tileOriginY + tileY / scale;
+            final double worldY = tileOriginY + (tileY * invScale);
             for (int tileX = 0; tileX < tileSize; tileX++) {
-                double worldX = tileWorldOriginX + tileX / scale;
+                final double worldX = tileWorldOriginX + (tileX * invScale);
 
-                //Transform from global pixel location to latitude and logitude coordinates
-                Pair<Double, Double> latLon = MapTransformer.transformXY(worldX, worldY);
-                if (latLon == null) continue;
+                //Transform from global pixel location to latitude and longitude coordinates
+                MapTransformer.transformXY(worldX, worldY, latLon);
 
                 //Convert to rotated radian coordinates
-                final double lat = Math.toRadians(latLon.first);
-                final double lon = Math.toRadians(latLon.second);
+                final double lat = Math.toRadians(latLon[0]);
+                final double lon = Math.toRadians(latLon[1]);
 
                 final double dLam = lon - lamP;
                 final double sinLat = Math.sin(lat), cosLat = Math.cos(lat);
@@ -135,16 +138,19 @@ public class OverlayTileProvider {
                 double fi = (rlonDeg - rLonZero) / gridScaleDegrees;
                 double fj = (rlatDeg - rLatZero) / gridScaleDegrees;
 
-                int color = 0; // transparent by default
-                int a = sampleAlphaBilinear(fi, fj, rawPixels, gridWidth, gridHeight);
+                int color = 0; //transparent by default
+                final int a = sampleAlphaBilinear(fi, fj, rawPixels, gridWidth, gridHeight);
                 if (a > 0) {
-                    // Compose ARGB with per-pixel alpha (only computedOverlay color)
+                    //Compose ARGB with per-pixel alpha
                     color = (a & 0xFF) << 24 | (overlayColour & 0x00FFFFFF);
                 }
                 computedOverlay[idx++] = color;
             }
         }
-
-        return Bitmap.createBitmap(computedOverlay, tileSize, tileSize, Bitmap.Config.ARGB_8888);
+        if(canvas.isHardwareAccelerated()) {
+            canvas.drawBitmap(Bitmap.createBitmap(computedOverlay, tileSize, tileSize, Bitmap.Config.ARGB_8888), 0f, 0f, null);
+        } else {
+            canvas.drawBitmap(computedOverlay, 0, tileSize, 0f, 0f, tileSize, tileSize, true, null);
+        }
     }
 }

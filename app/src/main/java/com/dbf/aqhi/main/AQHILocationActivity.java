@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.util.Pair;
 import android.util.TypedValue;
+import android.view.MotionEvent;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.ArrayAdapter;
@@ -129,6 +130,20 @@ public class AQHILocationActivity extends AQHIActivity {
                 //Will be re-added on device rotation
                 mapView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
             }
+        });
+        mapView.setOnTouchListener((view, event) -> { //Prevent the map scrolling from fighting the main activity scolling
+            switch (event.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                case MotionEvent.ACTION_POINTER_DOWN:
+                case MotionEvent.ACTION_MOVE:
+                    view.getParent().requestDisallowInterceptTouchEvent(true);
+                    break;
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    view.getParent().requestDisallowInterceptTouchEvent(false);
+                    break;
+            }
+            return false;
         });
 
         //Refresh the UI
@@ -317,7 +332,7 @@ public class AQHILocationActivity extends AQHIActivity {
         //Create a new pin image each time
         MarkerView pinView = new MarkerView(this, markerName);
         pinView.setImageResource(selected ? R.drawable.location_pin_selected : R.drawable.location_pin);
-        final Pair<Integer, Integer> coordinates = MapTransformer.transformLatLon(lat,lon);
+        final Pair<Integer, Integer> coordinates = MapTransformer.transformLatLon(lat, lon);
 
         synchronized (markers) {
             mapView.getMarkerLayout().addMarker(pinView, coordinates.first, coordinates.second, -0.5f, -0.8f, 0f, 0f, markerName);
@@ -347,7 +362,7 @@ public class AQHILocationActivity extends AQHIActivity {
         }
 
     @SuppressLint("AppCompatCustomView")
-    private static class MarkerView extends ImageView {
+    static class MarkerView extends ImageView {
         private final String markerName;
 
         public MarkerView(Context context, String stationID) {

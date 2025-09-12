@@ -251,7 +251,7 @@ public class SpatialDataService extends DataService {
             return;
         }
 
-        if(!newData.equals(oldSpatialData.getModel())) {
+        if(!newData.getModel().equals(oldSpatialData.getModel())) {
             //Assume that the latest data is always fresher than what we have now.
             //Note: the data may have changed again since we did the HEAD call.
             fetchLatestSpatialData(pollutant);

@@ -40,6 +40,17 @@ public class MapTransformer {
     private static double x0, x1, x2; //Affine Transformation X constants
     private static double y0, y1, y2; //Affine Transformation Y constants
 
+    //Precomputed affine transformation inverses for improved performance.
+    private static double inv11;
+    private static double inv12;
+    private static double inv21;
+    private static double inv22;
+
+    //Precomputed lambert inverse constants for improved performance.
+    private static double invN;
+    private static double invAF;
+    private static double signN;
+
     static {
         //Ellipsoidal LCC (2SP), GRS80 using φ1, φ2, φ0, λ0
         final double m1 = mFromPhi(phi1);
@@ -50,12 +61,15 @@ public class MapTransformer {
 
         //Calculate the cone constant n.
         n = (Math.log(m1) - Math.log(m2)) / (Math.log(t1) - Math.log(t2));
+        signN = n >= 0 ? 1.0 : -1.0;
+        invN  = 1.0 / n;
 
         //Calculate scaling constant F.
         F = m1 / (n * Math.pow(t1, n));
 
         //Save a bit of calculation later
         aF = a*F;
+        invAF = 1.0 / aF;
 
         //Calculate rho0 for the latitude of origin.
         rho0 = aF * Math.pow(t0, n);
@@ -99,6 +113,10 @@ public class MapTransformer {
         y2 = controlMatrix[2][0] * y[0] + controlMatrix[2][1] * y[1] + controlMatrix[2][2] * y[2];
 
         final double det = x1 * y2 - x2 * y1;
+        inv11 =  y2 / det;
+        inv12 = -x2 / det;
+        inv21 = -y1 / det;
+        inv22 =  x1 / det;
     }
 
     /**
@@ -122,32 +140,34 @@ public class MapTransformer {
 
     /**
      * Inverts a Lambert projected pair back to geographic (lat, lon) coordinates.
+     * The output double array (the resulting lat,lon pair) is passed in, instead of returned,
+     * as a performance improvement.This avoids creating a new object.
+     *
      * @param x X Coordinate (fractional).
      * @param y Y Coordinate (fractional).
-     * @return Pair<Double, Double> the resulting lat,lon pair.
      */
-    private static Pair<Double, Double> lambertInverse(double x, double y) {
+    private static void lambertInverse(double x, double y, double[] latLon) {
         y = rho0 - y;
 
-        final double rho = Math.copySign(Math.hypot(x, y), n); //preserve sign of n
+        final double rho   = Math.hypot(x, y) * signN; //preserve sign of n
         final double theta = Math.atan2(x, y);
 
-        // t = (ρ / (a*F))^(1/n)
-        final double t = Math.pow(rho / aF, 1.0 / n);
+        //t = (ρ / (a*F))^(1/n)
+        final double t = Math.pow(rho * invAF, invN);
 
-        // φ from t via iteration (ellipsoidal case)
-        final double phi = phiFromT_fast(t);
+        //φ from t via iteration (ellipsoidal case)
+        final double phi = phiFromT_faster(t);
 
-        // λ = λ0 + θ/n
-        final double lambda = lambda0 + (theta / n);
+        //λ = λ0 + θ/n
+        final double lambda = lambda0 + (theta * invN);
+        final double lat = Math.toDegrees(phi);
         double lon = Math.toDegrees(lambda);
-        double lat = Math.toDegrees(phi);
 
-        // Normalize lon to [-180, 180)
+        //Normalize lon to [-180, 180)
         if (lon >= 180.0) lon -= 360.0;
-        if (lon <  -180.0) lon += 360.0;
+        if (lon < -180.0) lon += 360.0;
 
-        return new Pair<Double, Double>(lat, lon);
+        latLon[0] = lat; latLon[1] = lon;
     }
 
     /**
@@ -168,27 +188,20 @@ public class MapTransformer {
 
     /**
      * Transforms X & Y pixel coordinate to latitude & longitude coordinates.
+     * The output double array (the resulting lat,lon pair) is passed in, instead of returned,
+     * as a performance improvement.This avoids creating a new object.
      *
      * @param x X in pixels
      * @param y Y in pixels
-     * @return Pair<Double, Double> the resulting the resulting lat,lon pair.
      */
-    public static Pair<Double, Double> transformXY(Double x, Double y) {
-        // Invert affine transform
+    public static void transformXY(double x, double y, double[] latLon) {
+        //Invert the affine transform
         final double dx = x - x0;
         final double dy = y - y0;
-
-        //TODO: Calculate these only once
-        final double det = x1 * y2 - x2 * y1;
-        final double inv11 =  y2 / det;
-        final double inv12 = -x2 / det;
-        final double inv21 = -y1 / det;
-        final double inv22 =  x1 / det;
-
         final double xLambert = inv11 * dx + inv12 * dy; //Lambert X
         final double yLambert = inv21 * dx + inv22 * dy; //Lambert Y
 
-        return lambertInverse(xLambert, yLambert);
+        lambertInverse(xLambert, yLambert, latLon);
     }
 
     /* t(φ) = tan(π/4 - φ/2) / [((1 - e sinφ)/(1 + e sinφ))^(e/2)] */
@@ -227,6 +240,26 @@ public class MapTransformer {
         final double c4 = c2 * c2 - s2 * s2;
         final double s6 = 2.0 * s4 * c2 - s2;   //sin(6χ) = 2 sin(4χ)cos(2χ) − sin(2χ)
         final double s8 = 2.0 * s4 * c4;        //sin(8χ) = 2 sin(4χ)cos(4χ)
+
+        //8 series
         return chi + C2 * s2 + C4 * s4 + C6 * s6 + C8 * s8;
+    }
+
+    //Since we only need about 100m of precision, we can use some fast approximation
+    private static double phiFromT_faster(double t) {
+        final double chi = (Math.PI * 0.5) - 2.0 * Math.atan(t);
+
+        final double t2  = t * t;
+        final double inv = 1.0 / (1.0 + t2);
+        final double s   = (1.0 - t2) * inv;   //sin χ
+        final double c   = (2.0 * t) * inv;    //cos χ
+
+        final double s2 = 2.0 * s * c;          // sin(2χ)
+        final double c2 = 1.0 - 2.0 * (s * s);  // cos(2χ)
+        final double s4 = 2.0 * s2 * c2;        // sin(4χ)
+        final double s6 = 2.0 * s4 * c2 - s2;   // sin(6χ)
+
+        //series c6 is enough
+        return chi + (C2 * s2 + C4 * s4 + C6 * s6);
     }
 }

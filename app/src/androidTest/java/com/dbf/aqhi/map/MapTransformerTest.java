@@ -28,11 +28,12 @@ public class MapTransformerTest {
             Pair<Integer, Integer> xy = MapTransformer.transformLatLon(lat, lon);
 
             //Transform back to lat,lon
-            Pair<Double, Double> latLon = MapTransformer.transformXY((double) xy.first, (double) xy.second);
+            double[] latLon = new double[2];
+            MapTransformer.transformXY((double) xy.first, (double) xy.second, latLon);
 
             //Compare the two sets of coordinates within a decent tolerance
-            assertEquals("lat mismatch", lat, latLon.first, DEGREES_TOLERANCE);
-            assertEquals("lon mismatch", lon, latLon.second, DEGREES_TOLERANCE);
+            assertEquals("lat mismatch", lat, latLon[0], DEGREES_TOLERANCE);
+            assertEquals("lon mismatch", lon, latLon[1], DEGREES_TOLERANCE);
         }
     }
 }
