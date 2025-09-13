@@ -108,4 +108,10 @@ public class Utils {
         double magSquared = earthDistanceMagnitude(longitude1, latitude1, longitude2, latitude2);
         return EARTH_RADIUS * (2 * Math.atan2(Math.sqrt(magSquared), Math.sqrt(1 - magSquared)));
     }
+
+    public static double wrapLongitude(double lonDeg) {
+        if (lonDeg < -180) lonDeg += 360;
+        if (lonDeg >= 180) lonDeg -= 360;
+        return lonDeg;
+    }
 }

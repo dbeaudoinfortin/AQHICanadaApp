@@ -8,7 +8,6 @@ import static android.widget.RemoteViews.MARGIN_TOP;
 import android.app.Activity;
 import android.appwidget.AppWidgetManager;
 import android.content.Context;
-import android.opengl.Visibility;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.View;
@@ -17,7 +16,7 @@ import android.widget.RemoteViews;
 import androidx.appcompat.app.AppCompatDelegate;
 
 import com.dbf.aqhi.R;
-import com.dbf.aqhi.service.AQHIService;
+import com.dbf.aqhi.data.aqhi.AQHIDataService;
 
 import com.dbf.aqhi.api.weather.alert.Alert;
 
@@ -32,14 +31,12 @@ public class AQHIWidgetProviderLarge extends AQHIWidgetProvider {
     public static final float PREVIEW_SCREEN_RATIO = 0.33333f;
     public static final int   MIN_HEIGHT_INFO_BAR = 60;
 
-    private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("h:mm a", Locale.CANADA);
-
     public AQHIWidgetProviderLarge() {
         super();
     }
 
-    public AQHIWidgetProviderLarge(AQHIService aqhiService) {
-        super(aqhiService);
+    public AQHIWidgetProviderLarge(AQHIDataService aqhiDataService) {
+        super(aqhiDataService);
     }
 
     public void updateWidgetUI(Context context, int lightDarkMode, RemoteViews views, AppWidgetManager appWidgetManager, int appWidgetId) {

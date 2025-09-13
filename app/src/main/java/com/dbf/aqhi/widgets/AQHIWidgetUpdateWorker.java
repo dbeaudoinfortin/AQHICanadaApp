@@ -9,7 +9,7 @@ import androidx.annotation.NonNull;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
-import com.dbf.aqhi.service.AQHIService;
+import com.dbf.aqhi.data.aqhi.AQHIDataService;
 
 import java.util.Arrays;
 
@@ -32,15 +32,15 @@ public class AQHIWidgetUpdateWorker extends Worker {
         AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
 
         //Only create one AQHI service so we update only once for all widgets of all types
-        AQHIService aqhiService = new AQHIService(context,null);
+        AQHIDataService aqhiDataService = new AQHIDataService(context,null);
         //True for widgets because they may not have background location updates enabled
-        aqhiService.setAllowStaleLocation(true);
-        aqhiService.setOnChange(() -> {
-            updateWidgets(context, new AQHIWidgetProviderLarge(aqhiService), appWidgetManager, appWidgetManager.getAppWidgetIds(new ComponentName(context, AQHIWidgetProviderLarge.class)));
-            updateWidgets(context, new AQHIWidgetProviderSmall(aqhiService), appWidgetManager, appWidgetManager.getAppWidgetIds(new ComponentName(context, AQHIWidgetProviderSmall.class)));
-            updateWidgets(context, new AQHIWidgetProviderFace(aqhiService), appWidgetManager, appWidgetManager.getAppWidgetIds(new ComponentName(context, AQHIWidgetProviderFace.class)));
+        aqhiDataService.setAllowStaleLocation(true);
+        aqhiDataService.setOnUpdate(() -> {
+            updateWidgets(context, new AQHIWidgetProviderLarge(aqhiDataService), appWidgetManager, appWidgetManager.getAppWidgetIds(new ComponentName(context, AQHIWidgetProviderLarge.class)));
+            updateWidgets(context, new AQHIWidgetProviderSmall(aqhiDataService), appWidgetManager, appWidgetManager.getAppWidgetIds(new ComponentName(context, AQHIWidgetProviderSmall.class)));
+            updateWidgets(context, new AQHIWidgetProviderFace(aqhiDataService), appWidgetManager, appWidgetManager.getAppWidgetIds(new ComponentName(context, AQHIWidgetProviderFace.class)));
         });
-        aqhiService.update();
+        aqhiDataService.update();
         return Result.success();
     }
 

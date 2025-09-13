@@ -10,6 +10,7 @@ import com.dbf.aqhi.permissions.PermissionService;
 import com.dbf.utils.stacktrace.StackTraceCompactor;
 import com.google.android.gms.location.CurrentLocationRequest;
 import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.Granularity;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
 
@@ -42,8 +43,9 @@ public class LocationService {
         this.locationRequest =
             new CurrentLocationRequest.Builder()
                     .setPriority(Priority.PRIORITY_BALANCED_POWER_ACCURACY)
-                    .setMaxUpdateAgeMillis(60000)
-                    .setDurationMillis(60000)
+                    .setGranularity(Granularity.GRANULARITY_COARSE)
+                    .setMaxUpdateAgeMillis(600000) //10 minutes
+                    .setDurationMillis(30000) //30 seconds
                     .build();
     }
 

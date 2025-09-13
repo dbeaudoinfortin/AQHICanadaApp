@@ -21,7 +21,7 @@ import com.dbf.aqhi.main.AQHIMainActivity;
 import com.dbf.aqhi.R;
 import com.dbf.aqhi.widgets.config.WidgetConfig;
 import com.dbf.aqhi.permissions.PermissionService;
-import com.dbf.aqhi.service.AQHIService;
+import com.dbf.aqhi.data.aqhi.AQHIDataService;
 import com.dbf.utils.stacktrace.StackTraceCompactor;
 
 import java.util.Arrays;
@@ -32,13 +32,13 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQ
 
     private static final String LOG_TAG = "AQHIWidgetProvider";
 
-    private AQHIService aqhiService;
+    private AQHIDataService aqhiDataService;
 
     public AQHIWidgetProvider() {}
 
-    public AQHIWidgetProvider(AQHIService aqhiService) {
+    public AQHIWidgetProvider(AQHIDataService aqhiDataService) {
         //AQHI Service will not be created on-the-fly
-        this.aqhiService = aqhiService;
+        this.aqhiDataService = aqhiDataService;
     }
 
     @Override
@@ -96,14 +96,14 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQ
     public synchronized static void scheduleForcedUpdates(Context context) {
         Log.d(LOG_TAG, "Scheduling forced widget background updates");
         //The maximum refresh period of 30 minutes is not enough
-        //Enqueue a new task that will force a refresh after each 10 minute period
+        //Enqueue a new task that will for a refresh after 10 and 20 minutes
         WorkManager workManager = WorkManager.getInstance(context);
         for (int i = 10; i <= 30; i+=10) {
             final int minutes = i;
             Operation op = workManager.enqueueUniqueWork("widget_update_" + minutes, ExistingWorkPolicy.KEEP,
-                    new OneTimeWorkRequest.Builder(AQHIWidgetUpdateWorker.class)
+                new OneTimeWorkRequest.Builder(AQHIWidgetUpdateWorker.class)
                             .setInitialDelay(minutes, TimeUnit.MINUTES)
-                            .build());
+                    .build());
             op.getResult().addListener(() -> {
                 try {
                     Operation.State state = op.getResult().get();
@@ -111,7 +111,7 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQ
                         Log.d(LOG_TAG, "Successfully enqueued background AQHI widget update for " + minutes + " minutes from now.");
                     } else {
                         Log.e(LOG_TAG, "Failed to enqueue background AQHI widget update for " + minutes + " minutes from now.");
-                    }
+    }
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "Error while checking enqueue result for background AQHI widget for " + minutes + " minutes from now.\n" + StackTraceCompactor.getCompactStackTrace(e));
                 }
@@ -178,8 +178,8 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQ
     }
 
     public synchronized void initAQHIService(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
-        if(null == aqhiService) {
-            aqhiService = new AQHIService(context, ()->{
+        if(null == aqhiDataService) {
+            aqhiDataService = new AQHIDataService(context, ()->{
                 Log.i(LOG_TAG, "AQHI Service update complete. Updating UIs for widget IDs: " +  Arrays.toString(appWidgetIds));
                 for (int appWidgetId : appWidgetIds) {
                     //Create the new remote view that will replace the existing one
@@ -188,7 +188,7 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQ
                 }
             });
             //True for widgets because they may not have background location updates enabled
-            aqhiService.setAllowStaleLocation(true);
+            aqhiDataService.setAllowStaleLocation(true);
         }
     }
 
@@ -235,8 +235,8 @@ public abstract class AQHIWidgetProvider extends AppWidgetProvider implements AQ
     }
 
     @Override
-    public synchronized AQHIService getAQHIService() {
-        return aqhiService;
+    public synchronized AQHIDataService getAQHIService() {
+        return aqhiDataService;
     }
 
     public void updateWidgetUI(Context context, RemoteViews views, AppWidgetManager appWidgetManager, int appWidgetId) {

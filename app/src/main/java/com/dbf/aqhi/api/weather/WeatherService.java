@@ -2,7 +2,7 @@ package com.dbf.aqhi.api.weather;
 
 import android.util.Log;
 
-import com.dbf.aqhi.api.APIService;
+import com.dbf.aqhi.api.JsonAPIService;
 import com.dbf.aqhi.api.weather.alert.Alert;
 import com.dbf.aqhi.api.weather.alert.AlertResponse;
 import com.dbf.aqhi.api.weather.location.LocationResponse;
@@ -14,13 +14,12 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import okhttp3.Request;
 import okhttp3.Response;
 
-public class WeatherService extends APIService {
+public class WeatherService extends JsonAPIService {
 
     private static final String LOG_TAG = "WeatherService";
 

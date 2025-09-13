@@ -21,8 +21,12 @@ import com.dbf.utils.stacktrace.StackTraceCompactor;
 
 import org.apache.commons.io.IOUtils;
 
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.concurrent.TimeUnit;
+
+import ovh.plrapps.mapview.MapViewConfiguration;
+import ovh.plrapps.mapview.core.TileStreamProvider;
 
 public abstract class AQHIActivity extends Activity implements AQHIFeature {
 
@@ -86,6 +90,27 @@ public abstract class AQHIActivity extends Activity implements AQHIFeature {
                 new OneTimeWorkRequest.Builder(AQHIWidgetUpdateWorker.class)
                         .setInitialDelay(0, TimeUnit.MINUTES)
                         .build());
+    }
+
+    protected MapViewConfiguration getMapConfiguration() {
+        return getMapConfiguration(getMapTileProvider());
+    }
+
+    protected MapViewConfiguration getMapConfiguration(TileStreamProvider tileStreamProvider) {
+        return new MapViewConfiguration(MAP_LEVEL_COUNT, MAP_WIDTH, MAP_HEIGHT, MAP_TILE_SIZE, tileStreamProvider);
+    }
+
+    protected TileStreamProvider getMapTileProvider()
+    {
+        return (row, col, zoomLvl) -> {
+            try {
+                return getAssets().open("map_tiles/" + zoomLvl + "/" + row + "/" + col + ".webp");
+            } catch (IOException e) {
+                Log.e(LOG_TAG, "Failed to load map tile row: "+ row + ", col: " + col + ", lvl:"
+                        + zoomLvl + ".\n" + StackTraceCompactor.getCompactStackTrace(e));
+            }
+            return null;
+        };
     }
 
     protected abstract void initUI();

@@ -6,6 +6,7 @@ import static android.view.View.VISIBLE;
 
 import android.Manifest;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -18,15 +19,20 @@ import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
 import android.text.Html;
 import android.util.Log;
+import android.util.Pair;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.view.WindowInsets;
 import android.view.WindowManager;
 import android.view.WindowMetrics;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -35,10 +41,16 @@ import androidx.core.app.ActivityCompat;
 import com.dbf.aqhi.AQHIActivity;
 import com.dbf.aqhi.R;
 import com.dbf.aqhi.Utils;
+import com.dbf.aqhi.api.datamart.Pollutant;
 import com.dbf.aqhi.api.weather.alert.Alert;
+import com.dbf.aqhi.data.spatial.SpatialData;
+import com.dbf.aqhi.data.spatial.SpatialDataService;
+import com.dbf.aqhi.map.CompositeTileProvider;
+import com.dbf.aqhi.map.MapTransformer;
+import com.dbf.aqhi.map.OverlayTileProvider;
 import com.dbf.aqhi.permissions.PermissionService;
-import com.dbf.aqhi.service.AQHIBackgroundWorker;
-import com.dbf.aqhi.service.AQHIService;
+import com.dbf.aqhi.data.BackgroundDataWorker;
+import com.dbf.aqhi.data.aqhi.AQHIDataService;
 import com.dbf.heatmaps.android.HeatMap;
 import com.dbf.heatmaps.android.HeatMapGradient;
 import com.dbf.heatmaps.android.HeatMapOptions;
@@ -47,8 +59,10 @@ import com.dbf.heatmaps.axis.StringAxis;
 import com.dbf.heatmaps.data.BasicDataRecord;
 import com.dbf.heatmaps.data.DataRecord;
 
-import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.Collection;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -56,15 +70,24 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import ovh.plrapps.mapview.MapView;
+import ovh.plrapps.mapview.MapViewConfiguration;
+import ovh.plrapps.mapview.api.MarkerApiKt;
+import ovh.plrapps.mapview.api.MinimumScaleMode;
+
 public class AQHIMainActivity extends AQHIActivity {
     private static final String LOG_TAG = "AQHIMainActivity";
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
+    private static final String MAP_MARKER_TAG = "MAP_MARKER_TAG";
 
-    private AQHIBackgroundWorker backgroundWorker;
+    private BackgroundDataWorker backgroundWorker;
     private boolean showHistoricalGridData = false;
     private boolean showForecastGridData = false;
     private boolean showGaugeNumbers = false;
+    private Pollutant selectedMapPollutant;
+
+    private CompositeTileProvider tileProvider;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,7 +100,7 @@ public class AQHIMainActivity extends AQHIActivity {
 
         //Initialize a background thread that will periodically refresh the
         //user's location and the latest AQHI data.
-        backgroundWorker = new AQHIBackgroundWorker(this, ()->{
+        backgroundWorker = new BackgroundDataWorker(this, ()->{
             //Must always run on the UI thread
             runOnUiThread(this::updateUI);
         });
@@ -144,6 +167,8 @@ public class AQHIMainActivity extends AQHIActivity {
     protected void initUI() {
         Log.i(LOG_TAG, "Initializing AQHI Main Activity UI.");
 
+        initMapUI();
+
         //Add a click listener for the change location text
         findViewById(R.id.txtChangeLocationLink).setOnClickListener(v -> {
             Intent intent = new Intent(AQHIMainActivity.this, AQHILocationActivity.class);
@@ -162,7 +187,7 @@ public class AQHIMainActivity extends AQHIActivity {
             }
         });
 
-        //Add a click listener to show the numbers on the guage
+        //Add a click listener to show the numbers on the gauge
         ImageView imgGauge = findViewById(R.id.imgAQHIGaugeBackground);
         imgGauge.setOnClickListener(v -> {
             showGaugeNumbers = !showGaugeNumbers;
@@ -173,6 +198,10 @@ public class AQHIMainActivity extends AQHIActivity {
             }
         });
 
+        initHeatMapUI();
+    }
+
+    private void initHeatMapUI() {
         //Add a click listener to the heatmaps that will render them with data
         ImageView imgHistoricalHeatMap = findViewById(R.id.imgHistoricalHeatMap);
         imgHistoricalHeatMap.setOnClickListener(v -> {
@@ -186,6 +215,54 @@ public class AQHIMainActivity extends AQHIActivity {
             showForecastGridData = !showForecastGridData;
             Map<Date, Double> forecastData = getAQHIService().getForecastAQHI();
             renderForecastHeatMap(forecastData);
+        });
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private void initMapUI() {
+        //Create the map, regardless if we have overlay data or not.
+        //Overlays will be applied in the updateUI() method.
+        tileProvider = new CompositeTileProvider(getMapTileProvider());
+        MapView mapView = findViewById(R.id.mapView);
+        MapViewConfiguration config = getMapConfiguration(tileProvider);
+        config.setMaxScale(3);
+        config.setMinimumScaleMode(MinimumScaleMode.FILL);
+        mapView.configure(config);
+        mapView.setOnTouchListener((view, event) -> { //Prevent the map scrolling from fighting the main activity scrolling
+            switch (event.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                case MotionEvent.ACTION_POINTER_DOWN:
+                case MotionEvent.ACTION_MOVE:
+                    view.getParent().requestDisallowInterceptTouchEvent(true);
+                    break;
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    view.getParent().requestDisallowInterceptTouchEvent(false);
+                    break;
+            }
+            return false;
+        });
+        Spinner pollutantList = findViewById(R.id.ddPollutant);
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        pollutantList.setAdapter(adapter);
+        pollutantList.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                Pollutant newSelection = Pollutant.fromDisplayName(parent.getSelectedItem().toString());
+                if(null == selectedMapPollutant || !selectedMapPollutant.equals(newSelection)) {
+                    selectedMapPollutant = Pollutant.fromDisplayName(parent.getSelectedItem().toString());
+                    updateMapUI();
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                if(null != selectedMapPollutant) {
+                    selectedMapPollutant = null;
+                    updateMapUI();
+                }
+            }
         });
     }
 
@@ -260,6 +337,106 @@ public class AQHIMainActivity extends AQHIActivity {
             alertsSection.setVisibility(VISIBLE);
             LinearLayout alertList = findViewById(R.id.alert_list);
             updateAlertList(alertList, alerts);
+        }
+
+        //UPDATE POLLUTANT MAP
+        updateMapUI();
+    }
+
+    private void updateMapUI() {
+        View container = findViewById(R.id.mapContainer);
+        MapView mapView = findViewById(R.id.mapView);
+        TextView mapTsText = findViewById(R.id.lblTimestamp);
+        View marker = mapView.getMarkerLayout().getMarkerByTag(MAP_MARKER_TAG);
+
+        //Update the list of available pollutants
+        Collection<String> pollutants = getSpatialDataService().getLoadedPollutants(); //Can't be null
+        Spinner pollutantList = findViewById(R.id.ddPollutant);
+        ArrayAdapter<String> adapter = (ArrayAdapter<String>) pollutantList.getAdapter();
+        adapter.clear();
+        adapter.addAll(pollutants);
+
+        if(pollutants.isEmpty()) {
+         //No spatial data is available, hide the map
+            container.setVisibility(GONE);
+            selectedMapPollutant = null;
+            tileProvider.setOverlayTileProvider(null);
+            if(null != marker) mapView.getMarkerLayout().removeMarker(marker);
+            return;
+        }
+
+        //We have spatial data, show the map
+        container.setVisibility(VISIBLE);
+
+        //Update the station location marker first, regardless of the selected pollution overlay
+        updateMapMarker(mapView, marker);
+
+        if(null == selectedMapPollutant || !pollutants.contains(selectedMapPollutant.getDisplayName())) {
+            //We need to force a change to the selected pollutant
+            selectedMapPollutant = Pollutant.fromDisplayName(pollutants.iterator().next());
+            //Deactivate the click listener to prevent it from firing another UI upadate
+            AdapterView.OnItemSelectedListener listener = pollutantList.getOnItemSelectedListener();
+            pollutantList.setOnItemSelectedListener(null);
+            pollutantList.setSelection(0, false);
+            pollutantList.setOnItemSelectedListener(listener);
+            //Note: The marker stays put even when the data changed since the location doesn't change
+        }
+
+        //Don't reload this from disk every time. Use the in-memory data if it is still fresh.
+        SpatialData oldSpatialData = (null == tileProvider.getOverlayTileProvider()) ? null : tileProvider.getOverlayTileProvider().getOverlay();
+
+        //If we already have an overlay then get just load the meta data, not the image data.
+        SpatialData newSpatialData = (null == oldSpatialData) ? getSpatialDataService().getSpatialData(selectedMapPollutant) : getSpatialDataService().getSpatialMetaData(selectedMapPollutant);
+
+        if (null == oldSpatialData && null == newSpatialData) {
+            //We have no spatial data, despite the pollutant list not being empty
+            //This is a special error condition or a race condition.
+            //Keep rendering the map without a pollution overlay and hope no one notices! :-)
+            return;
+        }
+
+        boolean dataHasChanged = false;
+        if(null == oldSpatialData) {
+            //The new spatial data object already contains full image data loaded
+            dataHasChanged = true;
+        } else if(!oldSpatialData.getModel().equals(newSpatialData.getModel())) {
+            //The new spatial data object does not contain the full image data.
+            //Re-fetch the new spatial meta data, along with the actual image data, since it might have changed in the last few moments
+            newSpatialData = getSpatialDataService().getSpatialData(selectedMapPollutant);
+            dataHasChanged = true;
+        }
+
+        if(dataHasChanged) {
+            mapTsText.setText(null == newSpatialData ? "" : this.getResources().getString(R.string.observations_at) + " " + utcDateToFriendly(newSpatialData.getModel().getModelRunDate(), newSpatialData.getModel().getModelRunHour()));
+            tileProvider.setOverlayTileProvider(null == newSpatialData ? null : new OverlayTileProvider(newSpatialData));
+            mapView.redrawTiles();
+        }
+    }
+
+    private void updateMapMarker(MapView mapView, View marker) {
+        final Pair<Float, Float> latLon = getAQHIService().getStationLatLon(false);
+        if(null == latLon || latLon.first < -400 || latLon.second < -400) {
+            //There is no selected location yet
+            if(null != marker) {
+                mapView.getMarkerLayout().removeMarker(marker);
+                mapView.setScaleFromCenter(0.02f); //Zoom out
+                mapView.scrollTo(1000, 1200);
+            }
+        } else {
+            //There is a valid selected location
+            final Pair<Integer, Integer> xyCoordinates = MapTransformer.transformLatLon(latLon.first, latLon.second);
+            if(null == marker) {
+                //This is the first time and we need to create the marker
+                ImageView newMarker = new ImageView(this);
+                newMarker.setTag(xyCoordinates);
+                newMarker.setImageResource(R.drawable.location_pin_selected);
+                mapView.getMarkerLayout().addMarker(newMarker, xyCoordinates.first, xyCoordinates.second, -0.5f, -0.8f, 0f, 0f, MAP_MARKER_TAG);
+                MarkerApiKt.moveToMarker(mapView, newMarker, 0.5f, false);
+            } else if(null != marker.getTag() && !xyCoordinates.equals(marker.getTag())) {
+                //Only move the marker if the location changed, otherwise you annoy the user
+                mapView.getMarkerLayout().moveMarker(marker, xyCoordinates.first, xyCoordinates.second);
+                MarkerApiKt.moveToMarker(mapView, marker, 0.5f, false);
+            }
         }
     }
 
@@ -387,8 +564,7 @@ public class AQHIMainActivity extends AQHIActivity {
         alertList.removeAllViews();
         if (null == alerts || alerts.isEmpty()) return;
 
-        alerts.stream()
-                .forEach(alert -> {
+        alerts.forEach(alert -> {
                     //Create the entry based on the layout
                     View itemView = LayoutInflater.from(this).inflate(R.layout.alert_layout, alertList, false);
 
@@ -408,10 +584,7 @@ public class AQHIMainActivity extends AQHIActivity {
                     }
 
                     //Register a click listener to show the details
-                    itemView.setOnClickListener(v -> {
-                       this.showDialog(alert.getAlertBannerText(),null, "<p><b>" + alert.getIssueTimeText() + "</b></p>" + alert.getText().replace("\n","<br>") ,null, null);
-
-                    });
+                    itemView.setOnClickListener(v -> this.showDialog(alert.getAlertBannerText(),null, "<p><b>" + alert.getIssueTimeText() + "</b></p>" + alert.getText().replace("\n","<br>") ,null, null));
 
                     //Add the entry to the list
                     alertList.addView(itemView);
@@ -528,7 +701,11 @@ public class AQHIMainActivity extends AQHIActivity {
     }
 
     @Override
-    public AQHIService getAQHIService() {
+    public AQHIDataService getAQHIService() {
         return backgroundWorker.getAQHIService();
+    }
+
+    public SpatialDataService getSpatialDataService() {
+        return backgroundWorker.getSpatialDataService();
     }
 }

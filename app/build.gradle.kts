@@ -12,10 +12,26 @@ android {
         applicationId = "com.dbf.aqhi"
         minSdk = 34
         targetSdk = 34
-        versionCode = 9
-        versionName = "1.0.10"
+        versionCode = 10
+        versionName = "1.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        externalNativeBuild {
+            cmake {
+                cppFlags += ""
+                arguments += "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
+            }
+        }
+        ndk {
+            abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.26.4"
+        }
     }
 
     buildTypes {
@@ -61,6 +77,7 @@ dependencies {
     implementation(libs.androidx.constraintlayout)
     implementation(libs.mapview)
     implementation(libs.commonsMath)
+    implementation(libs.caffeine)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
