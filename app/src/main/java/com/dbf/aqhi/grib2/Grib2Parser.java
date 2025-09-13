@@ -72,8 +72,8 @@ public class Grib2Parser {
         Log.i(LOG_TAG, "Grib2 file contains " + dataPoints + " data point(s) of type " + dataTemplateNumber);
 
         final float R   = readFloat32(bytes, sectionStart + 11);
-        final short E   = readInt16(bytes, sectionStart + 15);
-        final short D   = readInt16(bytes, sectionStart + 17);
+        final int E     = readInt16(bytes, sectionStart + 15);
+        final int D     = readInt16(bytes, sectionStart + 17);
         final int nb    = readUByte8(bytes, sectionStart + 19);
         final int originalType = readUByte8(bytes, sectionStart + 20);
 
@@ -120,8 +120,8 @@ public class Grib2Parser {
         final int gridWidth = (int) readUInt32(bytes, idx); idx += 4; //Ni — number of points along a parallel
         final int gridHeight = (int) readUInt32(bytes, idx); idx += 4; //Nj — number of points along a meridian
 
-        final long basicAngle = readUInt32(bytes, idx); idx += 4;
-        final long subDiv     = readUInt32(bytes, idx); idx += 4;
+        final long basicAngle = readInt32(bytes, idx); idx += 4;
+        final long subDiv     = readUInt32(bytes, idx); idx += 4; //sub angle
 
         // If either basicAngle or subDiv is 0 or "missing" (0xFFFFFFFF), units are microdegrees.
         final boolean basicMissing = (basicAngle == 0L || basicAngle == 0xFFFFFFFFL);
@@ -130,15 +130,15 @@ public class Grib2Parser {
                 ? ((double) basicAngle / (double) subDiv)
                 : 1e-6; //default is microdegrees
 
-        final int lat1 = readInt32(bytes, idx); idx += 4; //latitude of first grid point
-        final int lon1 = readInt32(bytes, idx); idx += 4; //longitude of first grid point
+        final int lat1  = readInt32(bytes, idx); idx += 4; //latitude of first grid point
+        final long lon1 = readUInt32(bytes, idx); idx += 4; //longitude of first grid point
         double lat1Deg = lat1 * degPerUnit;
         double lon1Deg = Utils.wrapLongitude(lon1 * degPerUnit);
 
         final int resFlags = readUByte8(bytes, idx++); //Resolution and component flags
 
-        final int lat2   = readInt32(bytes, idx); idx += 4; //latitude of last grid point
-        final int lon2   = readInt32(bytes, idx); idx += 4; //longitude of last grid point
+        final int lat2    = readInt32(bytes, idx); idx += 4; //latitude of last grid point
+        final long lon2   = readUInt32(bytes, idx); idx += 4; //longitude of last grid point
         final double lat2Deg = lat2 * degPerUnit;
         final double lon2Deg = Utils.wrapLongitude(lon2 * degPerUnit);
 
@@ -150,18 +150,8 @@ public class Grib2Parser {
         final boolean iScansNegatively = (scan & 0x80) != 0; // 1 = westward
         final boolean jScansPositively = (scan & 0x40) == 0; // 1 = northward
 
-        double dLon = dirI * degPerUnit;
-        double dLat = dirJ * degPerUnit;
-
-        if (iScansNegatively) dLon = -dLon;
-        if (!jScansPositively) dLat = -dLat;
-
-        //Some files may have corrupted first grid point coordinates.
-        //Fall back to using last grid point coordinates
-        if(lat1Deg > 90 || lat1Deg < -90) {
-            lat1Deg = lat2Deg - (gridHeight - 1) * dLat;
-            lon1Deg = Utils.wrapLongitude(lon2Deg - (gridWidth  - 1) * dLon);
-        }
+        final double dLon = dirI * degPerUnit;
+        final double dLat = dirJ * degPerUnit;
 
         double southPoleLat = Double.NaN;
         double southPoleLon = Double.NaN;
@@ -170,10 +160,10 @@ public class Grib2Parser {
         if (gridTemplate == 1) { //Rotated
             //Rotated LL: extra 12 octets
             final int latSP = readInt32(bytes, idx); idx += 4; //Latitude of the southern pole of projection
-            final int lonSP = readInt32(bytes, idx); idx += 4; //Longitude of the southern pole of projection
-            final int angle = readInt32(bytes, idx); idx += 4; //Angle of rotation of projection
+            final long lonSP = readUInt32(bytes, idx); idx += 4; //Longitude of the southern pole of projection
+            final int angle = readInt32(bytes, idx); //Angle of rotation of projection
             southPoleLat = latSP * degPerUnit;
-            southPoleLon = lonSP * degPerUnit;
+            southPoleLon = Utils.wrapLongitude(lonSP * degPerUnit);
             angleRotDeg  = angle  * degPerUnit;
         }
 
@@ -191,11 +181,10 @@ public class Grib2Parser {
     }
 
     private static int readInt32(byte[] bytes, int offset) {
-        //GRIB2 is big-endian
-        return ((bytes[offset]      & 0xFF) << 24) |
-                ((bytes[offset + 1] & 0xFF) << 16) |
-                ((bytes[offset + 2] & 0xFF) << 8)  |
-                ((bytes[offset + 3] & 0xFF));
+        //GRIB2 is big-endian, 31 bit sign-magnitude, not two’s-complement!
+        final int b0 = bytes[offset] & 0xFF;
+        final int mag = ((b0 & 0x7F) << 24) | ((bytes[offset + 1] & 0xFF) << 16) | ((bytes[offset + 2] & 0xFF) << 8) | (bytes[offset + 3] & 0xFF);
+        return (b0 & 0x80) != 0 ? -mag : mag;
     }
 
     private static long readUInt32(byte[] bytes, int offset) {
@@ -206,9 +195,11 @@ public class Grib2Parser {
                 ((long) (bytes[offset + 3] & 0xFF));
     }
 
-    private static short readInt16(byte[] bytes, int offset) {
-        //GRIB2 is big-endian
-        return (short) (((bytes[offset] & 0xFF) << 8) | (bytes[offset + 1] & 0xFF));
+    private static int readInt16(byte[] bytes, int offset) {
+        //GRIB2 is big-endian, 15 bit sign-magnitude, not two’s-complement!
+        final int b0 = bytes[offset] & 0xFF;
+        final int mag = ((b0 & 0x7F) << 8) | (bytes[offset + 1] & 0xFF);
+        return (b0 & 0x80) != 0 ? -mag : mag;
     }
 
     private static int readUInt16(byte[] bytes, int offset) {

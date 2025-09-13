@@ -1,10 +1,11 @@
 package com.dbf.aqhi.map;
 
+import static com.dbf.aqhi.AQHIFeature.MAP_LEVEL_COUNT;
+import static com.dbf.aqhi.AQHIFeature.MAP_TILE_SIZE;
+
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.Paint;
-import android.util.Pair;
 
 import com.dbf.aqhi.Utils;
 import com.dbf.aqhi.data.spatial.SpatialData;
@@ -13,47 +14,54 @@ import com.dbf.aqhi.grib2.Grib2GridMetaData;
 
 public class OverlayTileProvider {
 
-    //TODO: make all this flexible
+    //TODO: make this colour selectable
     private final int overlayColour = Color.rgb(0x6B, 0x3A, 0x1E); //Dark brown
 
-    private final int tileSize = 256;
-    private final int levelCount = 9;
+    private final double gridScaleXInv; //= 0.09;
+    private final double gridScaleYInv; //= 0.09;
 
-    private final double gridScaleDegrees = 0.09;
-    public final int gridWidth = 729;
-    public final int gridHeight = 599;
+    public final int gridWidth; //= 729;
+    public final int gridHeight; //= 599;
 
-    private final double rLatZero = -32.0;
-    private final double rLonZero = -39.5;
+    private final double rLatZero; //= -31.860001;
+    private final double rLonZero; //= -39.537223;
 
-    private final double rLatNorthPole = 31.758312225341797;
-    private final double rLonNorthPole = -87.59701538085938;
+    private final double rLatNorthPole; //= 31.758312225341797;
+    private final double rLonNorthPole; //= -87.59701538085938;
+    private final double rLatSouthPole; //= -31.758312225341797;
+    private final double rLonSouthPole; //= -92.402969;
 
-    //Precompute rotation parameters (radians)
-    private double phiP;
-    private double lamP;
-    private double sinPhiP;
-    private double cosPhiP;
+    //Precompute rotation parameters in radians
+    private final double angleRotDeg;
+    private final double phiP;
+    private final double lamP;
+    private final double sinPhiP;
+    private final double cosPhiP;
 
     private final SpatialData overlay;
     private final Grib2GridMetaData grid;
-    private final Grib2DataMetaData dataMeta;
     private final byte[] rawPixels;
 
     public OverlayTileProvider(SpatialData overlay) {
         this.overlay   = overlay;
         this.rawPixels = overlay.getGrib2().getRawImage().pixels;
         this.grid = overlay.getGrib2().getGridMetaData();
-        this.dataMeta  = overlay.getGrib2().getDataMetaData();
-        init();
-    }
 
-    private void init(){
-       //rLatZero = grid.getLat1Deg();
-       //rLonZero = grid.getLon1Deg();
+        gridScaleXInv = 1.0 / grid.getdLonDeg();
+        gridScaleYInv = 1.0 / grid.getdLatDeg();
 
-       //rLatNorthPole = -grid.getSouthPoleLatDeg();
-       //rLonNorthPole = Utils.wrapLongitude(grid.getSouthPoleLonDeg()+ 180.0);
+        gridWidth = grid.getGridWidth();
+        gridHeight = grid.getGridHeight();
+
+        rLatZero = grid.getLat1Deg();
+        rLonZero = grid.getLon1Deg();
+
+        rLatSouthPole = grid.getSouthPoleLatDeg();
+        rLonSouthPole = grid.getSouthPoleLonDeg();
+        rLatNorthPole = -rLatSouthPole;
+        rLonNorthPole = Utils.wrapLongitude(-rLonSouthPole + 180.0);
+
+        angleRotDeg = grid.getAngleOfRotationDeg();
         phiP = Math.toRadians(rLatNorthPole);
         lamP = Math.toRadians(rLonNorthPole);
         sinPhiP = Math.sin(phiP);
@@ -96,23 +104,23 @@ public class OverlayTileProvider {
 
     public void drawOverlay(Canvas canvas, int row, int col, int zoomLvl) {
         //Determine the current scaling of the base bitmap image based on the tile level
-        final double scale = Math.pow(2.0, zoomLvl - (levelCount - 1));
+        final double scale = Math.pow(2.0, zoomLvl - (MAP_LEVEL_COUNT - 1));
         final double invScale = 1.0 / scale;
 
         //Determine the absolute x and y coordinates of the top left of this current tile
-        final double tileScale = tileSize * invScale;
+        final double tileScale = MAP_TILE_SIZE * invScale;
         final double tileWorldOriginX = col * tileScale;
         final double tileOriginY = row * tileScale;
 
         //Create computedOverlay ARGB buffer (per-pixel alpha from RawImage)
-        final int[] computedOverlay = new int[tileSize * tileSize];
+        final int[] computedOverlay = new int[MAP_TILE_SIZE * MAP_TILE_SIZE];
 
         //For each pixel in the tile, sample the RawImage with bilinear interpolation
         int idx = 0;
         double[] latLon = new double[2]; //Allocated once, better performance
-        for (int tileY = 0; tileY < tileSize; tileY++) {
+        for (int tileY = 0; tileY < MAP_TILE_SIZE; tileY++) {
             final double worldY = tileOriginY + (tileY * invScale);
-            for (int tileX = 0; tileX < tileSize; tileX++) {
+            for (int tileX = 0; tileX < MAP_TILE_SIZE; tileX++) {
                 final double worldX = tileWorldOriginX + (tileX * invScale);
 
                 //Transform from global pixel location to latitude and longitude coordinates
@@ -133,13 +141,13 @@ public class OverlayTileProvider {
 
                 //convert from rotated coordinates to grid fractional indices (i,j)
                 double rlatDeg = Math.toDegrees(phiR);
-                double rlonDeg = Math.toDegrees(lamR);
+                double rlonDeg = Math.toDegrees(lamR) + angleRotDeg;
 
-                double fi = (rlonDeg - rLonZero) / gridScaleDegrees;
-                double fj = (rlatDeg - rLatZero) / gridScaleDegrees;
+                final double gridPosX = (rlonDeg - rLonZero) * gridScaleXInv;
+                final double gridPosY = (rlatDeg - rLatZero) * gridScaleYInv;
 
                 int color = 0; //transparent by default
-                final int a = sampleAlphaBilinear(fi, fj, rawPixels, gridWidth, gridHeight);
+                final int a = sampleAlphaBilinear(gridPosX, gridPosY, rawPixels, gridWidth, gridHeight);
                 if (a > 0) {
                     //Compose ARGB with per-pixel alpha
                     color = (a & 0xFF) << 24 | (overlayColour & 0x00FFFFFF);
@@ -148,9 +156,9 @@ public class OverlayTileProvider {
             }
         }
         if(canvas.isHardwareAccelerated()) {
-            canvas.drawBitmap(Bitmap.createBitmap(computedOverlay, tileSize, tileSize, Bitmap.Config.ARGB_8888), 0f, 0f, null);
+            canvas.drawBitmap(Bitmap.createBitmap(computedOverlay, MAP_TILE_SIZE, MAP_TILE_SIZE, Bitmap.Config.ARGB_8888), 0f, 0f, null);
         } else {
-            canvas.drawBitmap(computedOverlay, 0, tileSize, 0f, 0f, tileSize, tileSize, true, null);
+            canvas.drawBitmap(computedOverlay, 0, MAP_TILE_SIZE, 0f, 0f, MAP_TILE_SIZE, MAP_TILE_SIZE, true, null);
         }
     }
 }
