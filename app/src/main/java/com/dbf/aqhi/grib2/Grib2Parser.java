@@ -13,10 +13,11 @@ public class Grib2Parser {
 
     private static final String LOG_TAG = "Grib2Parser";
 
-    private static final long MAX_BYTES = 100*1024*1024; //100mb, reasonable upper limit
+    private static final int    MAX_PIXEL_VALUE = 230; //Ensure a little bit of transparency
+    private static final long   MAX_BYTES = 100*1024*1024; //100mb, reasonable upper limit
     private static final byte[] GRIB_HEADER = {71, 82, 73, 66}; //"GRIB"
 
-    public static Grib2 parse(byte[] bytes) throws IOException {
+    public static Grib2 parse(byte[] bytes, int scalingFactor) throws IOException {
         if(null == bytes || bytes.length == 0) return null;
 
         checkHeader(bytes);
@@ -39,7 +40,7 @@ public class Grib2Parser {
                     scaleMeta = parseDataRep(bytes, sectionStart);
                     break;
                 case DATA: //Spec section 7
-                    rawImage = parseData(bytes, sectionStart, sectionLength, scaleMeta);
+                    rawImage = parseData(bytes, sectionStart, sectionLength, scaleMeta, scalingFactor);
                 default:
                     break;
             }
@@ -50,18 +51,14 @@ public class Grib2Parser {
         return new Grib2(gridMeta, scaleMeta, rawImage);
     }
 
-    private static RawImage parseData(byte[] bytes, int sectionStart, long sectionLength, Grib2DataMetaData scaleMeta) {
+    private static RawImage parseData(byte[] bytes, int sectionStart, long sectionLength, Grib2DataMetaData scaleMeta, int scalingFactor) {
         if(null == scaleMeta)
             throw new IllegalArgumentException("Invalid GRIB2 fill, metadata was not parsed correctly.");
 
         if(scaleMeta.getDataTemplateNumber() != 40)
             throw new IllegalArgumentException("Invalid data type. Only JPEG 2000 codestream is supported.");
 
-        RawImage img = Jpeg2000Decoder.decodeJpeg2000(bytes, sectionStart + 5, (int) (sectionLength-4));
-        //Bitmap bitmap = Bitmap.createBitmap(img.width, img.height, Bitmap.Config.ALPHA_8);
-        //bitmap.copyPixelsFromBuffer(ByteBuffer.wrap(img.pixels));
-        //return bitmap;
-        return img;
+        return Jpeg2000Decoder.decodeJpeg2000(bytes, sectionStart + 5, (int) (sectionLength-4), scalingFactor, MAX_PIXEL_VALUE);
     }
 
     private static Grib2GridMetaData parseGridDef(byte[] bytes, int sectionStart) {

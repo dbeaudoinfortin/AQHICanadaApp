@@ -9,8 +9,8 @@ public class DatamartData {
 
     public DatamartData() {}
 
-    public DatamartData(String model, String pollutant, String date, String modelRunTime, String hour, byte[] rawData) {
-        this.model = new ModelMetaData(model, pollutant, date, modelRunTime, hour);
+    public DatamartData(String model, String pollutant, String modelRunDate, String modelRunHour, String hour, byte[] rawData) {
+        this.model = new ModelMetaData(model, pollutant, modelRunDate, modelRunHour, hour);
         this.rawData = rawData;
     }
 

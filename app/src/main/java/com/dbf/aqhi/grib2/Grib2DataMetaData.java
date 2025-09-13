@@ -27,7 +27,7 @@ public class Grib2DataMetaData {
 
     /** Apply GRIB2 scaling: X = (R + Y*2^E) * 10^-D */
     public double scale(int y) {
-        return (referenceValueR + y * twoPowE) * tenPowNegD;
+        return (referenceValueR + (y * twoPowE)) * tenPowNegD;
     }
 
     public float getReferenceValueR() {

@@ -97,7 +97,7 @@ public abstract class AQHIActivity extends Activity implements AQHIFeature {
     }
 
     protected MapViewConfiguration getMapConfiguration(TileStreamProvider tileStreamProvider) {
-        return new MapViewConfiguration(9,35000,29699,256, tileStreamProvider);
+        return new MapViewConfiguration(MAP_LEVEL_COUNT, MAP_WIDTH, MAP_HEIGHT, MAP_TILE_SIZE, tileStreamProvider);
     }
 
     protected TileStreamProvider getMapTileProvider()

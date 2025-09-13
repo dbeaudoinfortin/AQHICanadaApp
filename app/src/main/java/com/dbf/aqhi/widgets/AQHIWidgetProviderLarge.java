@@ -31,8 +31,6 @@ public class AQHIWidgetProviderLarge extends AQHIWidgetProvider {
     public static final float PREVIEW_SCREEN_RATIO = 0.33333f;
     public static final int   MIN_HEIGHT_INFO_BAR = 60;
 
-    private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("h:mm a", Locale.CANADA);
-
     public AQHIWidgetProviderLarge() {
         super();
     }

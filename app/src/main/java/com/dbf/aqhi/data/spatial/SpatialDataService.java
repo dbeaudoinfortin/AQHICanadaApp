@@ -23,6 +23,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -32,16 +33,21 @@ public class SpatialDataService extends DataService {
     private static final String LOG_TAG = "SpatialDataService";
 
     //Prevents multiple simultaneous remote updates
-    private static final Object GLOBAL_SYNC_OBJECT = new Object();
+    private static final Object UPDATE_SYNC_OBJECT = new Object();
 
     //Keeps the file system cache in sync with shared preferences
     private static final Map<Pollutant, Object> POLLUTANT_SYNC_OBJECTS;
 
-    private static final String CACHE_DIR_NAME = "spatial_data";
+    //Keeps track of all the pollutants that are available
+    private static LinkedHashSet<String> loadedPollutants;
+    private static final Object POLLUTANT_LIST_SYNC_OBJECT = new Object();
 
+    private static final long DATA_VALIDITY_DURATION = 1000*60*60*2; //2 hours
+    //File system cache
     //Use the same buffer size for the ZIP compression and for writing to the filesystem
-    private static final int FILE_CACHE_BUFFER_SIZE = 16*1024;
-    private static final long MAX_CACHE_DURATION = 1000*60*60*24; //1 day
+    private static final int    FILE_CACHE_BUFFER_SIZE = 16*1024;
+    private static final long   MAX_CACHE_DURATION = 1000*60*60*24; //1 day
+    private static final String CACHE_DIR_NAME = "spatial_data";
 
     //Shared preferences keys
     private static final String SPATIAL_DATA_KEY = "SPATIAL_DATA_VAL";
@@ -104,7 +110,7 @@ public class SpatialDataService extends DataService {
 
         //Load the data one-by-one so we don't run out of memory
         //This code is stateful, we don't want to run multiple updates at the same time
-        synchronized (GLOBAL_SYNC_OBJECT) {
+        synchronized (UPDATE_SYNC_OBJECT) {
             for(Pollutant pollutant : Pollutant.values()){
                 updateSpatialData(pollutant);
             }
@@ -145,8 +151,18 @@ public class SpatialDataService extends DataService {
      */
     public SpatialData getSpatialMetaData(Pollutant pollutant) {
         synchronized (POLLUTANT_SYNC_OBJECTS.get(pollutant)) {
+            //Determine if the data is fresh enough
+            long ts = sharedPreferences.getLong(SPATIAL_DATA_TS_KEY + "_" + pollutant, Integer.MIN_VALUE);
+            if(System.currentTimeMillis() - ts > DATA_VALIDITY_DURATION) {
+                return null; //Data is too old or missing
+            }
+
             String spatialString = sharedPreferences.getString(SPATIAL_DATA_KEY + "_" + pollutant, null);
-            if (null == spatialString || spatialString.isEmpty()) return null;
+            if (null == spatialString || spatialString.isEmpty()) {
+                //We are in an inconsistent state. Clear the data.
+                clearSpatialMetaData(pollutant);
+                return null;
+            }
 
             try {
                 //Metadata is stored in the shared preferences DB
@@ -184,17 +200,20 @@ public class SpatialDataService extends DataService {
             //No need for a sync block though
             writeCacheFile(rawImage, pollutant);
 
-            final String prefDataKey = SPATIAL_DATA_KEY + "_" + pollutant;
-            final String prefTSKey = SPATIAL_DATA_TS_KEY + "_" + pollutant;
+            final String prefDataKey = SPATIAL_DATA_KEY    + "_" + pollutant;
+            final String prefTSKey   = SPATIAL_DATA_TS_KEY + "_" + pollutant;
             sharedPreferences.edit()
                     .putString(prefDataKey, gson.toJson(spatialData, gsonSpatialDataType))
                     .putLong(prefTSKey, System.currentTimeMillis())
                     .apply();
+
+            addLoadedPollutant(pollutant);
         }
     }
 
     /**
      * Removed the spatial meta data from the shared preferences.
+     * Note: This method should be externally synchronized.
      *
      * @param pollutant
      */
@@ -205,6 +224,8 @@ public class SpatialDataService extends DataService {
                 .remove(prefDataKey)
                 .remove(prefTSKey)
                 .apply();
+
+        removeLoadedPollutant(pollutant);
     }
 
     /**
@@ -218,7 +239,7 @@ public class SpatialDataService extends DataService {
         synchronized (POLLUTANT_SYNC_OBJECTS.get(pollutant)) {
             //Clear out old data so we don't waste disk space.
             //This is just a precaution
-            final File cacheFile = new File(cacheDir, pollutant.getValue());
+            final File cacheFile = new File(cacheDir, pollutant.getDatamartForecastName());
             try {
                 checkCacheFile(cacheFile);
             } catch (IOException e) {
@@ -239,7 +260,7 @@ public class SpatialDataService extends DataService {
         }
 
         if (null == oldSpatialData) {
-            //We don't have anything saved for this pollutant. Don't bother doing a HEAD request.
+            //We don't have anything saved for this pollutant, or it's too old. Don't bother doing a HEAD request.
             fetchLatestSpatialData(pollutant);
             return;
         }
@@ -255,6 +276,23 @@ public class SpatialDataService extends DataService {
             //Assume that the latest data is always fresher than what we have now.
             //Note: the data may have changed again since we did the HEAD call.
             fetchLatestSpatialData(pollutant);
+        } else {
+            //We confirmed that the data we are storing is still current, so update the timestamp
+            updateSpatialDataTimestamp(pollutant);
+        }
+    }
+
+    /**
+     * Updates only the the timestamp for the given pollutant.
+     *
+     * @param pollutant
+     */
+    private void updateSpatialDataTimestamp(Pollutant pollutant) {
+        synchronized (POLLUTANT_SYNC_OBJECTS.get(pollutant)) {
+            final String prefTSKey = SPATIAL_DATA_TS_KEY + "_" + pollutant;
+            sharedPreferences.edit()
+                    .putLong(prefTSKey, System.currentTimeMillis())
+                    .apply();
         }
     }
 
@@ -266,11 +304,11 @@ public class SpatialDataService extends DataService {
      */
     private void fetchLatestSpatialData(Pollutant pollutant) {
         final DatamartData datamartData = datamartService.getObservation(pollutant);
-        if(null == datamartData) return;
+        if(null == datamartData) return; //There is no data available right now, keep what we have even if it's out of date
 
         Grib2 grib2 = null;
         try {
-            grib2 = Grib2Parser.parse(datamartData.getRawData());
+            grib2 = Grib2Parser.parse(datamartData.getRawData(), 20);
         } catch (Exception e) {
             Log.e(LOG_TAG, "Failed to parse grib2 data for " + pollutant + " from Datamart.\n" + StackTraceCompactor.getCompactStackTrace(e));
             return;
@@ -315,7 +353,7 @@ public class SpatialDataService extends DataService {
      * @param pollutant
      */
     private void writeCacheFile(RawImage rawImg, Pollutant pollutant) {
-        final File cacheFile = new File(cacheDir, pollutant.getValue());
+        final File cacheFile = new File(cacheDir, pollutant.getDatamartForecastName());
         try {
             //We have valid data, so delete the existing file before writing the new one
             if(cacheFile.exists()) {
@@ -348,7 +386,7 @@ public class SpatialDataService extends DataService {
      * @return RawImage data
      */
     private RawImage getCachedData(Pollutant pollutant) {
-        final File cacheFile = new File(cacheDir, pollutant.getValue());
+        final File cacheFile = new File(cacheDir, pollutant.getDatamartForecastName());
 
         Log.i(LOG_TAG, "Reading data from cache file " + cacheFile.getAbsolutePath() + ".");
         try {
@@ -378,6 +416,40 @@ public class SpatialDataService extends DataService {
         } catch (Exception e) {
             Log.e(LOG_TAG, "Failed to read cache file " + cacheFile.getAbsolutePath() + ".\n" + StackTraceCompactor.getCompactStackTrace(e));
             return null;
+        }
+    }
+
+    private void addLoadedPollutant(Pollutant pollutant){
+        synchronized(POLLUTANT_LIST_SYNC_OBJECT) {
+            if(null == loadedPollutants) loadPollutants();
+            loadedPollutants.add(pollutant.getDisplayName());
+        }
+    }
+
+    private void removeLoadedPollutant(Pollutant pollutant){
+        synchronized(POLLUTANT_LIST_SYNC_OBJECT) {
+            if(null == loadedPollutants) return;
+            loadedPollutants.remove(pollutant.getDisplayName());
+        }
+    }
+
+    private void loadPollutants() {
+        //Build a list of all the available pollutants that aren't expired
+        loadedPollutants = new LinkedHashSet<String>();
+
+        long currentTime = System.currentTimeMillis();
+        for(Pollutant pollutant : Pollutant.values()){
+            long ts = sharedPreferences.getLong(SPATIAL_DATA_TS_KEY + "_" + pollutant, Integer.MIN_VALUE);
+            if(currentTime - ts > DATA_VALIDITY_DURATION) continue;
+
+            loadedPollutants.add(pollutant.getDisplayName());
+        }
+    }
+
+    public LinkedHashSet<String> getLoadedPollutants(){
+        synchronized(POLLUTANT_LIST_SYNC_OBJECT) {
+            if(null == loadedPollutants) loadPollutants();
+            return new LinkedHashSet<String>(loadedPollutants); //Always clone
         }
     }
 }

@@ -5,18 +5,18 @@ import java.util.Objects;
 public class ModelMetaData {
     private String model;
     private String pollutant;
-    private String date;
-    private String modelRunTime;
-    private String hour;
+    private String modelRunDate;
+    private String modelRunHour;
+    private String forecastHour;
 
     public ModelMetaData() {}
 
-    public ModelMetaData(String model, String pollutant, String date, String modelRunTime, String hour) {
+    public ModelMetaData(String model, String pollutant, String modelRunDate, String modelRunHour, String forecastHour) {
         this.model = model;
         this.pollutant = pollutant;
-        this.date = date;
-        this.modelRunTime = modelRunTime;
-        this.hour = hour;
+        this.modelRunDate = modelRunDate;
+        this.modelRunHour = modelRunHour;
+        this.forecastHour = forecastHour;
     }
 
     public String getModel() {
@@ -35,28 +35,28 @@ public class ModelMetaData {
         this.pollutant = pollutant;
     }
 
-    public String getDate() {
-        return date;
+    public String getModelRunDate() {
+        return modelRunDate;
     }
 
-    public void setDate(String date) {
-        this.date = date;
+    public void setModelRunDate(String modelRunDate) {
+        this.modelRunDate = modelRunDate;
     }
 
-    public String getModelRunTime() {
-        return modelRunTime;
+    public String getModelRunHour() {
+        return modelRunHour;
     }
 
-    public void setModelRunTime(String modelRunTime) {
-        this.modelRunTime = modelRunTime;
+    public void setModelRunHour(String modelRunHour) {
+        this.modelRunHour = modelRunHour;
     }
 
-    public String getHour() {
-        return hour;
+    public String getForecastHour() {
+        return forecastHour;
     }
 
-    public void setHour(String hour) {
-        this.hour = hour;
+    public void setForecastHour(String forecastHour) {
+        this.forecastHour = forecastHour;
     }
 
     @Override
@@ -65,13 +65,13 @@ public class ModelMetaData {
         ModelMetaData that = (ModelMetaData) o;
         return Objects.equals(model, that.model)
                 && Objects.equals(pollutant, that.pollutant)
-                && Objects.equals(date, that.date)
-                && Objects.equals(modelRunTime, that.modelRunTime)
-                && Objects.equals(hour, that.hour);
+                && Objects.equals(modelRunDate, that.modelRunDate)
+                && Objects.equals(modelRunHour, that.modelRunHour)
+                && Objects.equals(forecastHour, that.forecastHour);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(model, pollutant, date, modelRunTime, hour);
+        return Objects.hash(model, pollutant, modelRunDate, modelRunHour, forecastHour);
     }
 }

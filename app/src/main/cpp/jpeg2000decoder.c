@@ -60,7 +60,7 @@ static OPJ_BOOL mem_seek_fn(OPJ_OFF_T p_nb_bytes, void* p_user_data) {
 
 JNIEXPORT jobject JNICALL
 Java_com_dbf_aqhi_jpeg_Jpeg2000Decoder_decodeJpeg2000(
-        JNIEnv *env, jclass clazz, jbyteArray data, jint offset, jint length) {
+        JNIEnv *env, jclass clazz, jbyteArray data, jint offset, jint length, jint scale, jint max_alpha) {
 
     //Get pointer to array elements to avoid copying the entire array
     jbyte* all_data = (*env)->GetPrimitiveArrayCritical(env, data, NULL);
@@ -156,14 +156,16 @@ Java_com_dbf_aqhi_jpeg_Jpeg2000Decoder_decodeJpeg2000(
         LOG_ERROR("Failed to allocate pixel array.");
         goto cleanup;
     }
-
     jbyte* outPixels = (jbyte*)(*env)->GetByteArrayElements(env, pixelArray, NULL);
+
+    const int range = (max_val - min_val);
+    const int scaleFactor = 255 * scale;
     //Use first component only (greyscale)
     for (int i = 0; i < pixelCount; ++i) {
-        int gray = ((comp->data[i] - min_val) * 255) / (max_val - min_val)*20; //TODO: temp fudge factor, pass in the correct scale factor later
-        if (gray < 0) gray = 0;
-        if (gray > 255) gray = 255;
-        outPixels[i] = (jbyte)gray;
+        int grey = ((comp->data[i] - min_val) * scaleFactor) / range;
+        if (grey < 0) grey = 0;
+        if (grey > max_alpha) grey = max_alpha;
+        outPixels[i] = (jbyte)grey;
     }
     (*env)->ReleaseByteArrayElements(env, pixelArray, outPixels, 0);
 

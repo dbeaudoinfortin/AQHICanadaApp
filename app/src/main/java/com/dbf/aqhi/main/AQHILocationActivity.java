@@ -100,6 +100,7 @@ public class AQHILocationActivity extends AQHIActivity {
         updateMapMarkers(stationAuto);
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     protected void initUI () {
         //Close Button Handler
         findViewById(R.id.btnSaveLocation).setOnClickListener(v -> {

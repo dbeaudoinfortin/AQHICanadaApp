@@ -39,7 +39,7 @@ public class DatamartService extends APIService {
     }
 
     public DatamartData getObservation(Pollutant pollutant, boolean metaOnly) {
-        return getRDAQAObservation(pollutant.getValue(), false, metaOnly);
+        return getRDAQAObservation(pollutant.getDatamartObservationName(), false, metaOnly);
     }
 
     public DatamartData getForecast(Pollutant pollutant) {
@@ -47,31 +47,31 @@ public class DatamartService extends APIService {
     }
 
     public DatamartData getForecast(Pollutant pollutant, boolean metaOnly) {
-        return getRAQDPSForecast(pollutant.getValue(), metaOnly);
+        return getRAQDPSForecast(pollutant.getDatamartForecastName(), metaOnly);
     }
 
     private DatamartData getRDAQAObservation(String pollutant, boolean allowPrelim, boolean metaOnly) {
         //Preliminary results are available 1 hour later and final results are available 2 hours later
-        ZonedDateTime modelDate = ZonedDateTime.now(ZoneOffset.UTC);
+        ZonedDateTime modelRunDate = ZonedDateTime.now(ZoneOffset.UTC);
 
         //We try up to 3 hours before giving up
         for(int i =0; i < 3; i++) {
-            modelDate = modelDate.minusHours(1);
+            modelRunDate = modelRunDate.minusHours(1);
 
-            DatamartData data = getRDAQAObservation(pollutant, modelDate, false, false, metaOnly);
+            DatamartData data = getRDAQAObservation(pollutant, modelRunDate, false, false, metaOnly);
             if(null != data) return data;
 
             if(allowPrelim) { //Try again, with prelim data
-                data = getRDAQAObservation(pollutant, modelDate, true, false, metaOnly);
+                data = getRDAQAObservation(pollutant, modelRunDate, true, false, metaOnly);
                 if(null != data) return data;
             }
         }
         return null;
     }
 
-    private DatamartData getRDAQAObservation(String pollutant, ZonedDateTime modelDate, boolean prelim, boolean firework, boolean metaOnly) {
+    private DatamartData getRDAQAObservation(String pollutant, ZonedDateTime modelRunDate, boolean prelim, boolean firework, boolean metaOnly) {
         final String model = prelim ? RDAQA_MODEL + "-Prelim" : (firework ? RDAQA_MODEL + "-FW" : RDAQA_MODEL);
-        return getData(RDAQA_MODEL, null, RDAQA_DIR, RDAQA_FILE_SUFFIX, pollutant, modelDate.format(DATAMART_DATE_FORMAT), null, modelDate.format(DATAMART_HOUR_FORMAT), null, metaOnly);
+        return getData(RDAQA_MODEL, null, RDAQA_DIR, RDAQA_FILE_SUFFIX, pollutant, modelRunDate.format(DATAMART_DATE_FORMAT), null, modelRunDate.format(DATAMART_HOUR_FORMAT), null, metaOnly);
     }
 
     private DatamartData getRAQDPSForecast(String pollutant, boolean metaOnly) {
@@ -95,30 +95,31 @@ public class DatamartService extends APIService {
         return data;
     }
 
-    private DatamartData getRAQDPSForecast(String pollutant, ZonedDateTime modelDate, String modelRunTime, boolean metaOnly) {
+    private DatamartData getRAQDPSForecast(String pollutant, ZonedDateTime modelDate, String modelRunHour, boolean metaOnly) {
         long modelOffset = determineModelTime(modelDate);
         if(modelOffset < 0) {
             //Model hasn't run yet!
             return null;
         }
-        final String hour = StringUtils.leftPad("" + modelOffset,3,'0');
-        final String fileSuffix = RAQDPS_FILE_TRANSFORM + hour +  RAQDPS_FILE_SUFFIX;
+        final String forecastHour = StringUtils.leftPad("" + modelOffset,3,'0');
+        final String fileSuffix = RAQDPS_FILE_TRANSFORM + forecastHour +  RAQDPS_FILE_SUFFIX;
         final String dateString = modelDate.format(DATAMART_DATE_FORMAT);
-        return getData(RAQDPS_MODEL, DATAMART_SUB_DIR, RAQDPS_DIR, fileSuffix, pollutant, dateString, dateString, modelRunTime, hour, metaOnly);
+        return getData(RAQDPS_MODEL, DATAMART_SUB_DIR, RAQDPS_DIR, fileSuffix, pollutant, dateString, dateString, modelRunHour, forecastHour, metaOnly);
     }
 
     private long determineModelTime(ZonedDateTime modelDate) {
-        return Duration.between(modelDate, ZonedDateTime.now(ZoneOffset.UTC)).toHours(); //TODO: Round to the closest hour. 55 minutes past the hour shouldn't result in the previous hour
+        return Duration.between(modelDate, ZonedDateTime.now(ZoneOffset.UTC)).toHours();
+        //TODO: Round to the closest hour. 55 minutes past the hour shouldn't result in the previous hour
     }
 
-    private DatamartData getData(String model, String subDir, String modelDir, String fileSuffix, String pollutant, String date, String dateDir, String modelRunTime, String hour, boolean metaOnly) {
+    private DatamartData getData(String model, String subDir, String modelDir, String fileSuffix, String pollutant, String date, String dateDir, String modelRunHour, String forecastHour, boolean metaOnly) {
         //Example URL: https://dd.weather.gc.ca/20250802/WXO-DD/model_raqdps/10km/grib2/12/025/20250802T12Z_MSC_RAQDPS_PM10-WildfireSmokePlume_Sfc_RLatLon0.09_PT025H.grib2
         //Or           https://dd.weather.gc.ca/20250803/WXO-DD/model_rdaqa/10km/13/20250803T13Z_MSC_RDAQA_PM2.5_Sfc_RLatLon0.09_PT0H.grib2
-        final String fileName = buildFileName(date, modelRunTime, model, pollutant, fileSuffix);
-        final String url = buildUrl(DATAMART_BASE_URL, dateDir, subDir, modelDir, modelRunTime, hour, fileName);
+        final String fileName = buildFileName(date, modelRunHour, model, pollutant, fileSuffix);
+        final String url = buildUrl(DATAMART_BASE_URL, dateDir, subDir, modelDir, modelRunHour, forecastHour, fileName);
         final byte[] rawData = callDatamart(url, metaOnly);
         if (null == rawData) return null;
-        return new DatamartData(model, pollutant, date, modelRunTime, hour, rawData);
+        return new DatamartData(model, pollutant, date, modelRunHour, forecastHour, rawData);
     }
 
     private byte[] callDatamart(String url, boolean metaOnly) {
@@ -154,20 +155,19 @@ public class DatamartService extends APIService {
         }
     }
 
-    private static String buildFileName(String date, String modelRunTime, String model, String pollutant, String fileSuffix) {
+    private static String buildFileName(String modelRunDate, String modelRunHour, String model, String pollutant, String fileSuffix) {
         StringBuilder sb = new StringBuilder();
-        sb.append(date)
+        sb.append(modelRunDate)
             .append("T")
-            .append(modelRunTime)
+            .append(modelRunHour)
             .append("Z_MSC_")
             .append(model)
-            .append("_")
             .append(pollutant)
             .append(fileSuffix);
         return sb.toString();
     }
 
-    private static String buildUrl(String baseUrl, String dateDir, String subDir, String modelDir, String modelRunTime, String hour, String fileName) {
+    private static String buildUrl(String baseUrl, String dateDir, String subDir, String modelDir, String modelRunHour, String forecastHour, String fileName) {
         StringBuilder sb = new StringBuilder();
         sb.append(baseUrl)
             .append("/")
@@ -177,10 +177,10 @@ public class DatamartService extends APIService {
             .append(subDir == null ? "" : "/")
             .append(modelDir == null ? "" : modelDir)
             .append(modelDir == null ? "" :"/")
-            .append(modelRunTime)
+            .append(modelRunHour)
             .append("/")
-            .append(hour == null ? "" : hour)
-            .append(hour == null ? "" : "/")
+            .append(forecastHour == null ? "" : forecastHour)
+            .append(forecastHour == null ? "" : "/")
             .append(fileName);
         return sb.toString();
     }
