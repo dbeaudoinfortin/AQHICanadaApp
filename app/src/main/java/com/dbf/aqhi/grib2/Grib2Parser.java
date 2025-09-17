@@ -17,7 +17,7 @@ public class Grib2Parser {
     private static final long   MAX_BYTES = 100*1024*1024; //100mb, reasonable upper limit
     private static final byte[] GRIB_HEADER = {71, 82, 73, 66}; //"GRIB"
 
-    public static Grib2 parse(byte[] bytes, int scalingFactor) throws IOException {
+    public static Grib2 parse(byte[] bytes, float scalingFactor) throws IOException {
         if(null == bytes || bytes.length == 0) return null;
 
         checkHeader(bytes);
@@ -51,7 +51,7 @@ public class Grib2Parser {
         return new Grib2(gridMeta, scaleMeta, rawImage);
     }
 
-    private static RawImage parseData(byte[] bytes, int sectionStart, long sectionLength, Grib2DataMetaData scaleMeta, int scalingFactor) {
+    private static RawImage parseData(byte[] bytes, int sectionStart, long sectionLength, Grib2DataMetaData scaleMeta, float scalingFactor) {
         if(null == scaleMeta)
             throw new IllegalArgumentException("Invalid GRIB2 fill, metadata was not parsed correctly.");
 

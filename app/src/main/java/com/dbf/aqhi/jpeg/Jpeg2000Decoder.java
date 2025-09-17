@@ -24,5 +24,5 @@ public class Jpeg2000Decoder {
      * @return A {@link RawImage} object containing the image dimensions and grayscale pixel data,
      *         or {@code null} if decoding fails.
      */
-    public static native RawImage decodeJpeg2000(byte[] jpeg2000Data, int offset, int length, int scale, int max_alpha);
+    public static native RawImage decodeJpeg2000(byte[] jpeg2000Data, int offset, int length, float scale, int max_alpha);
 }

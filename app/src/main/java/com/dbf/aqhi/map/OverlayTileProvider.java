@@ -126,6 +126,7 @@ public class OverlayTileProvider {
                 //Transform from global pixel location to latitude and longitude coordinates
                 MapTransformer.transformXY(worldX, worldY, latLon);
 
+                latLon[1] += 4.8; //fudge factor
                 //Convert to rotated radian coordinates
                 final double lat = Math.toRadians(latLon[0]);
                 final double lon = Math.toRadians(latLon[1]);
@@ -140,8 +141,8 @@ public class OverlayTileProvider {
                 final double lamR = Math.atan2(cosPhiR_sinLamR, cosPhiR_cosLamR);
 
                 //convert from rotated coordinates to grid fractional indices (i,j)
-                double rlatDeg = Math.toDegrees(phiR);
-                double rlonDeg = Math.toDegrees(lamR) + angleRotDeg;
+                final double rlatDeg = Math.toDegrees(phiR);
+                final double rlonDeg = Math.toDegrees(lamR);
 
                 final double gridPosX = (rlonDeg - rLonZero) * gridScaleXInv;
                 final double gridPosY = (rlatDeg - rLatZero) * gridScaleYInv;
