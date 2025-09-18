@@ -229,9 +229,11 @@ public class MapTransformer {
     private static final double C6 =  7.0/120.0*e6 + 81.0/1120.0* e8;
     private static final double C8 = 4279.0/161280.0 * e8;
 
+    private static final double HALF_PI = Math.PI * 0.5;
+
     //Since we only need about 100m of precision, we can use some fast approximation
     private static double phiFromT_fast(double t) {
-        final double chi = (Math.PI * 0.5) - 2.0 * Math.atan(t);
+        final double chi = HALF_PI - 2.0 * Math.atan(t);
         final double s = Math.sin(chi);
         final double c = Math.cos(chi);
         final double s2 = 2.0 * s * c;
@@ -247,10 +249,9 @@ public class MapTransformer {
 
     //Since we only need about 100m of precision, we can use some fast approximation
     private static double phiFromT_faster(double t) {
-        final double chi = (Math.PI * 0.5) - 2.0 * Math.atan(t);
-
         final double t2  = t * t;
         final double inv = 1.0 / (1.0 + t2);
+
         final double s   = (1.0 - t2) * inv;   //sin χ
         final double c   = (2.0 * t) * inv;    //cos χ
 
@@ -260,6 +261,6 @@ public class MapTransformer {
         final double s6 = 2.0 * s4 * c2 - s2;   // sin(6χ)
 
         //series c6 is enough
-        return chi + (C2 * s2 + C4 * s4 + C6 * s6);
+        return (HALF_PI - 2.0 * Math.atan(t)) + (C2 * s2) + (C4 * s4) + (C6 * s6);
     }
 }
