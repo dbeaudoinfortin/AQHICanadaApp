@@ -123,7 +123,7 @@ public class DatamartService extends APIService {
     }
 
     private byte[] callDatamart(String url, boolean metaOnly) {
-        Log.i(LOG_TAG, "Calling the Datamart HTTP service. URL: " + url);
+        Log.i(LOG_TAG, (metaOnly? "HEAD" : "GET") + " Datamart HTTP service. URL: " + url);
         try (Response response = client.newCall(new Request.Builder()
                     .method(metaOnly ? "HEAD" : "GET", null)
                     .url(url)
@@ -140,7 +140,10 @@ public class DatamartService extends APIService {
                 return null;
             }
 
-            if(metaOnly) return new byte[0]; //HEAD requests have no body
+            if(metaOnly) {
+                Log.i(LOG_TAG, "HEAD successful to Datamart. URL: " + url);
+                return new byte[0]; //HEAD requests have no body
+            }
 
             if (response.body() == null) {
                 Log.e(LOG_TAG, "Call to Datamart API failed. URL: " + url + ". Empty response body.");
