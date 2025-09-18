@@ -89,10 +89,9 @@ Alerts are displayed in the main app and in the large widget whenever Environmen
 ## Pollution Maps
 
 <p align="center">
-  <img src="" width="400"/>
-  <img src="" width="400"/>
-  <img src="" width="400"/>
-  <img src="" width="400"/>
+  <img src="https://github.com/user-attachments/assets/0dc91834-ff26-490c-95c7-940e1f011ca7" width="400"/>
+  <img src="https://github.com/user-attachments/assets/39b9dcee-a292-4945-b430-919df9008682" width="400"/>
+  <img src="https://github.com/user-attachments/assets/409eed1b-16bf-4dfb-ac4e-c76e1666b3e7" width="400"/>
 </p>
 
 # How it works
@@ -124,7 +123,7 @@ Pollution overlays are processed entirely on-device from raw data obtained from 
 
 For each pollutant, the [directory structure](https://dd.weather.gc.ca/) of MSC Datamart is traversed to find the most recent geospatial data. This is done because the data is not (yet) available as a REST API, only as an HTTP directory listing. The geospatial metadata is cached on the device to ensure that the data is never downloaded more than once. The geospatial data is downloaded as a file in GRIB2 format.
 
-GRIB2 is a binary format used primarily in the meteorological world. Since I could not find a modern, lightweight native Java library to parse Grib2 files, I wrote my own parser based on the [NOAA file specifications](https://www.nco.ncep.noaa.gov/pmb/docs/grib2/grib2_doc/). Within the GRIB2 container, the geospatial data is encoded as an image in JPEG 2000 format. JPEG 2000 is now considered a defunct format and modern devices do not natively support decoding it, therefore I compile the [OpenJpeg](https://github.com/uclouvain/openjpeg) C library to Android native code (armeabi-v7a, arm64-v8a, x86, x86_64) and invoke it from Java via JNI. The resulting decompressed raw image data is saved to the file system app cache directory. Previously downloaded data is periodically checked and purged from the file system after it expires.
+GRIB2 is a binary format used primarily in the meteorological world. Since I could not find a modern, lightweight native Java library to parse Grib2 files, I wrote my own parser based on the [NOAA file specifications](https://www.nco.ncep.noaa.gov/pmb/docs/grib2/grib2_doc/). Within the GRIB2 container, the geospatial data is encoded as an image in JPEG 2000 format. JPEG 2000 is now considered a defunct format and modern devices do not natively support decoding it, therefore I compile the [OpenJpeg](https://github.com/uclouvain/openjpeg) C library to Android native code (armeabi-v7a, arm64-v8a, x86, x86_64) and invoke it from C code, which itself is invoked from Java via JNI. The resulting decompressed raw image data is saved to the file system app cache directory. Previously downloaded data is periodically checked and purged from the file system after it expires.
 
 In order to render the pollution overlay on top of the base map imagery, each pixel of the individual tiles of the map view port are first transformed with an inverse affine transformation and then an inverse Lambert conformal conic projection. This translates the x,y pixel coordinates of the Lambert-projected base map into latitude & longitude coordinates corresponding to the projection of the decompressed pollution imagery. A rotation is applied to the coordinates and a lookup is performed to determine the pollution concentration. Bilinear sampling is applied as part of the lookup to smooth out the hard edges of the pollution overlay. The resulting concentration value is colour-blended into the base map imagery based on the chosen colour scale. Once each tile is computed, it is compressed to WebP lossless format, which generally produces both the smallest files sizes and the fastest compression time on modern Android devices. Up to 512 of these 256x256 pixel WebP-compressed files are cached in memory to provide a more responsive scrolling experience on the map.
 
