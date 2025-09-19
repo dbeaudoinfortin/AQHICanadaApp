@@ -4,9 +4,9 @@ package com.dbf.aqhi.api.datamart;
 public enum Pollutant {
     //Raw data is in kg/m^3. We want the max scale to be 50 ug/m^3
     PM25("_PM2.5_Sfc","_PM2.5_Sfc","PM 2.5", "µg/m³", 1000000000f, 0f, 50f),
-    PM25_SMOKE("_PM2.5-WildfireSmokePlume_Sfc","-FW_PM2.5_Sfc","PM 2.5 Smoke", "µg/m³", 1000000000f, 0f, 50f),
+    PM25_SMOKE("_PM2.5-WildfireSmokePlume_Sfc","-FW_PM2.5_Sfc","PM 2.5/Smoke", "µg/m³", 1000000000f, 0f, 50f),
     PM10("_PM10_Sfc","_PM10_Sfc","PM 10", "µg/m³", 1000000000f, 0f, 50f),
-    PM10_SMOKE("_PM10-WildfireSmokePlume_Sfc","-FW_PM10_Sfc","PM 10 Smoke", "µg/m³", 1000000000f, 0f, 50f),
+    PM10_SMOKE("_PM10-WildfireSmokePlume_Sfc","-FW_PM10_Sfc","PM 10/Smoke", "µg/m³", 1000000000f, 0f, 50f),
 
     //Raw data is in VMR. We want the max scale to be 20 ppb
     SO2("_SO2_Sfc","_SO2_Sfc","SO2", "ppb", 1000000000f, 0f, 20f),

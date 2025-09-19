@@ -58,20 +58,20 @@ public class DatamartService extends APIService {
         for(int i =0; i < 3; i++) {
             modelRunDate = modelRunDate.minusHours(1);
 
-            DatamartData data = getRDAQAObservation(pollutant, modelRunDate, false, false, metaOnly);
+            DatamartData data = getRDAQAObservation(pollutant, modelRunDate, false, metaOnly);
             if(null != data) return data;
 
             if(allowPrelim) { //Try again, with prelim data
-                data = getRDAQAObservation(pollutant, modelRunDate, true, false, metaOnly);
+                data = getRDAQAObservation(pollutant, modelRunDate, true, metaOnly);
                 if(null != data) return data;
             }
         }
         return null;
     }
 
-    private DatamartData getRDAQAObservation(String pollutant, ZonedDateTime modelRunDate, boolean prelim, boolean firework, boolean metaOnly) {
-        final String model = prelim ? RDAQA_MODEL + "-Prelim" : (firework ? RDAQA_MODEL + "-FW" : RDAQA_MODEL);
-        return getData(RDAQA_MODEL, null, RDAQA_DIR, RDAQA_FILE_SUFFIX, pollutant, modelRunDate.format(DATAMART_DATE_FORMAT), null, modelRunDate.format(DATAMART_HOUR_FORMAT), null, metaOnly);
+    private DatamartData getRDAQAObservation(String pollutant, ZonedDateTime modelRunDate, boolean prelim, boolean metaOnly) {
+        final String model = prelim ? RDAQA_MODEL + "-Prelim" : RDAQA_MODEL;
+        return getData(model, null, RDAQA_DIR, RDAQA_FILE_SUFFIX, pollutant, modelRunDate.format(DATAMART_DATE_FORMAT), null, modelRunDate.format(DATAMART_HOUR_FORMAT), null, metaOnly);
     }
 
     private DatamartData getRAQDPSForecast(String pollutant, boolean metaOnly) {
