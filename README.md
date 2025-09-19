@@ -45,6 +45,20 @@ A no-nonsense Android app & widgets for displaying Canadian Air Quality Health I
 > [!TIP]
 > Tapping on the heat maps reveals the raw data values!
 
+## Pollution Maps
+
+Interactive pollution maps are available for all of Canada for NO2, NO, O3, SO2, PM 2.5, PM 10, and wildfire smoke. The map overlays are updated hourly and represent the most recent observations (1-3 hour delay) based on the [RDAQA air quality analysis model](https://eccc-msc.github.io/open-data/msc-data/nwp_rdaqa/readme_rdaqa_en/) from Environment and Climate Change Canada (ECCC) .
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/dfcc8aad-04fd-465f-a524-7edd4477e6e0" width="400"/>
+  <img src="https://github.com/user-attachments/assets/ac965350-5132-42bf-bd94-eda8572011d2" width="400"/>
+  <img src="https://github.com/user-attachments/assets/098d5711-1d03-4108-9acd-a2a3fa2ed624" width="400"/>
+  <img src="https://github.com/user-attachments/assets/c1128628-4b90-4cb3-8b7c-7b1b01f6026a" width="400"/>
+</p>
+
+> [!TIP]
+> Tapping on the scale changes the colour gradient of the overlay.
+
 ## Widgets
 
 Three widgets are provided: a small widget that displays the most recent AQHI reading at your location, a larger, wider widget that shows the AQHI reading on a relative scale, and a fun emoji smiley face widget that changes with the current AQHI reading.
@@ -85,20 +99,6 @@ Alerts are displayed in the main app and in the large widget whenever Environmen
   <img src="https://github.com/user-attachments/assets/a6f859bb-5b30-4d9c-8834-ae80ee367e3c" width="400"/>
   <img src="https://github.com/user-attachments/assets/e1764e0f-27b6-4eb8-ba04-a43dc520ca4a" width="400"/>
 </p>
-
-## Pollution Maps
-
-Interactive pollution maps are available for all of Canada for NO2, NO, O3, SO2, PM 2.5, PM 10, and wildfire smoke. The map overlays are updated hourly and represent the most recent observations (1-3 hour delay) based on the [RDAQA air quality analysis model](https://eccc-msc.github.io/open-data/msc-data/nwp_rdaqa/readme_rdaqa_en/) from Environment and Climate Change Canada (ECCC) .
-
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/dfcc8aad-04fd-465f-a524-7edd4477e6e0" width="400"/>
-  <img src="https://github.com/user-attachments/assets/ac965350-5132-42bf-bd94-eda8572011d2" width="400"/>
-  <img src="https://github.com/user-attachments/assets/098d5711-1d03-4108-9acd-a2a3fa2ed624" width="400"/>
-  <img src="https://github.com/user-attachments/assets/c1128628-4b90-4cb3-8b7c-7b1b01f6026a" width="400"/>
-</p>
-
-> [!TIP]
-> Tapping on the scale changes the colour gradient of the overlay.
 
 # How it works
 AQHI Data is pulled from Environment and Climate Change Canada's public API using the closest active monitoring station to your current location. The station definitions, current location, and current AQHI readings are all cached to prevent excessive calls to the API. Data is shared between the main app and the widgets.
