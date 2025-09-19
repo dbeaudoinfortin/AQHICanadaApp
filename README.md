@@ -140,6 +140,16 @@ A lot of care was taken to optimize the performance of all this image manipulati
 
 The rendering of heat maps is entirely written from scratch by myself. My [GitHub project](https://github.com/dbeaudoinfortin/HeatMaps) contains rendering libraries for both Android and Java2D. Check it out if you want to add beautiful, customizable heat maps to you own Java project.
 
+## Android Limitations
+
+Android no longer allows background location access to be enabled by default. If your AQHI location is set to Automatic and you want your homescreen widgets to update automatically while travelling, you’ll need to manually choose “Allow all the time” in the app’s location permission settings. This step is optional.
+
+<img src="https://github.com/user-attachments/assets/34fa4b0a-5f7f-4f66-97d9-2957bd146090" width="300"/>
+
+By default, Android optimizes background activity to extend battery life. However, this can sometimes delay or block widget updates. To ensure AQHI data updates consistently in the background, set the app’s battery usage to “Unrestricted” in the Android battery settings.
+
+<img src="https://github.com/user-attachments/assets/ba36dfbe-47fa-445c-a703-3dc08aaa27cc" width="300"/>
+
 # About AQHI
 The Canadian Air Quality Health Index (AQHI) is a made-in-Canada scale developed by Environment and Climate Change Canada (ECCC) to provide real-time information about the health risks associated with air pollution. It combines measurements from ground-level ozone, fine particulate matter (PM2.5), and nitrogen dioxide into a single numerical value on a scale from 1 (low risk) to 10 (high risk). All values above 10 are assigned a reading of 11+, indicating a very high risk.
 
