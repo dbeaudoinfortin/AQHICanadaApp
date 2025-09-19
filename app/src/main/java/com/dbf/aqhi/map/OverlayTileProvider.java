@@ -13,10 +13,6 @@ import com.dbf.aqhi.grib2.Grib2GridMetaData;
 
 public class OverlayTileProvider {
 
-    //TODO: make this colour selectable
-    private static final int overlayColour = Color.rgb(0x6B, 0x3A, 0x1E); //Dark brown
-    private static final int overlayColourMask = overlayColour & 0x00FFFFFF;
-
     //Performance optimizations
     private static final double DEG_TO_RAD = Math.PI / 180.0;
     private static final double RAD_TO_DEG = 180.0 / Math.PI;
@@ -46,7 +42,9 @@ public class OverlayTileProvider {
     private final Grib2GridMetaData grid;
     private final byte[] rawPixels;
 
-    public OverlayTileProvider(SpatialData overlay) {
+    private final int overlayColourMask;
+
+    public OverlayTileProvider(SpatialData overlay, int overlayColour) {
         this.overlay   = overlay;
         this.rawPixels = overlay.getGrib2().getRawImage().pixels;
         this.grid = overlay.getGrib2().getGridMetaData();
@@ -70,6 +68,8 @@ public class OverlayTileProvider {
         lamP = Math.toRadians(rLonNorthPole);
         sinPhiP = Math.sin(phiP);
         cosPhiP = Math.cos(phiP);
+
+        overlayColourMask = overlayColour & 0x00FFFFFF;
     }
 
     /** Bilinear sample of 8-bit grid at fractional (fi,fj). Returns [0..255]. */
@@ -165,4 +165,5 @@ public class OverlayTileProvider {
             canvas.drawBitmap(computedOverlay, 0, MAP_TILE_SIZE, 0f, 0f, MAP_TILE_SIZE, MAP_TILE_SIZE, true, null);
         }
     }
+
 }

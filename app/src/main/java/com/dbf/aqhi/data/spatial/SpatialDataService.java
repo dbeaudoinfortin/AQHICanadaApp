@@ -308,7 +308,7 @@ public class SpatialDataService extends DataService {
 
         Grib2 grib2 = null;
         try {
-            grib2 = Grib2Parser.parse(datamartData.getRawData(), pollutant.getScale());
+            grib2 = Grib2Parser.parse(datamartData.getRawData(), pollutant);
         } catch (Exception e) {
             Log.e(LOG_TAG, "Failed to parse grib2 data for " + pollutant + " from Datamart.\n" + StackTraceCompactor.getCompactStackTrace(e));
             return;

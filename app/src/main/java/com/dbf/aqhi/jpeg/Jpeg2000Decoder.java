@@ -20,9 +20,11 @@ public class Jpeg2000Decoder {
      *                     where the JPEG 2000 image begins.
      * @param length       The length (in bytes) of the JPEG 2000 image within {@code jpeg2000Data}.
      * @param scale        A linear scaling factor applied to each pixel.
+     * @param minVal       The minimum post-scaled value that represents 0 alpha
+     * @param maxVal       The maximum post-scaled value that represents max_alpha
      * @param max_alpha    Maximum output pixel value between 0-255. All values above this will be clamped.
      * @return A {@link RawImage} object containing the image dimensions and grayscale pixel data,
      *         or {@code null} if decoding fails.
      */
-    public static native RawImage decodeJpeg2000(byte[] jpeg2000Data, int offset, int length, float scale, int max_alpha);
+    public static native RawImage decodeJpeg2000(byte[] jpeg2000Data, int offset, int length, float scale, float minVal, float maxVal, int max_alpha);
 }

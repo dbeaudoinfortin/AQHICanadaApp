@@ -3,6 +3,7 @@ package com.dbf.aqhi.grib2;
 import android.util.Log;
 
 import com.dbf.aqhi.Utils;
+import com.dbf.aqhi.api.datamart.Pollutant;
 import com.dbf.aqhi.jpeg.Jpeg2000Decoder;
 import com.dbf.aqhi.jpeg.RawImage;
 
@@ -17,7 +18,7 @@ public class Grib2Parser {
     private static final long   MAX_BYTES = 100*1024*1024; //100mb, reasonable upper limit
     private static final byte[] GRIB_HEADER = {71, 82, 73, 66}; //"GRIB"
 
-    public static Grib2 parse(byte[] bytes, float scalingFactor) throws IOException {
+    public static Grib2 parse(byte[] bytes, Pollutant pollutant) throws IOException {
         if(null == bytes || bytes.length == 0) return null;
 
         checkHeader(bytes);
@@ -40,7 +41,7 @@ public class Grib2Parser {
                     scaleMeta = parseDataRep(bytes, sectionStart);
                     break;
                 case DATA: //Spec section 7
-                    rawImage = parseData(bytes, sectionStart, sectionLength, scaleMeta, scalingFactor);
+                    rawImage = parseData(bytes, sectionStart, sectionLength, scaleMeta, pollutant);
                 default:
                     break;
             }
@@ -51,14 +52,14 @@ public class Grib2Parser {
         return new Grib2(gridMeta, scaleMeta, rawImage);
     }
 
-    private static RawImage parseData(byte[] bytes, int sectionStart, long sectionLength, Grib2DataMetaData scaleMeta, float scalingFactor) {
+    private static RawImage parseData(byte[] bytes, int sectionStart, long sectionLength, Grib2DataMetaData scaleMeta, Pollutant pollutant) {
         if(null == scaleMeta)
             throw new IllegalArgumentException("Invalid GRIB2 fill, metadata was not parsed correctly.");
 
-        if(scaleMeta.getDataTemplateNumber() != 40)
-            throw new IllegalArgumentException("Invalid data type. Only JPEG 2000 codestream is supported.");
-
-        return Jpeg2000Decoder.decodeJpeg2000(bytes, sectionStart + 5, (int) (sectionLength-4), scalingFactor, MAX_PIXEL_VALUE);
+        //TODO:Support Reference value R
+        //scale = (R + Y*2^E)*(10^-D)*unit_conversion_scale
+        float scale = (float) (Math.pow(2,scaleMeta.getBinaryScaleE()) * Math.pow(10,-scaleMeta.getDecimalScaleD()) * pollutant.getUnitScale());
+        return Jpeg2000Decoder.decodeJpeg2000(bytes, sectionStart + 5, (int) (sectionLength-4), scale, pollutant.getMinVal(), pollutant.getMaxVal(), MAX_PIXEL_VALUE);
     }
 
     private static Grib2GridMetaData parseGridDef(byte[] bytes, int sectionStart) {
@@ -69,13 +70,17 @@ public class Grib2Parser {
     private static Grib2DataMetaData parseDataRep(byte[] bytes, int sectionStart) {
         final long dataPoints = readUInt32(bytes, sectionStart + 5);
         final int dataTemplateNumber = readUInt16(bytes, sectionStart + 9);
-        Log.i(LOG_TAG, "Grib2 file contains " + dataPoints + " data point(s) of type " + dataTemplateNumber);
 
-        final float R   = readFloat32(bytes, sectionStart + 11);
-        final int E     = readInt16(bytes, sectionStart + 15);
-        final int D     = readInt16(bytes, sectionStart + 17);
-        final int nb    = readUByte8(bytes, sectionStart + 19);
-        final int originalType = readUByte8(bytes, sectionStart + 20);
+        if(dataTemplateNumber != 40) //Grid Point Data - JPEG2000 Compression
+            throw new IllegalArgumentException("Invalid data type. Only JPEG 2000 codestream is supported.");
+
+        Log.i(LOG_TAG, "Grib2 file contains " + dataPoints + " data point(s) of type " + dataTemplateNumber);
+        //As per 92.9.4: Data shall be coded in the form of non-negative scaled differences from a reference value of the whole field plus, if applicable, a local reference value.
+        final float R   = readFloat32(bytes, sectionStart + 11); //Reference value (R) (IEEE 32-bit floating-point value)
+        final int E     = readInt16(bytes, sectionStart + 15); //Binary scale factor (E)
+        final int D     = readInt16(bytes, sectionStart + 17); //Decimal scale factor (D)
+        final int nb    = readUByte8(bytes, sectionStart + 19); //Number of bits required to hold the resulting scaled and referenced data values. (i.e. The depth of the grayscale image.)
+        final int originalType = readUByte8(bytes, sectionStart + 20); //Type of original field values
 
         return new Grib2DataMetaData(R, E, D, nb, originalType, dataTemplateNumber, dataPoints);
     }

@@ -39,7 +39,7 @@ public class DatamartService extends APIService {
     }
 
     public DatamartData getObservation(Pollutant pollutant, boolean metaOnly) {
-        return getRDAQAObservation(pollutant.getDatamartObservationName(), false, metaOnly);
+        return getRDAQAObservation(pollutant.getDatamartObservationName(), true, metaOnly);
     }
 
     public DatamartData getForecast(Pollutant pollutant) {

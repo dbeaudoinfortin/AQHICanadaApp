@@ -58,9 +58,12 @@ static OPJ_BOOL mem_seek_fn(OPJ_OFF_T p_nb_bytes, void* p_user_data) {
     return OPJ_TRUE;
 }
 
+//TODO: Improve performance. Setup and decompression is about 41ms.
 JNIEXPORT jobject JNICALL
 Java_com_dbf_aqhi_jpeg_Jpeg2000Decoder_decodeJpeg2000(
-        JNIEnv *env, jclass clazz, jbyteArray data, jint offset, jint length, jfloat scale, jint max_alpha) {
+        JNIEnv *env, jclass clazz, jbyteArray data, jint offset, jint length, jfloat data_scale, jfloat min_val, jfloat max_val, jint max_alpha) {
+
+    LOG_INFO("Stating JPEG2000 image decompression.");
 
     //Get pointer to array elements to avoid copying the entire array
     jbyte* all_data = (*env)->GetPrimitiveArrayCritical(env, data, NULL);
@@ -83,7 +86,7 @@ Java_com_dbf_aqhi_jpeg_Jpeg2000Decoder_decodeJpeg2000(
     opj_image_t* l_image = NULL;
     opj_dparameters_t parameters;
 
-    jobject decodedImageObj = NULL; //Java return object
+    jobject decoded_img = NULL; //Java return object
 
     opj_set_default_decoder_parameters(&parameters);
 
@@ -140,48 +143,53 @@ Java_com_dbf_aqhi_jpeg_Jpeg2000Decoder_decodeJpeg2000(
     const int factor = comp->factor;
     const int width  = comp->w;
     const int height = comp->h;
-    const int pixelCount = width * height;
+    const int pixel_cnt = width * height;
 
     //Singed ranges from -2^(precision-1) to (2^(precision-1))-1
     //Unsigned ranges from 0 to (2^precision)-1
-    const int min_val = is_signed ? -(1 << (precision - 1)) : 0;
-    const int max_val = is_signed ? (1 << (precision - 1)) - 1 : (1 << precision) - 1;
+    const int min_val_img = is_signed ? -(1 << (precision - 1)) : 0;
+    const int max_val_img = is_signed ? (1 << (precision - 1)) - 1 : (1 << precision) - 1;
 
-    LOG_INFO("Image data: components=%d, precision=%d, signed=%d, factor=%d, min_val=%d, max_val=%d, width=%d, height=%d, pixelCount=%d",
-             l_image->numcomps, precision, is_signed, factor, min_val, max_val, width, height, pixelCount);
+    LOG_INFO("Image data: components=%d, precision=%d, signed=%d, factor=%d, min_val=%d, max_val=%d, width=%d, height=%d, pixel_cnt=%d",
+             l_image->numcomps, precision, is_signed, factor, min_val_img, max_val_img, width, height, pixel_cnt);
 
     //Allocate and fill the output pixel array
-    jbyteArray pixelArray = (*env)->NewByteArray(env, pixelCount);
-    if (!pixelArray) {
+    jbyteArray pixel_array = (*env)->NewByteArray(env, pixel_cnt);
+    if (!pixel_array) {
         LOG_ERROR("Failed to allocate pixel array.");
         goto cleanup;
     }
-    jbyte* outPixels = (jbyte*)(*env)->GetByteArrayElements(env, pixelArray, NULL);
+    jbyte* outPixels = (jbyte*)(*env)->GetByteArrayElements(env, pixel_array, NULL);
 
-    const int range = (max_val - min_val);
-    const float scaleFactor = 255 * scale;
+    const float alphaScaleFactor = max_alpha/(max_val - min_val) ;
     //Use first component only (greyscale)
-    for (int i = 0; i < pixelCount; ++i) {
-        int grey = ((comp->data[i] - min_val) * scaleFactor) / range;
-        if (grey < 0) grey = 0;
-        if (grey > max_alpha) grey = max_alpha;
+    float grey;
+    for (int i = 0; i < pixel_cnt; ++i) {
+        grey = comp->data[i] * data_scale;
+        if (grey < min_val) {
+            grey = min_val;
+        } else if (grey > max_val){
+            grey = max_alpha;
+        } else {
+            grey = (grey - min_val) * alphaScaleFactor;
+        }
         outPixels[i] = (jbyte)grey;
     }
-    (*env)->ReleaseByteArrayElements(env, pixelArray, outPixels, 0);
+    (*env)->ReleaseByteArrayElements(env, pixel_array, outPixels, 0);
 
     //Manually invoke the constructor of the output object (RawImage type)
-    jclass rawImageCls = (*env)->FindClass(env, "com/dbf/aqhi/jpeg/RawImage");
-    if (!rawImageCls) {
+    jclass raw_image_cls = (*env)->FindClass(env, "com/dbf/aqhi/jpeg/RawImage");
+    if (!raw_image_cls) {
         LOG_ERROR("Could not find RawImage class.");
         goto cleanup;
     }
 
-    jmethodID constructor = (*env)->GetMethodID(env, rawImageCls, "<init>", "(II[B)V");
+    jmethodID constructor = (*env)->GetMethodID(env, raw_image_cls, "<init>", "(II[B)V");
     if (!constructor) {
         LOG_ERROR("Could not find DecodedImage constructor");
         goto cleanup;
     }
-    decodedImageObj = (*env)->NewObject(env, rawImageCls, constructor, width, height, pixelArray);
+    decoded_img = (*env)->NewObject(env, raw_image_cls, constructor, width, height, pixel_array);
 
     //End of processing
     cleanup:
@@ -190,6 +198,7 @@ Java_com_dbf_aqhi_jpeg_Jpeg2000Decoder_decodeJpeg2000(
     if (l_stream) opj_stream_destroy(l_stream);
     if (all_data) (*env)->ReleasePrimitiveArrayCritical(env, data, all_data, JNI_ABORT);
 
-    return decodedImageObj;
+    LOG_INFO("JPEG2000 image decompression complete.");
+    return decoded_img;
 }
 

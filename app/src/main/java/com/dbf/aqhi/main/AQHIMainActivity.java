@@ -86,7 +86,7 @@ public class AQHIMainActivity extends AQHIActivity {
     private boolean showForecastGridData = false;
     private boolean showGaugeNumbers = false;
     private Pollutant selectedMapPollutant;
-
+    private int mapScaleIndex = 1;
     private CompositeTileProvider tileProvider;
 
     @Override
@@ -264,6 +264,23 @@ public class AQHIMainActivity extends AQHIActivity {
                 }
             }
         });
+
+        //Add a click listener to change the colour of the overlay
+        View imgScale = findViewById(R.id.imgScale);
+        imgScale.setOnClickListener(view -> {
+            mapScaleIndex++;
+            if(mapScaleIndex > 4) mapScaleIndex = 1;
+
+            int mapScaleGradient = getResources().getIdentifier("map_scale_" + mapScaleIndex, "drawable", getPackageName());
+            int mapOverlayColour = getResources().getIdentifier("map_overlay_colour_" + mapScaleIndex, "color", getPackageName());
+
+            view.setBackground(getDrawable(mapScaleGradient));
+            OverlayTileProvider overlay = tileProvider.getOverlayTileProvider();
+            if(null != overlay) {
+                tileProvider.setOverlayTileProvider(new OverlayTileProvider(overlay.getOverlay(), getColor(mapOverlayColour)));
+                mapView.redrawTiles();
+            }
+        });
     }
 
     private void updateUI() {
@@ -346,7 +363,6 @@ public class AQHIMainActivity extends AQHIActivity {
     private void updateMapUI() {
         View container = findViewById(R.id.mapContainer);
         MapView mapView = findViewById(R.id.mapView);
-        TextView mapTsText = findViewById(R.id.lblTimestamp);
         View marker = mapView.getMarkerLayout().getMarkerByTag(MAP_MARKER_TAG);
 
         //Update the list of available pollutants
@@ -407,8 +423,26 @@ public class AQHIMainActivity extends AQHIActivity {
         }
 
         if(dataHasChanged) {
-            mapTsText.setText(null == newSpatialData ? "" : this.getResources().getString(R.string.observations_at) + " " + utcDateToFriendly(newSpatialData.getModel().getModelRunDate(), newSpatialData.getModel().getModelRunHour()));
-            tileProvider.setOverlayTileProvider(null == newSpatialData ? null : new OverlayTileProvider(newSpatialData));
+            TextView minTxt = findViewById(R.id.lblMapMin);
+            TextView maxTxt = findViewById(R.id.lblMapMax);
+            TextView mapTsText = findViewById(R.id.lblTimestamp);
+
+            if(null == newSpatialData) {
+                mapTsText.setVisibility(GONE);
+                minTxt.setVisibility(GONE);
+                maxTxt.setVisibility(GONE);
+                tileProvider.setOverlayTileProvider(null);
+            } else {
+                mapTsText.setVisibility(VISIBLE);
+                minTxt.setVisibility(VISIBLE);
+                maxTxt.setVisibility(VISIBLE);
+                minTxt.setText(""+ ((int) selectedMapPollutant.getMinVal()));
+                maxTxt.setText(((int) selectedMapPollutant.getMaxVal()) + " " + selectedMapPollutant.getUnits());
+                mapTsText.setText(this.getResources().getString(R.string.observations_at) + " " + utcDateToFriendly(newSpatialData.getModel().getModelRunDate(), newSpatialData.getModel().getModelRunHour()));
+                int mapOverlayColour = getResources().getIdentifier("map_overlay_colour_" + mapScaleIndex, "color", getPackageName());
+                tileProvider.setOverlayTileProvider(new OverlayTileProvider(newSpatialData, getColor(mapOverlayColour)));
+            }
+
             mapView.redrawTiles();
         }
     }

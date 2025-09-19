@@ -3,7 +3,6 @@ package com.dbf.aqhi.map;
 import static org.junit.Assert.assertEquals;
 
 import android.util.Pair;
-
 import org.junit.Test;
 
 public class MapTransformerTest {
