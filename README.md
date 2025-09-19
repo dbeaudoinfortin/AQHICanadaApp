@@ -88,11 +88,17 @@ Alerts are displayed in the main app and in the large widget whenever Environmen
 
 ## Pollution Maps
 
+Interactive pollution maps are available for all of Canada for NO2, NO, O3, SO2, PM 2.5, PM 10, and wildfire smoke. The map overlays are updated hourly and represent the most recent observations (1-3 hour delay) based on the [RDAQA air quality analysis model](https://eccc-msc.github.io/open-data/msc-data/nwp_rdaqa/readme_rdaqa_en/) from Environment and Climate Change Canada (ECCC) .
+
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/0dc91834-ff26-490c-95c7-940e1f011ca7" width="400"/>
-  <img src="https://github.com/user-attachments/assets/39b9dcee-a292-4945-b430-919df9008682" width="400"/>
-  <img src="https://github.com/user-attachments/assets/409eed1b-16bf-4dfb-ac4e-c76e1666b3e7" width="400"/>
+  <img src="https://github.com/user-attachments/assets/dfcc8aad-04fd-465f-a524-7edd4477e6e0" width="400"/>
+  <img src="https://github.com/user-attachments/assets/ac965350-5132-42bf-bd94-eda8572011d2" width="400"/>
+  <img src="https://github.com/user-attachments/assets/098d5711-1d03-4108-9acd-a2a3fa2ed624" width="400"/>
+  <img src="https://github.com/user-attachments/assets/c1128628-4b90-4cb3-8b7c-7b1b01f6026a" width="400"/>
 </p>
+
+> [!TIP]
+> Tapping on the scale changes the colour gradient of the overlay.
 
 # How it works
 AQHI Data is pulled from Environment and Climate Change Canada's public API using the closest active monitoring station to your current location. The station definitions, current location, and current AQHI readings are all cached to prevent excessive calls to the API. Data is shared between the main app and the widgets.
@@ -121,7 +127,7 @@ The map is displayed in the app using [Pierre Laurence's MapView library](https:
 
 Pollution overlays are processed entirely on-device from raw data obtained from the [public Datamart](https://eccc-msc.github.io/open-data/msc-datamart/readme_en/) of the Meteorological Service of Canada division of Environment and Climate Change Canada. This was no easy feat!
 
-For each pollutant, the [directory structure](https://dd.weather.gc.ca/) of MSC Datamart is traversed to find the most recent geospatial data. This is done because the data is not (yet) available as a REST API, only as an HTTP directory listing. The geospatial metadata is cached on the device to ensure that the data is never downloaded more than once. The geospatial data is downloaded as a file in GRIB2 format.
+For each pollutant, the [directory structure](https://dd.weather.gc.ca/) of MSC Datamart is traversed to find the most recent RDAQA geospatial data. This is done because the data is not (yet) available as a REST API, only as an HTTP directory listing. The geospatial metadata is cached on the device to ensure that the data is never downloaded more than once. The geospatial data is downloaded as a file in GRIB2 format.
 
 GRIB2 is a binary format used primarily in the meteorological world. Since I could not find a modern, lightweight native Java library to parse Grib2 files, I wrote my own parser based on the [NOAA file specifications](https://www.nco.ncep.noaa.gov/pmb/docs/grib2/grib2_doc/). Within the GRIB2 container, the geospatial data is encoded as an image in JPEG 2000 format. JPEG 2000 is now considered a defunct format and modern devices do not natively support decoding it, therefore I compile the [OpenJpeg](https://github.com/uclouvain/openjpeg) C library to Android native code (armeabi-v7a, arm64-v8a, x86, x86_64) and invoke it from C code, which itself is invoked from Java via JNI. The resulting decompressed raw image data is saved to the file system app cache directory. Previously downloaded data is periodically checked and purged from the file system after it expires.
 
