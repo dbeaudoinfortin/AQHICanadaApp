@@ -17,8 +17,8 @@ public enum Pollutant {
     //Raw data is in VMR. We want the max scale to be 40 ppb
     NO("_NO_Sfc","_NO_Sfc","NO", "ppb", 1000000000f, 0f, 40f),
 
-    //Raw data is in VMR. We want the max scale to be 60 ppb, and the min to be 5 ppb
-    O3("_O3_Sfc","_O3_Sfc","O3", "ppb", 1000000000f, 5f, 60f);
+    //Raw data is in VMR. We want the max scale to be 100 ppb, and the min to be 10 ppb
+    O3("_O3_Sfc","_O3_Sfc","O3", "ppb", 1000000000f, 10f, 100f);
 
 
     private final String datamartForecastName;

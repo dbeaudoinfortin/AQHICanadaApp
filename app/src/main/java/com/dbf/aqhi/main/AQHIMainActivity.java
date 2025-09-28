@@ -523,7 +523,12 @@ public class AQHIMainActivity extends AQHIActivity {
         final int overlayValue = overlay.overlayLookup(x, y);
         TextView value = marker.findViewById(R.id.touch_value);
         if(overlayValue >= MAX_PIXEL_VALUE) {
-            value.setText(">" + pollutant.getMaxVal() + " " + pollutant.getUnits());
+            value.setText("≥" + pollutant.getMaxVal() + " " + pollutant.getUnits());
+        } else if (overlayValue < 0) {
+            //Outside the grid
+            value.setText("-- " + pollutant.getUnits());
+        } else if (overlayValue == 0) {
+            value.setText("≤" + pollutant.getMinVal() + " " + pollutant.getUnits());
         } else {
             final float pollutionValue = pollutant.getMinVal() + ((((float)overlayValue) / MAX_PIXEL_VALUE) * (pollutant.getMaxVal() - pollutant.getMinVal()));
             value.setText((new DecimalFormat("0.0")).format(pollutionValue) + " " + pollutant.getUnits());

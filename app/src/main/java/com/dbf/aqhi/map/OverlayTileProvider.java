@@ -73,8 +73,8 @@ public class OverlayTileProvider {
 
     /** Bilinear sample of 8-bit grid at fractional (fi,fj). Returns [0..255]. */
     private static int sampleAlphaBilinear(double fi, double fj, final byte[] pixels, int width, int height) {
-        //Outside grid → transparent
-        if (fi < 0 || fj < 0 || fi > width - 1 || fj > height - 1) return 0;
+        //Outside grid
+        if (fi < 0 || fj < 0 || fi > width - 1 || fj > height - 1) return -1;
 
         final int i0 = (int) fi;
         final int j0 = (int) fj;
