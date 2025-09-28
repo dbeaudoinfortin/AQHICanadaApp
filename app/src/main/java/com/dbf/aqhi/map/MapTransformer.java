@@ -1,5 +1,9 @@
 package com.dbf.aqhi.map;
 
+import static com.dbf.aqhi.Utils.HALF_PI;
+import static com.dbf.aqhi.Utils.QUARTER_PI;
+import static com.dbf.aqhi.Utils.RAD_TO_DEG;
+
 import android.util.Pair;
 
 import org.apache.commons.math3.linear.LUDecomposition;
@@ -10,8 +14,6 @@ import org.apache.commons.math3.linear.MatrixUtils;
  * This works only for Lambert Conformal Conic projections
  */
 public class MapTransformer {
-    private static final double quarterPI = Math.PI/4;
-
     //Lambert projection parameters for NAD83 EPSG:3978
     //Parameters are based on the CBCT3978 map data
     //https://maps-cartes.services.geo.ca/server2_serveur2/rest/services/BaseMaps/CBCT3978/MapServer
@@ -152,16 +154,9 @@ public class MapTransformer {
         final double rho   = Math.hypot(x, y) * signN; //preserve sign of n
         final double theta = Math.atan2(x, y);
 
-        //t = (ρ / (a*F))^(1/n)
-        final double t = Math.pow(rho * invAF, invN);
-
-        //φ from t via iteration (ellipsoidal case)
-        final double phi = phiFromT_faster(t);
-
         //λ = λ0 + θ/n
-        final double lambda = lambda0 + (theta * invN);
-        final double lat = Math.toDegrees(phi);
-        double lon = Math.toDegrees(lambda);
+        final double lat = phiFromT_faster(Math.pow(rho * invAF, invN)) * RAD_TO_DEG;
+        double lon = (lambda0 + (theta * invN)) * RAD_TO_DEG;
 
         //Normalize lon to [-180, 180)
         if (lon >= 180.0) lon -= 360.0;
@@ -208,7 +203,7 @@ public class MapTransformer {
     private static double tFromPhi(double phi) {
         final double esin = e * Math.sin(phi);
         final double ratio = (1.0 - esin) / (1.0 + esin);
-        return Math.tan(quarterPI - phi * 0.5) / Math.pow(ratio, e * 0.5);
+        return Math.tan(QUARTER_PI - phi * 0.5) / Math.pow(ratio, e * 0.5);
     }
 
     /** m(φ) = cosφ / sqrt(1 - e^2 sin^2φ) */
@@ -228,8 +223,6 @@ public class MapTransformer {
     private static final double C4 =  7.0/48.0* e4 + 29.0/240.0* e6 + 811.0/11520.0 * e8;
     private static final double C6 =  7.0/120.0*e6 + 81.0/1120.0* e8;
     private static final double C8 = 4279.0/161280.0 * e8;
-
-    private static final double HALF_PI = Math.PI * 0.5;
 
     //Since we only need about 100m of precision, we can use some fast approximation
     private static double phiFromT_fast(double t) {

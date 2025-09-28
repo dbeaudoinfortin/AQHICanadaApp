@@ -22,6 +22,12 @@ public class Utils {
 
     private static final String LOG_TAG = "Utils";
 
+    //Performance optimizations
+    public static final double DEG_TO_RAD = Math.PI / 180.0;
+    public static final double RAD_TO_DEG = 180.0 / Math.PI;
+    public static final double QUARTER_PI = Math.PI/4;
+    public static final double HALF_PI = Math.PI/2;
+
     public static String loadCompressedResource(Context context, int resourceID) {
         try (InputStream is = context.getResources().openRawResource(resourceID);
              BufferedInputStream bis = new BufferedInputStream(is);

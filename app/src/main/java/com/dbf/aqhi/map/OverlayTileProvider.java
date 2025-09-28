@@ -2,10 +2,11 @@ package com.dbf.aqhi.map;
 
 import static com.dbf.aqhi.AQHIFeature.MAP_LEVEL_COUNT;
 import static com.dbf.aqhi.AQHIFeature.MAP_TILE_SIZE;
+import static com.dbf.aqhi.Utils.DEG_TO_RAD;
+import static com.dbf.aqhi.Utils.RAD_TO_DEG;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Color;
 
 import com.dbf.aqhi.Utils;
 import com.dbf.aqhi.data.spatial.SpatialData;
@@ -13,9 +14,7 @@ import com.dbf.aqhi.grib2.Grib2GridMetaData;
 
 public class OverlayTileProvider {
 
-    //Performance optimizations
-    private static final double DEG_TO_RAD = Math.PI / 180.0;
-    private static final double RAD_TO_DEG = 180.0 / Math.PI;
+    public static final int MAX_PIXEL_VALUE = 230; //Ensure a little bit of transparency
 
     private final double gridScaleXInv; //= 0.09;
     private final double gridScaleYInv; //= 0.09;
@@ -127,6 +126,10 @@ public class OverlayTileProvider {
         for (int tileY = 0; tileY < MAP_TILE_SIZE; tileY++, worldY += invScale) {
             double worldX = tileWorldOriginX;
             for (int tileX = 0; tileX < MAP_TILE_SIZE; tileX++, worldX += invScale) {
+                //NOTE: This is a performance critical tight loop.
+                //So the code is copied from overlayLookup() to avoid the call overhead.
+                //This is where a macro function would be useful in Java.
+
                 //Transform from global pixel location to latitude and longitude coordinates
                 MapTransformer.transformXY(worldX, worldY, latLon);
 
@@ -166,4 +169,39 @@ public class OverlayTileProvider {
         }
     }
 
+    /**
+     * Lookup the overlay value at the global x,y pixel coordinates.[
+     *
+     * @param x pixel coordinate
+     * @param y pixel coordinate
+     *
+     * @return Overlay value
+     */
+    public int overlayLookup(int x, int y) {
+        double[] latLon = new double[2];
+
+        MapTransformer.transformXY(x, y, latLon);
+
+        //Fudge factor
+        latLon[1] += 4.8;
+
+        //Convert from degrees to rotated radian coordinates
+        latLon[0] *= DEG_TO_RAD;
+        latLon[1] *= DEG_TO_RAD;
+
+        final double sinLat = Math.sin(latLon[0]);
+        final double cosLat = Math.cos(latLon[0]);
+
+        final double dLam = latLon[1] - lamP;
+        final double cosLatCosDLam = Math.cos(dLam) * cosLat;
+
+        final double phiR = Math.asin((sinLat * sinPhiP) - (cosPhiP * cosLatCosDLam)); //Faster than Math.atan2(sinPhiR, Math.hypot(cosPhiR_sinLamR, cosPhiR_cosLamR));
+        final double lamR = Math.atan2(cosLat * Math.sin(dLam), (sinLat * cosPhiP) + (sinPhiP * cosLatCosDLam));
+
+        //Convert from rotated radian coordinates to grid fractional indices (i,j) in degrees
+        latLon[0] = ((phiR * RAD_TO_DEG) - rLatZero) * gridScaleYInv;
+        latLon[1] = ((lamR * RAD_TO_DEG) - rLonZero) * gridScaleXInv;
+
+        return sampleAlphaBilinear(latLon[1], latLon[0], rawPixels, gridWidth, gridHeight);
+    }
 }

@@ -1,5 +1,7 @@
 package com.dbf.aqhi.grib2;
 
+import static com.dbf.aqhi.map.OverlayTileProvider.MAX_PIXEL_VALUE;
+
 import android.util.Log;
 
 import com.dbf.aqhi.Utils;
@@ -14,7 +16,6 @@ public class Grib2Parser {
 
     private static final String LOG_TAG = "Grib2Parser";
 
-    private static final int    MAX_PIXEL_VALUE = 230; //Ensure a little bit of transparency
     private static final long   MAX_BYTES = 100*1024*1024; //100mb, reasonable upper limit
     private static final byte[] GRIB_HEADER = {71, 82, 73, 66}; //"GRIB"
 

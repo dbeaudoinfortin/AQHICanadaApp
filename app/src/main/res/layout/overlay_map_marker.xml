@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/tap_marker_container"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <!-- Value -->
+    <TextView
+        android:id="@+id/touch_value"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingLeft="6dp"
+        android:paddingTop="2dp"
+        android:paddingRight="6dp"
+        android:paddingBottom="2dp"
+        android:text="--"
+        android:textStyle="bold"
+        android:textSize="12sp"
+        android:textColor="@android:color/white"
+        android:background="@drawable/overlay_map_marker_value" />
+
+    <!-- Dot -->
+    <View
+        android:id="@+id/touch_dot"
+        android:layout_width="@dimen/overlay_marker_dot_size"
+        android:layout_height="@dimen/overlay_marker_dot_size"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="2dp"
+        android:background="@drawable/round_pin" />
+</LinearLayout>

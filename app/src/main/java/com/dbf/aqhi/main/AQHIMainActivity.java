@@ -4,6 +4,8 @@ import static android.view.View.GONE;
 import static android.view.View.INVISIBLE;
 import static android.view.View.VISIBLE;
 
+import static com.dbf.aqhi.map.OverlayTileProvider.MAX_PIXEL_VALUE;
+
 import android.Manifest;
 
 import android.annotation.SuppressLint;
@@ -21,6 +23,7 @@ import android.text.Html;
 import android.util.Log;
 import android.util.Pair;
 import android.util.TypedValue;
+import android.view.GestureDetector;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -59,9 +62,8 @@ import com.dbf.heatmaps.axis.StringAxis;
 import com.dbf.heatmaps.data.BasicDataRecord;
 import com.dbf.heatmaps.data.DataRecord;
 
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.Collection;
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -79,12 +81,15 @@ public class AQHIMainActivity extends AQHIActivity {
     private static final String LOG_TAG = "AQHIMainActivity";
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
-    private static final String MAP_MARKER_TAG = "MAP_MARKER_TAG";
+    private static final String MAP_STATION_MARKER_TAG = "STATION_MARKER";
+    private static final String MAP_TOUCH_MARKER_TAG = "TOUCH_MARKER";
 
     private BackgroundDataWorker backgroundWorker;
     private boolean showHistoricalGridData = false;
     private boolean showForecastGridData = false;
     private boolean showGaugeNumbers = false;
+
+    //Pollution Map attributes
     private Pollutant selectedMapPollutant;
     private int mapScaleIndex = 1;
     private CompositeTileProvider tileProvider;
@@ -167,7 +172,7 @@ public class AQHIMainActivity extends AQHIActivity {
     protected void initUI() {
         Log.i(LOG_TAG, "Initializing AQHI Main Activity UI.");
 
-        initMapUI();
+        initOverlayMapUI();
 
         //Add a click listener for the change location text
         findViewById(R.id.txtChangeLocationLink).setOnClickListener(v -> {
@@ -219,7 +224,7 @@ public class AQHIMainActivity extends AQHIActivity {
     }
 
     @SuppressLint("ClickableViewAccessibility")
-    private void initMapUI() {
+    private void initOverlayMapUI() {
         //Create the map, regardless if we have overlay data or not.
         //Overlays will be applied in the updateUI() method.
         tileProvider = new CompositeTileProvider(getMapTileProvider());
@@ -228,7 +233,21 @@ public class AQHIMainActivity extends AQHIActivity {
         config.setMaxScale(3);
         config.setMinimumScaleMode(MinimumScaleMode.FILL);
         mapView.configure(config);
-        mapView.setOnTouchListener((view, event) -> { //Prevent the map scrolling from fighting the main activity scrolling
+
+        final GestureDetector tapDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
+            @Override public boolean onSingleTapUp(MotionEvent e) {
+                final float scale = 1/mapView.getScale();
+                final int scrollX = mapView.getScrollX();
+                final int scrollY = mapView.getScrollY();
+                final float sceneX = (e.getX() + scrollX) * scale;
+                final float sceneY = (e.getY() + scrollY) * scale;
+                updateOverlayTouchMarker(mapView, sceneX, sceneY);
+                return true;
+            }
+        });
+
+        mapView.setOnTouchListener((view, event) -> {
+            //Prevent the map scrolling from fighting the main activity scrolling
             switch (event.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
                 case MotionEvent.ACTION_POINTER_DOWN:
@@ -240,8 +259,11 @@ public class AQHIMainActivity extends AQHIActivity {
                     view.getParent().requestDisallowInterceptTouchEvent(false);
                     break;
             }
+            //Handle the pollution value lookup
+            tapDetector.onTouchEvent(event);
             return false;
         });
+
         Spinner pollutantList = findViewById(R.id.ddPollutant);
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,android.R.layout.simple_spinner_item);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -252,7 +274,7 @@ public class AQHIMainActivity extends AQHIActivity {
                 Pollutant newSelection = Pollutant.fromDisplayName(parent.getSelectedItem().toString());
                 if(null == selectedMapPollutant || !selectedMapPollutant.equals(newSelection)) {
                     selectedMapPollutant = Pollutant.fromDisplayName(parent.getSelectedItem().toString());
-                    updateMapUI();
+                    updateOverlayMapUI();
                 }
             }
 
@@ -260,7 +282,7 @@ public class AQHIMainActivity extends AQHIActivity {
             public void onNothingSelected(AdapterView<?> parent) {
                 if(null != selectedMapPollutant) {
                     selectedMapPollutant = null;
-                    updateMapUI();
+                    updateOverlayMapUI();
                 }
             }
         });
@@ -357,13 +379,14 @@ public class AQHIMainActivity extends AQHIActivity {
         }
 
         //UPDATE POLLUTANT MAP
-        updateMapUI();
+        updateOverlayMapUI();
     }
 
-    private void updateMapUI() {
+    private void updateOverlayMapUI() {
         View container = findViewById(R.id.mapContainer);
         MapView mapView = findViewById(R.id.mapView);
-        View marker = mapView.getMarkerLayout().getMarkerByTag(MAP_MARKER_TAG);
+        View stationMarker = mapView.getMarkerLayout().getMarkerByTag(MAP_STATION_MARKER_TAG);
+        View touchMarker   = mapView.getMarkerLayout().getMarkerByTag(MAP_TOUCH_MARKER_TAG);
 
         //Update the list of available pollutants
         Collection<String> pollutants = getSpatialDataService().getLoadedPollutants(); //Can't be null
@@ -373,29 +396,30 @@ public class AQHIMainActivity extends AQHIActivity {
         adapter.addAll(pollutants);
 
         if(pollutants.isEmpty()) {
-         //No spatial data is available, hide the map
+            //No spatial data is available, hide the map
             container.setVisibility(GONE);
             selectedMapPollutant = null;
             tileProvider.setOverlayTileProvider(null);
-            if(null != marker) mapView.getMarkerLayout().removeMarker(marker);
+            if(null != stationMarker) mapView.getMarkerLayout().removeMarker(stationMarker);
+            if(null != touchMarker) mapView.getMarkerLayout().removeMarker(touchMarker);
             return;
         }
 
         //We have spatial data, show the map
         container.setVisibility(VISIBLE);
 
-        //Update the station location marker first, regardless of the selected pollution overlay
-        updateMapMarker(mapView, marker);
+        //Update the station location stationMarker first, regardless of the selected pollution overlay
+        updateOverlayMapMarker(mapView, stationMarker);
 
         if(null == selectedMapPollutant || !pollutants.contains(selectedMapPollutant.getDisplayName())) {
             //We need to force a change to the selected pollutant
             selectedMapPollutant = Pollutant.fromDisplayName(pollutants.iterator().next());
-            //Deactivate the click listener to prevent it from firing another UI upadate
+            //Deactivate the click listener to prevent it from firing another UI update
             AdapterView.OnItemSelectedListener listener = pollutantList.getOnItemSelectedListener();
             pollutantList.setOnItemSelectedListener(null);
             pollutantList.setSelection(0, false);
             pollutantList.setOnItemSelectedListener(listener);
-            //Note: The marker stays put even when the data changed since the location doesn't change
+            //Note: The stationMarker stays put even when the data changed since the location doesn't change
         }
 
         //Don't reload this from disk every time. Use the in-memory data if it is still fresh.
@@ -432,6 +456,7 @@ public class AQHIMainActivity extends AQHIActivity {
                 minTxt.setVisibility(GONE);
                 maxTxt.setVisibility(GONE);
                 tileProvider.setOverlayTileProvider(null);
+                if(null != touchMarker) mapView.getMarkerLayout().removeMarker(touchMarker);
             } else {
                 mapTsText.setVisibility(VISIBLE);
                 minTxt.setVisibility(VISIBLE);
@@ -441,13 +466,71 @@ public class AQHIMainActivity extends AQHIActivity {
                 mapTsText.setText(this.getResources().getString(R.string.observations_at) + " " + utcDateToFriendly(newSpatialData.getModel().getModelRunDate(), newSpatialData.getModel().getModelRunHour()));
                 int mapOverlayColour = getResources().getIdentifier("map_overlay_colour_" + mapScaleIndex, "color", getPackageName());
                 tileProvider.setOverlayTileProvider(new OverlayTileProvider(newSpatialData, getColor(mapOverlayColour)));
+                if(null != touchMarker) updateOverlayTouchMarker(mapView, null, null); //Do this last
             }
 
             mapView.redrawTiles();
         }
     }
 
-    private void updateMapMarker(MapView mapView, View marker) {
+    private void updateOverlayTouchMarker(MapView mapView, Float sceneX, Float sceneY) {
+
+        if(null == tileProvider) return;
+        //I suppose there is a race condition here. The overlay might change while this is executing.
+        //Not a big deal since it will only lead to stale data.
+        OverlayTileProvider overlay = tileProvider.getOverlayTileProvider();
+        if(null == overlay) return;
+
+        //Another little race condition here, could get bad units
+        Pollutant pollutant = selectedMapPollutant;
+        if(null == pollutant) return;
+
+        View marker = mapView.getMarkerLayout().getMarkerByTag(MAP_TOUCH_MARKER_TAG);
+
+        final int x;
+        final int y;
+        if(null == sceneX || null == sceneY || sceneX < 0.0 || sceneY < 0.0) {
+            //We changed pollutant and we don't actually know what the current mark X,Y coordinates are
+            if (null == marker) return; //Scenario doesn't make sense
+
+            //Work-around for the MarkerLayoutParams of the marker not being visible
+            Pair<Integer, Integer> coordinates = (Pair<Integer, Integer>) marker.getTag();
+            if(null == coordinates) {
+                mapView.getMarkerLayout().removeMarker(marker); //something is very wrong
+                return;
+            }
+            x = coordinates.first;
+            y = coordinates.second;
+        } else {
+            x = (int) Math.round(sceneX);
+            y = (int) Math.round(sceneY);
+
+            if (marker == null) {
+                marker = getLayoutInflater().inflate(R.layout.overlay_map_marker, mapView, false);
+                //Center the marker on the centre of the dot.
+                final float markerOffsetY = getResources().getDimensionPixelSize(R.dimen.overlay_marker_dot_size)/ 2f;
+                mapView.getMarkerLayout().addMarker(marker, x, y, -0.5f, -1.0f, 0f, markerOffsetY , MAP_TOUCH_MARKER_TAG);
+            } else {
+                mapView.getMarkerLayout().moveMarker(marker, x, y);
+            }
+
+            //Work-around for the MarkerLayoutParams of the marker not being visible
+            marker.setTag(new Pair<Integer, Integer>(x,y));
+        }
+
+        //The overlay value is the alpha transparency of the overlay
+        //Convert to the actual unit value
+        final int overlayValue = overlay.overlayLookup(x, y);
+        TextView value = marker.findViewById(R.id.touch_value);
+        if(overlayValue >= MAX_PIXEL_VALUE) {
+            value.setText(">" + pollutant.getMaxVal() + " " + pollutant.getUnits());
+        } else {
+            final float pollutionValue = pollutant.getMinVal() + ((((float)overlayValue) / MAX_PIXEL_VALUE) * (pollutant.getMaxVal() - pollutant.getMinVal()));
+            value.setText((new DecimalFormat("0.0")).format(pollutionValue) + " " + pollutant.getUnits());
+        }
+    }
+
+    private void updateOverlayMapMarker(MapView mapView, View marker) {
         final Pair<Float, Float> latLon = getAQHIService().getStationLatLon(false);
         if(null == latLon || latLon.first < -400 || latLon.second < -400) {
             //There is no selected location yet
@@ -464,7 +547,7 @@ public class AQHIMainActivity extends AQHIActivity {
                 ImageView newMarker = new ImageView(this);
                 newMarker.setTag(xyCoordinates);
                 newMarker.setImageResource(R.drawable.location_pin_selected);
-                mapView.getMarkerLayout().addMarker(newMarker, xyCoordinates.first, xyCoordinates.second, -0.5f, -0.8f, 0f, 0f, MAP_MARKER_TAG);
+                mapView.getMarkerLayout().addMarker(newMarker, xyCoordinates.first, xyCoordinates.second, -0.5f, -0.8f, 0f, 0f, MAP_STATION_MARKER_TAG);
                 MarkerApiKt.moveToMarker(mapView, newMarker, 0.5f, false);
             } else if(null != marker.getTag() && !xyCoordinates.equals(marker.getTag())) {
                 //Only move the marker if the location changed, otherwise you annoy the user
