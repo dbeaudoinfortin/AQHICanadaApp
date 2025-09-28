@@ -52,12 +52,15 @@ Interactive pollution maps are available for all of Canada for NO2, NO, O3, SO2,
 <p align="center">
   <img src="https://github.com/user-attachments/assets/dfcc8aad-04fd-465f-a524-7edd4477e6e0" width="400"/>
   <img src="https://github.com/user-attachments/assets/ac965350-5132-42bf-bd94-eda8572011d2" width="400"/>
-  <img src="https://github.com/user-attachments/assets/098d5711-1d03-4108-9acd-a2a3fa2ed624" width="400"/>
+  <img src="https://github.com/user-attachments/assets/4aaf680f-94d8-4def-bdd8-74eba3a29275" width="400"/>
   <img src="https://github.com/user-attachments/assets/c1128628-4b90-4cb3-8b7c-7b1b01f6026a" width="400"/>
 </p>
 
 > [!TIP]
 > Tapping on the scale changes the colour gradient of the overlay.
+
+> [!TIP]
+> Tapping on the pollution map shows the value at that point. 
 
 ## Widgets
 
