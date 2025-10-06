@@ -119,6 +119,11 @@ public class AQHIMainActivity extends AQHIActivity {
     protected void onResume() {
         super.onResume();
         Log.i(LOG_TAG, "AQHI Main Activity resumed.");
+
+        //The pollutant list cache needs to be refreshed since the data may no longer be valid
+        getSpatialDataService().clearLoadedPollutants();
+
+        //Restart the periodic updates
         backgroundWorker.resume();
 
         //Ask the user to accept the location permission when the app loads
@@ -428,7 +433,7 @@ public class AQHIMainActivity extends AQHIActivity {
         //If we already have an overlay then get just load the meta data, not the image data.
         SpatialData newSpatialData = (null == oldSpatialData) ? getSpatialDataService().getSpatialData(selectedMapPollutant) : getSpatialDataService().getSpatialMetaData(selectedMapPollutant);
 
-        if (null == oldSpatialData && null == newSpatialData) {
+        if (null == newSpatialData) {
             //We have no spatial data, despite the pollutant list not being empty
             //This is a special error condition or a race condition.
             //Keep rendering the map without a pollution overlay and hope no one notices! :-)

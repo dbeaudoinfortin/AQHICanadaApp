@@ -452,4 +452,10 @@ public class SpatialDataService extends DataService {
             return new LinkedHashSet<String>(loadedPollutants); //Always clone
         }
     }
+
+    public void clearLoadedPollutants(){
+        synchronized(POLLUTANT_LIST_SYNC_OBJECT) {
+            loadedPollutants = null;
+        }
+    }
 }
