@@ -22,7 +22,7 @@ public class DatamartService extends APIService {
     private static final DateTimeFormatter DATAMART_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
     private static final DateTimeFormatter DATAMART_HOUR_FORMAT = DateTimeFormatter.ofPattern("HH");
 
-    private static final String DATAMART_BASE_URL = "https://dd.weather.gc.ca";
+    private static final String DATAMART_BASE_URL = "https://dd.weather.gc.ca/today";
     private static final String DATAMART_SUB_DIR = "WXO-DD";
 
     private static final String RAQDPS_MODEL = "RAQDPS";
