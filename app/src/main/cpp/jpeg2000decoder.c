@@ -86,13 +86,16 @@ Java_com_dbf_aqhi_jpeg_Jpeg2000Decoder_decodeJpeg2000(
     opj_image_t* l_image = NULL;
     opj_dparameters_t parameters;
 
+    //Output data arrays
+    jbyte*  outPixels = NULL;
+    jfloat* outVals   = NULL;
+
     jobject decoded_img = NULL; //Java return object
 
     opj_set_default_decoder_parameters(&parameters);
 
     //Create memory stream for input
-    l_stream = opj_stream_create(jpeg2000_len, OPJ_TRUE);
-    if (!l_stream) {
+    if (!(l_stream = opj_stream_create(jpeg2000_len, OPJ_TRUE))) {
         LOG_ERROR("Failed to create OpenJPEG stream.");
         goto cleanup;
     }
@@ -104,17 +107,16 @@ Java_com_dbf_aqhi_jpeg_Jpeg2000Decoder_decodeJpeg2000(
     opj_stream_set_seek_function(l_stream, mem_seek_fn);
 
     //Create decoder
-    l_codec = opj_create_decompress(OPJ_CODEC_J2K); // Try OPJ_CODEC_JP2 if needed
+    if (!(l_codec = opj_create_decompress(OPJ_CODEC_J2K))) {
+        LOG_ERROR("Failed to create OpenJPEG codec.");
+        goto cleanup;
+    }
 
     //Register a callback handlers for log messages
     opj_set_error_handler(l_codec, error_callback, NULL);
     opj_set_warning_handler(l_codec, warning_callback, NULL);
     opj_set_info_handler(l_codec, info_callback, NULL);
 
-    if (!l_codec) {
-        LOG_ERROR("Failed to create OpenJPEG codec.");
-        goto cleanup;
-    }
     if (!opj_setup_decoder(l_codec, &parameters)) {
         LOG_ERROR("Failed to setup decoder.");
         goto cleanup;
@@ -129,8 +131,12 @@ Java_com_dbf_aqhi_jpeg_Jpeg2000Decoder_decodeJpeg2000(
     }
 
     (*env)->ReleasePrimitiveArrayCritical(env, data, all_data, JNI_ABORT);
-    all_data = NULL;
 
+    if (!opj_end_decompress(l_codec, l_stream)) {
+        LOG_WARN("Failed to deinitialize the decompressor.");
+    }
+
+    all_data = NULL;
     if (!l_image || l_image->numcomps == 0) {
         LOG_ERROR("No image data found.");
         goto cleanup;
@@ -149,33 +155,34 @@ Java_com_dbf_aqhi_jpeg_Jpeg2000Decoder_decodeJpeg2000(
     //Unsigned ranges from 0 to (2^precision)-1
     const int min_val_img = is_signed ? -(1 << (precision - 1)) : 0;
     const int max_val_img = is_signed ? (1 << (precision - 1)) - 1 : (1 << precision) - 1;
+    const float alphaScaleFactor = max_alpha/(max_val - min_val);
+    const jbyte min_val_byte = (jbyte) min_val;
+    const jbyte max_alpha_byte = (jbyte) max_alpha;
 
     LOG_INFO("Image data: components=%d, precision=%d, signed=%d, factor=%d, min_val=%d, max_val=%d, width=%d, height=%d, pixel_cnt=%d",
              l_image->numcomps, precision, is_signed, factor, min_val_img, max_val_img, width, height, pixel_cnt);
 
     //Allocate and fill the output pixel array
     jbyteArray pixel_array = (*env)->NewByteArray(env, pixel_cnt);
-    if (!pixel_array) {
-        LOG_ERROR("Failed to allocate pixel array.");
+    jfloatArray value_array = (*env)->NewFloatArray(env, pixel_cnt);
+    if (!pixel_array || !value_array) {
+        LOG_ERROR("Failed to allocate output arrays.");
         goto cleanup;
     }
-    jbyte* outPixels = (jbyte*)(*env)->GetByteArrayElements(env, pixel_array, NULL);
+    outPixels = (jbyte*)(*env) ->GetByteArrayElements (env, pixel_array, NULL);
+    outVals  = (jfloat*)(*env)->GetFloatArrayElements(env, value_array, NULL);
 
-    const float alphaScaleFactor = max_alpha/(max_val - min_val) ;
-    //Use first component only (greyscale)
-    float grey;
+    //Use first image component only (greyscale)
     for (int i = 0; i < pixel_cnt; ++i) {
-        grey = comp->data[i] * data_scale;
-        if (grey < min_val) {
-            grey = min_val;
-        } else if (grey > max_val){
-            grey = max_alpha;
+        outVals[i] = comp->data[i] * data_scale;
+        if (outVals[i] < min_val) {
+            outPixels[i] = min_val_byte;
+        } else if (outVals[i] > max_val){
+            outPixels[i] = max_alpha_byte;
         } else {
-            grey = (grey - min_val) * alphaScaleFactor;
+            outPixels[i] = (jbyte) ((outVals[i] - min_val) * alphaScaleFactor);
         }
-        outPixels[i] = (jbyte)grey;
     }
-    (*env)->ReleaseByteArrayElements(env, pixel_array, outPixels, 0);
 
     //Manually invoke the constructor of the output object (RawImage type)
     jclass raw_image_cls = (*env)->FindClass(env, "com/dbf/aqhi/jpeg/RawImage");
@@ -184,19 +191,21 @@ Java_com_dbf_aqhi_jpeg_Jpeg2000Decoder_decodeJpeg2000(
         goto cleanup;
     }
 
-    jmethodID constructor = (*env)->GetMethodID(env, raw_image_cls, "<init>", "(II[B)V");
+    jmethodID constructor = (*env)->GetMethodID(env, raw_image_cls, "<init>", "(II[B[F)V");
     if (!constructor) {
         LOG_ERROR("Could not find DecodedImage constructor");
         goto cleanup;
     }
-    decoded_img = (*env)->NewObject(env, raw_image_cls, constructor, width, height, pixel_array);
+    decoded_img = (*env)->NewObject(env, raw_image_cls, constructor, width, height, pixel_array, value_array);
 
     //End of processing
     cleanup:
     if (l_image) opj_image_destroy(l_image);
     if (l_codec) opj_destroy_codec(l_codec);
     if (l_stream) opj_stream_destroy(l_stream);
-    if (all_data) (*env)->ReleasePrimitiveArrayCritical(env, data, all_data, JNI_ABORT);
+    if (all_data)  (*env)->ReleasePrimitiveArrayCritical(env, data, all_data, JNI_ABORT);
+    if (outPixels) (*env)->ReleaseByteArrayElements(env, pixel_array, outPixels, 0);
+    if (outVals)   (*env)->ReleaseFloatArrayElements(env, value_array, outVals, 0);
 
     LOG_INFO("JPEG2000 image decompression complete.");
     return decoded_img;

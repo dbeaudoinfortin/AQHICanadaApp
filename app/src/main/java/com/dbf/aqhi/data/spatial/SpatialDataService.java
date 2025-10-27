@@ -17,6 +17,7 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -373,6 +374,9 @@ public class SpatialDataService extends DataService {
                 dos.writeInt(rawImg.height);
                 dos.writeInt(rawImg.pixels.length);
                 dos.write(rawImg.pixels);
+                for (int i = 0 ; i < rawImg.values.length ; i++) {
+                    dos.writeFloat(rawImg.values[i]);
+                }
             }
         } catch (Exception e) {
             Log.e(LOG_TAG, "Failed to update the cache file " + cacheFile.getAbsolutePath() + ".\n" + StackTraceCompactor.getCompactStackTrace(e));
@@ -411,7 +415,17 @@ public class SpatialDataService extends DataService {
                     Log.e(LOG_TAG, "Invalid image data contained in cache file " + cacheFile.getAbsolutePath());
                     return null;
                 }
-                return new RawImage(width, height, dis.readNBytes(dataLength));
+                final byte[] pixels = dis.readNBytes(dataLength);
+                float[] values = new float[dataLength];
+                try {
+                    for (int i = 0; i < dataLength; i++) {
+                        values[i] = dis.readFloat();
+                    }
+                } catch (EOFException e) {
+                    //Backwards compatibility if raw values are not present
+                    values = null;
+                }
+                return new RawImage(width, height, pixels, values);
             }
         } catch (Exception e) {
             Log.e(LOG_TAG, "Failed to read cache file " + cacheFile.getAbsolutePath() + ".\n" + StackTraceCompactor.getCompactStackTrace(e));

@@ -405,12 +405,55 @@
                     android:padding="8dp"/>
             </androidx.constraintlayout.widget.ConstraintLayout>
 
+            <!-- Pollution Values -->
+            <TextView
+                android:id="@+id/lblPollution"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Pollution"
+                android:paddingStart="2dp"
+                android:paddingEnd="0dp"
+                android:fontFamily="@font/roboto"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                app:layout_constraintTop_toBottomOf="@id/aqhi_historical_section"
+                app:layout_constraintStart_toStartOf="parent"
+                android:paddingTop="16dp"/>
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/pollution_section"
+                android:layout_width="match_parent"
+                android:paddingTop="0dp"
+                android:paddingStart="0dp"
+                android:paddingEnd="0dp"
+                android:paddingBottom="0dp"
+                android:layout_marginTop="6dp"
+                android:layout_height="0dp"
+                app:layout_constraintTop_toBottomOf="@id/lblPollution"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:background="@drawable/soft_border">
+
+                <LinearLayout
+                    android:id="@+id/pollution_list"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="8dp"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="@id/pollution_section">
+                </LinearLayout>
+
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
             <!-- Map -->
             <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/mapContainer"
+                android:id="@+id/aqhi_map_section"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:layout_constraintTop_toBottomOf="@id/aqhi_historical_section">
+                app:layout_constraintTop_toBottomOf="@id/pollution_section">
 
                 <TextView
                     android:id="@+id/lblMap"
@@ -436,7 +479,7 @@
                     app:layout_constraintEnd_toEndOf="parent" />
 
                 <androidx.constraintlayout.widget.ConstraintLayout
-                    android:id="@+id/aqhi_map_section"
+                    android:id="@+id/mapContainer"
                     android:layout_width="0dp"
                     android:layout_height="0dp"
                     android:layout_marginTop="6dp"
@@ -456,65 +499,82 @@
                         android:layout_height="match_parent"
                         android:background="@drawable/soft_border_hidden"/>
 
+                    <ImageView
+                        android:id="@+id/imgMapPlaceholder"
+                        android:src="@drawable/outline_canada"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        android:layout_height="100dp"
+                        android:layout_width="0dp"/>
+
                 </androidx.constraintlayout.widget.ConstraintLayout>
 
-                <TextView
-                    android:id="@+id/lblMapMin"
-                    android:layout_width="wrap_content"
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/mapLegendContainer"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_margin="4dp"
-                    android:text="0"
-                    android:textSize="12sp"
-                    android:textColor="@android:color/darker_gray"
-                    android:clickable="false"
-                    android:focusable="false"
-                    app:layout_constraintBottom_toBottomOf="@id/imgScale"
-                    app:layout_constraintTop_toTopOf="@id/imgScale"
-                    app:layout_constraintStart_toStartOf="parent" />
+                    app:layout_constraintTop_toBottomOf="@id/mapContainer">
 
-                <View
-                    android:id="@+id/imgScale"
-                    android:layout_width="0dp"
-                    android:layout_height="20dp"
-                    android:layout_margin="4dp"
-                    app:layout_constraintTop_toBottomOf="@id/aqhi_map_section"
-                    app:layout_constraintStart_toEndOf="@+id/lblMapMin"
-                    app:layout_constraintEnd_toStartOf="@+id/lblMapMax"
-                    android:background="@drawable/map_scale_1" />
+                    <TextView
+                        android:id="@+id/lblMapMin"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_margin="4dp"
+                        android:text="0"
+                        android:textSize="12sp"
+                        android:textColor="@android:color/darker_gray"
+                        android:clickable="false"
+                        android:focusable="false"
+                        app:layout_constraintBottom_toBottomOf="@id/imgScale"
+                        app:layout_constraintTop_toTopOf="@id/imgScale"
+                        app:layout_constraintStart_toStartOf="parent" />
 
-                <TextView
-                    android:id="@+id/lblMapMax"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_margin="4dp"
-                    android:text="100"
-                    android:textSize="12sp"
-                    android:textColor="@android:color/darker_gray"
-                    android:clickable="false"
-                    android:focusable="false"
-                    app:layout_constraintBottom_toBottomOf="@id/imgScale"
-                    app:layout_constraintTop_toTopOf="@id/imgScale"
-                    app:layout_constraintEnd_toEndOf="parent" />
+                    <View
+                        android:id="@+id/imgScale"
+                        android:layout_width="0dp"
+                        android:layout_height="20dp"
+                        android:layout_margin="4dp"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintStart_toEndOf="@+id/lblMapMin"
+                        app:layout_constraintEnd_toStartOf="@+id/lblMapMax"
+                        android:background="@drawable/map_scale_1" />
 
-                <TextView
-                    android:id="@+id/lblTimestamp"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:padding="4dp"
-                    android:text=""
-                    android:textSize="12sp"
-                    android:textColor="@android:color/darker_gray"
-                    android:clickable="false"
-                    android:focusable="false"
-                    app:layout_constraintTop_toBottomOf="@id/imgScale"
-                    app:layout_constraintEnd_toEndOf="parent" />
+                    <TextView
+                        android:id="@+id/lblMapMax"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_margin="4dp"
+                        android:text="100"
+                        android:textSize="12sp"
+                        android:textColor="@android:color/darker_gray"
+                        android:clickable="false"
+                        android:focusable="false"
+                        app:layout_constraintBottom_toBottomOf="@id/imgScale"
+                        app:layout_constraintTop_toTopOf="@id/imgScale"
+                        app:layout_constraintEnd_toEndOf="parent" />
+
+                    <TextView
+                        android:id="@+id/lblTimestamp"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:padding="4dp"
+                        android:text=""
+                        android:textSize="12sp"
+                        android:textColor="@android:color/darker_gray"
+                        android:clickable="false"
+                        android:focusable="false"
+                        app:layout_constraintTop_toBottomOf="@id/imgScale"
+                        app:layout_constraintEnd_toEndOf="parent" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
             </androidx.constraintlayout.widget.ConstraintLayout>
 
             <FrameLayout
                 android:id="@+id/bottomPaddingFrame"
                 android:layout_width="match_parent"
                 android:layout_height="10dp"
-                app:layout_constraintTop_toBottomOf="@id/mapContainer"
+                app:layout_constraintTop_toBottomOf="@id/aqhi_map_section"
                 app:layout_constraintEnd_toEndOf="parent"
                 tools:ignore="UselessLeaf" />
         </androidx.constraintlayout.widget.ConstraintLayout>

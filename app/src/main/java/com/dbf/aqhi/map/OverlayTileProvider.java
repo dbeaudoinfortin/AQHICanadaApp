@@ -89,6 +89,7 @@ public class OverlayTileProvider {
         final int idx01 = j1 * width + i0;
         final int idx11 = j1 * width + i1;
 
+        //Java bytes are signed, need to convert to int
         final int a00 = pixels[idx00] & 0xFF;
         final int a10 = pixels[idx10] & 0xFF;
         final int a01 = pixels[idx01] & 0xFF;

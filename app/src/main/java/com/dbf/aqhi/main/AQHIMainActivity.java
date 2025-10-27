@@ -383,13 +383,28 @@ public class AQHIMainActivity extends AQHIActivity {
             updateAlertList(alertList, alerts);
         }
 
+        //UPDATE POLLUTION VALUES
+        updatePollutionList();
+
         //UPDATE POLLUTANT MAP
         updateOverlayMapUI();
     }
 
+    private void updatePollutionList() {
+        LinearLayout pollutantList = findViewById(R.id.pollution_list);
+
+        //Clear any old values
+        pollutantList.removeAllViews();
+
+        //TODO: Build pollutant list
+        //getSpatialDataService().
+        
+    }
+
     private void updateOverlayMapUI() {
-        View container = findViewById(R.id.mapContainer);
+        View mapLegend = findViewById(R.id.mapLegendContainer);
         MapView mapView = findViewById(R.id.mapView);
+        ImageView mapPlaceholder = findViewById(R.id.imgMapPlaceholder);
         View stationMarker = mapView.getMarkerLayout().getMarkerByTag(MAP_STATION_MARKER_TAG);
         View touchMarker   = mapView.getMarkerLayout().getMarkerByTag(MAP_TOUCH_MARKER_TAG);
 
@@ -402,7 +417,11 @@ public class AQHIMainActivity extends AQHIActivity {
 
         if(pollutants.isEmpty()) {
             //No spatial data is available, hide the map
-            container.setVisibility(GONE);
+            mapPlaceholder.setVisibility(VISIBLE);
+            mapView.setVisibility(GONE);
+            pollutantList.setVisibility(GONE);
+            mapLegend.setVisibility(GONE);
+
             selectedMapPollutant = null;
             tileProvider.setOverlayTileProvider(null);
             if(null != stationMarker) mapView.getMarkerLayout().removeMarker(stationMarker);
@@ -411,7 +430,10 @@ public class AQHIMainActivity extends AQHIActivity {
         }
 
         //We have spatial data, show the map
-        container.setVisibility(VISIBLE);
+        mapView.setVisibility(VISIBLE);
+        mapLegend.setVisibility(VISIBLE);
+        pollutantList.setVisibility(VISIBLE);
+        mapPlaceholder.setVisibility(GONE);
 
         //Update the station location stationMarker first, regardless of the selected pollution overlay
         updateOverlayMapMarker(mapView, stationMarker);
@@ -522,6 +544,7 @@ public class AQHIMainActivity extends AQHIActivity {
             //Work-around for the MarkerLayoutParams of the marker not being visible
             marker.setTag(new Pair<Integer, Integer>(x,y));
         }
+
 
         //The overlay value is the alpha transparency of the overlay
         //Convert to the actual unit value
