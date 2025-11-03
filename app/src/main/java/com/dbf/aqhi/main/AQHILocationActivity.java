@@ -132,7 +132,7 @@ public class AQHILocationActivity extends AQHIActivity {
                 mapView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
             }
         });
-        mapView.setOnTouchListener((view, event) -> { //Prevent the map scrolling from fighting the main activity scolling
+        mapView.setOnTouchListener((view, event) -> { //Prevent the map scrolling from fighting the main activity scrolling
             switch (event.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
                 case MotionEvent.ACTION_POINTER_DOWN:

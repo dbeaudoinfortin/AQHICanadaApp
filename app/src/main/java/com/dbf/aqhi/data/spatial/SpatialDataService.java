@@ -40,7 +40,7 @@ public class SpatialDataService extends DataService {
     private static final Map<Pollutant, Object> POLLUTANT_SYNC_OBJECTS;
 
     //Keeps track of all the pollutants that are available
-    private static LinkedHashSet<String> loadedPollutants;
+    private static LinkedHashSet<Pollutant> loadedPollutants;
     private static final Object POLLUTANT_LIST_SYNC_OBJECT = new Object();
 
     private static final long DATA_VALIDITY_DURATION = 1000*60*60*2; //2 hours
@@ -436,7 +436,7 @@ public class SpatialDataService extends DataService {
     private void addLoadedPollutant(Pollutant pollutant){
         synchronized(POLLUTANT_LIST_SYNC_OBJECT) {
             if(null == loadedPollutants) loadPollutants();
-            loadedPollutants.add(pollutant.getDisplayName());
+            loadedPollutants.add(pollutant);
         }
     }
 
@@ -449,21 +449,21 @@ public class SpatialDataService extends DataService {
 
     private void loadPollutants() {
         //Build a list of all the available pollutants that aren't expired
-        loadedPollutants = new LinkedHashSet<String>();
+        loadedPollutants = new LinkedHashSet<Pollutant>();
 
         long currentTime = System.currentTimeMillis();
         for(Pollutant pollutant : Pollutant.values()){
             long ts = sharedPreferences.getLong(SPATIAL_DATA_TS_KEY + "_" + pollutant, Integer.MIN_VALUE);
             if(currentTime - ts > DATA_VALIDITY_DURATION) continue;
 
-            loadedPollutants.add(pollutant.getDisplayName());
+            loadedPollutants.add(pollutant);
         }
     }
 
-    public LinkedHashSet<String> getLoadedPollutants(){
+    public LinkedHashSet<Pollutant> getLoadedPollutants(){
         synchronized(POLLUTANT_LIST_SYNC_OBJECT) {
             if(null == loadedPollutants) loadPollutants();
-            return new LinkedHashSet<String>(loadedPollutants); //Always clone
+            return new LinkedHashSet<Pollutant>(loadedPollutants); //Always clone
         }
     }
 

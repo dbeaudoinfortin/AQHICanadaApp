@@ -21,9 +21,7 @@ import com.dbf.aqhi.data.aqhi.AQHIDataService;
 import com.dbf.aqhi.api.weather.alert.Alert;
 
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Locale;
 
 public class AQHIWidgetProviderLarge extends AQHIWidgetProvider {
 
@@ -47,11 +45,11 @@ public class AQHIWidgetProviderLarge extends AQHIWidgetProvider {
             if (options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT) < MIN_HEIGHT_INFO_BAR) {
                 views.setViewVisibility(R.id.top_info, View.GONE);
                 views.setViewLayoutMargin(R.id.bottom_info, MARGIN_TOP, 10, TypedValue.COMPLEX_UNIT_DIP);
-                views.setViewVisibility(R.id.lblTimestamp, View.GONE);
+                views.setViewVisibility(R.id.txtMapTimestamp, View.GONE);
             } else {
                 views.setViewVisibility(R.id.top_info, View.VISIBLE);
                 views.setViewLayoutMargin(R.id.bottom_info, MARGIN_TOP, 0, TypedValue.COMPLEX_UNIT_DIP);
-                views.setViewVisibility(R.id.lblTimestamp, View.VISIBLE);
+                views.setViewVisibility(R.id.txtMapTimestamp, View.VISIBLE);
             }
         }
 
@@ -65,7 +63,7 @@ public class AQHIWidgetProviderLarge extends AQHIWidgetProvider {
         final int txtColour = context.getResources().getColor(colourId);
         views.setTextColor(R.id.txtAQHI, txtColour);
         views.setTextColor(R.id.lblStation, txtColour);
-        views.setTextColor(R.id.lblTimestamp, txtColour);
+        views.setTextColor(R.id.txtMapTimestamp, txtColour);
 
         //Update Gauge arrow
         int gaID = R.drawable.arrow;
@@ -79,7 +77,7 @@ public class AQHIWidgetProviderLarge extends AQHIWidgetProvider {
         //Update text contents
         views.setTextViewText(R.id.txtAQHI, getLatestAQHIString());
         views.setTextViewText(R.id.lblStation, getCurrentStationName());
-        views.setTextViewText(R.id.lblTimestamp, context.getResources().getString(R.string.updated_at) + " " + LocalTime.now().format(TIMESTAMP_FORMAT));
+        views.setTextViewText(R.id.txtMapTimestamp, context.getResources().getString(R.string.updated_at) + " " + LocalTime.now().format(TIMESTAMP_FORMAT));
 
         //Update the position of the gauge arrow
         updateArrowPosition(context, views, appWidgetManager, appWidgetId);

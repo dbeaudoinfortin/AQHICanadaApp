@@ -293,6 +293,22 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="@id/aqhi_forecast_section" />
 
+                <TextView
+                    android:id="@+id/txtForecastUnknown"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/roboto"
+                    android:gravity="center"
+                    android:maxLines="1"
+                    android:padding="0dp"
+                    android:text="\?"
+                    android:textSize="38sp"
+                    android:textStyle="bold"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/lblForecastMax"
+                    tools:ignore="HardcodedText,SpUsage" />
+
+
                 <LinearLayout
                     android:id="@+id/daily_forecast_list"
                     android:layout_width="0dp"
@@ -301,7 +317,7 @@
                     android:padding="8dp"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/lblForecastMax">
+                    app:layout_constraintTop_toBottomOf="@id/txtForecastUnknown">
                 </LinearLayout>
 
                 <TextView
@@ -324,6 +340,7 @@
                     android:layout_height="wrap_content"
                     android:src="@drawable/outline_bar_chart_24"
                     android:contentDescription="@string/forecast_heat_map"
+                    app:tint="?attr/colorOnSurface"
                     app:layout_constraintTop_toBottomOf="@id/lblForecastMap"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
@@ -369,6 +386,22 @@
                     android:textStyle="bold"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="@id/aqhi_historical_section" />
+
+                <TextView
+                    android:id="@+id/txtHistoricalUnknown"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/roboto"
+                    android:gravity="center"
+                    android:maxLines="1"
+                    android:padding="0dp"
+                    android:text="\?"
+                    android:textSize="38sp"
+                    android:textStyle="bold"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/lblHistoricalMax"
+                    tools:ignore="HardcodedText,SpUsage" />
+
                 <LinearLayout
                     android:id="@+id/daily_historical_list"
                     android:layout_width="0dp"
@@ -377,7 +410,7 @@
                     android:padding="8dp"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/lblHistoricalMax">
+                    app:layout_constraintTop_toBottomOf="@id/txtHistoricalUnknown">
                 </LinearLayout>
 
                 <TextView
@@ -402,7 +435,8 @@
                     android:contentDescription="@string/historical_trend_heatmap"
                     app:layout_constraintTop_toBottomOf="@id/lblHistoricalMap"
                     app:layout_constraintStart_toStartOf="parent"
-                    android:padding="8dp"/>
+                    android:padding="8dp"
+                    app:tint="?attr/colorOnSurface" />
             </androidx.constraintlayout.widget.ConstraintLayout>
 
             <!-- Pollution Values -->
@@ -434,6 +468,21 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 android:background="@drawable/soft_border">
 
+                <TextView
+                    android:id="@+id/txtPollutionUnknown"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/roboto"
+                    android:gravity="center"
+                    android:maxLines="1"
+                    android:padding="0dp"
+                    android:text="\?"
+                    android:textSize="38sp"
+                    android:textStyle="bold"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    tools:ignore="HardcodedText,SpUsage" />
+
                 <LinearLayout
                     android:id="@+id/pollution_list"
                     android:layout_width="0dp"
@@ -442,9 +491,22 @@
                     android:padding="8dp"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toTopOf="@id/pollution_section">
+                    app:layout_constraintTop_toBottomOf="@id/txtPollutionUnknown">
                 </LinearLayout>
 
+                <TextView
+                    android:id="@+id/txtListTimestamp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:clickable="false"
+                    android:focusable="false"
+                    android:gravity="end"
+                    android:padding="4dp"
+                    android:text=""
+                    android:textColor="@android:color/darker_gray"
+                    android:textSize="10sp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/pollution_list" />
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -506,6 +568,7 @@
                         app:layout_constraintBottom_toBottomOf="parent"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintStart_toStartOf="parent"
+                        app:tint="?attr/colorOnSurface"
                         android:layout_height="100dp"
                         android:layout_width="0dp"/>
 
@@ -518,7 +581,7 @@
                     app:layout_constraintTop_toBottomOf="@id/mapContainer">
 
                     <TextView
-                        android:id="@+id/lblMapMin"
+                        android:id="@+id/txtMapMin"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_margin="4dp"
@@ -537,12 +600,12 @@
                         android:layout_height="20dp"
                         android:layout_margin="4dp"
                         app:layout_constraintTop_toTopOf="parent"
-                        app:layout_constraintStart_toEndOf="@+id/lblMapMin"
-                        app:layout_constraintEnd_toStartOf="@+id/lblMapMax"
+                        app:layout_constraintStart_toEndOf="@+id/txtMapMin"
+                        app:layout_constraintEnd_toStartOf="@+id/txtMapMax"
                         android:background="@drawable/map_scale_1" />
 
                     <TextView
-                        android:id="@+id/lblMapMax"
+                        android:id="@+id/txtMapMax"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_margin="4dp"
@@ -556,17 +619,18 @@
                         app:layout_constraintEnd_toEndOf="parent" />
 
                     <TextView
-                        android:id="@+id/lblTimestamp"
+                        android:id="@+id/txtMapTimestamp"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:padding="4dp"
-                        android:text=""
-                        android:textSize="12sp"
-                        android:textColor="@android:color/darker_gray"
                         android:clickable="false"
                         android:focusable="false"
-                        app:layout_constraintTop_toBottomOf="@id/imgScale"
-                        app:layout_constraintEnd_toEndOf="parent" />
+                        android:padding="4dp"
+                        android:text=""
+                        android:gravity="end"
+                        android:textColor="@android:color/darker_gray"
+                        android:textSize="10sp"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/imgScale" />
                 </androidx.constraintlayout.widget.ConstraintLayout>
             </androidx.constraintlayout.widget.ConstraintLayout>
 

@@ -8,104 +8,61 @@ import static com.dbf.aqhi.Utils.RAD_TO_DEG;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 
-import com.dbf.aqhi.Utils;
+import com.dbf.aqhi.api.datamart.Pollutant;
 import com.dbf.aqhi.data.spatial.SpatialData;
-import com.dbf.aqhi.grib2.Grib2GridMetaData;
+import com.dbf.aqhi.jpeg.RawImage;
+
+import java.text.DecimalFormat;
 
 public class OverlayTileProvider {
 
     public static final int MAX_PIXEL_VALUE = 230; //Ensure a little bit of transparency
 
-    private final double gridScaleXInv; //= 0.09;
-    private final double gridScaleYInv; //= 0.09;
+    private final double gridScaleXInv;
+    private final double gridScaleYInv;
 
-    public final int gridWidth; //= 729;
-    public final int gridHeight; //= 599;
+    private final double rLatZero;
+    private final double rLonZero;
 
-    private final double rLatZero; //= -31.860001;
-    private final double rLonZero; //= -39.537223;
-
-    private final double rLatNorthPole; //= 31.758312225341797;
-    private final double rLonNorthPole; //= -87.59701538085938;
-    private final double rLatSouthPole; //= -31.758312225341797;
-    private final double rLonSouthPole; //= -92.402969;
-
-    //Precompute rotation parameters in radians
-    private final double angleRotDeg;
-    private final double phiP;
     private final double lamP;
     private final double sinPhiP;
     private final double cosPhiP;
 
     private final SpatialData overlay;
-    private final Grib2GridMetaData grid;
-    private final byte[] rawPixels;
+    private final RawImage rawImage;
 
     private final int overlayColourMask;
 
     public OverlayTileProvider(SpatialData overlay, int overlayColour) {
         this.overlay   = overlay;
-        this.rawPixels = overlay.getGrib2().getRawImage().pixels;
-        this.grid = overlay.getGrib2().getGridMetaData();
+        this.rawImage = overlay.getGrib2().getRawImage();
 
-        gridScaleXInv = 1.0 / grid.getdLonDeg();
-        gridScaleYInv = 1.0 / grid.getdLatDeg();
+        this.gridScaleXInv = overlay.getGridScaleXInv();
+        this.gridScaleYInv = overlay.getGridScaleYInv();
 
-        gridWidth = grid.getGridWidth();
-        gridHeight = grid.getGridHeight();
+        this.rLatZero = overlay.getrLatZero();
+        this.rLonZero = overlay.getrLonZero();
 
-        rLatZero = grid.getLat1Deg();
-        rLonZero = grid.getLon1Deg();
+        this.lamP = overlay.getLamP();
+        this.sinPhiP = overlay.getSinPhiP();
+        this.cosPhiP = overlay.getCosPhiP();
 
-        rLatSouthPole = grid.getSouthPoleLatDeg();
-        rLonSouthPole = grid.getSouthPoleLonDeg();
-        rLatNorthPole = -rLatSouthPole;
-        rLonNorthPole = Utils.wrapLongitude(-rLonSouthPole + 180.0);
-
-        angleRotDeg = grid.getAngleOfRotationDeg();
-        phiP = Math.toRadians(rLatNorthPole);
-        lamP = Math.toRadians(rLonNorthPole);
-        sinPhiP = Math.sin(phiP);
-        cosPhiP = Math.cos(phiP);
-
-        overlayColourMask = overlayColour & 0x00FFFFFF;
-    }
-
-    /** Bilinear sample of 8-bit grid at fractional (fi,fj). Returns [0..255]. */
-    private static int sampleAlphaBilinear(double fi, double fj, final byte[] pixels, int width, int height) {
-        //Outside grid
-        if (fi < 0 || fj < 0 || fi > width - 1 || fj > height - 1) return -1;
-
-        final int i0 = (int) fi;
-        final int j0 = (int) fj;
-        final int i1 = Math.min(i0 + 1, width - 1);
-        final int j1 = Math.min(j0 + 1, height - 1);
-
-        final double dx = (fi - i0);
-        final double dy = (fj - j0);
-
-        final int idx00 = j0 * width + i0;
-        final int idx10 = j0 * width + i1;
-        final int idx01 = j1 * width + i0;
-        final int idx11 = j1 * width + i1;
-
-        //Java bytes are signed, need to convert to int
-        final int a00 = pixels[idx00] & 0xFF;
-        final int a10 = pixels[idx10] & 0xFF;
-        final int a01 = pixels[idx01] & 0xFF;
-        final int a11 = pixels[idx11] & 0xFF;
-
-        final double a0 = a00 + dx * (a10 - a00);
-        final double a1 = a01 + dx * (a11 - a01);
-        final int a = (int) (a0 + dy * (a1 - a0) + 0.5f); //+ 0.5f is for rounding
-
-        return (a < 0) ? 0 : (a > 255 ? 255 : a);
+        this.overlayColourMask = overlayColour & 0x00FFFFFF;
     }
 
     public SpatialData getOverlay() {
         return overlay;
     }
 
+    /**
+     * Draws the overlay in onto a canvas for a single map tiles located at (col, row) and zoom level.
+     * This method is deliberately redundant with SpatialData.overlayLookup for performance reasons.
+     *
+     * @param canvas
+     * @param row
+     * @param col
+     * @param zoomLvl
+     */
     public void drawOverlay(Canvas canvas, int row, int col, int zoomLvl) {
         //Determine the current scaling of the base bitmap image based on the tile level
         final double scale = Math.pow(2.0, zoomLvl - (MAP_LEVEL_COUNT - 1));
@@ -155,7 +112,7 @@ public class OverlayTileProvider {
                 latLon[1] = ((lamR * RAD_TO_DEG) - rLonZero) * gridScaleXInv;
 
                 int color = 0; //transparent by default
-                final int a = sampleAlphaBilinear(latLon[1], latLon[0], rawPixels, gridWidth, gridHeight);
+                final int a = rawImage.samplePixelsBilinear(latLon[1], latLon[0]);
                 if (a > 0) {
                     //Compose ARGB with per-pixel alpha
                     color = (a & 0xFF) << 24 | overlayColourMask;
@@ -171,38 +128,40 @@ public class OverlayTileProvider {
     }
 
     /**
-     * Lookup the overlay value at the global x,y pixel coordinates.[
+     * Lookup the text to display on the map overlay at the provided x,y pixel coordinates.
      *
      * @param x pixel coordinate
      * @param y pixel coordinate
      *
-     * @return Overlay value
+     * @return Overlay text
      */
-    public int overlayLookup(int x, int y) {
-        double[] latLon = new double[2];
+    public String overlayTextLookup(int x, int y, Pollutant pollutant) {
 
+        final double[] latLon = new double[2];
         MapTransformer.transformXY(x, y, latLon);
 
-        //Fudge factor
-        latLon[1] += 4.8;
+        if(null != rawImage.values) {
+            //First try to use raw value if possible
+            final float overlayValue = overlay.overlayValueLookup(latLon[0], latLon[1]);
+            if(overlayValue < 0.0 || Float.isNaN(overlayValue)) {
+                return "-- " + pollutant.getUnits(); //Outside the grid
+            }
+            return (new DecimalFormat("0.0")).format(overlayValue) + " " + pollutant.getUnits();
+        } else {
+            //Fall back to the alpha pixel transparency of the overlay
+            //Convert to the actual unit value
+            final int overlayValue = overlay.pixelLookup(latLon[0], latLon[1]);
+            if(overlayValue >= MAX_PIXEL_VALUE) {
+                return "≥" + pollutant.getMaxVal() + " " + pollutant.getUnits();
+            } else if (overlayValue < 0) {
+                return "-- " + pollutant.getUnits(); //Outside the grid
+            } else if (overlayValue == 0) {
+                return "≤" + pollutant.getMinVal() + " " + pollutant.getUnits();
+            }
 
-        //Convert from degrees to rotated radian coordinates
-        latLon[0] *= DEG_TO_RAD;
-        latLon[1] *= DEG_TO_RAD;
-
-        final double sinLat = Math.sin(latLon[0]);
-        final double cosLat = Math.cos(latLon[0]);
-
-        final double dLam = latLon[1] - lamP;
-        final double cosLatCosDLam = Math.cos(dLam) * cosLat;
-
-        final double phiR = Math.asin((sinLat * sinPhiP) - (cosPhiP * cosLatCosDLam)); //Faster than Math.atan2(sinPhiR, Math.hypot(cosPhiR_sinLamR, cosPhiR_cosLamR));
-        final double lamR = Math.atan2(cosLat * Math.sin(dLam), (sinLat * cosPhiP) + (sinPhiP * cosLatCosDLam));
-
-        //Convert from rotated radian coordinates to grid fractional indices (i,j) in degrees
-        latLon[0] = ((phiR * RAD_TO_DEG) - rLatZero) * gridScaleYInv;
-        latLon[1] = ((lamR * RAD_TO_DEG) - rLonZero) * gridScaleXInv;
-
-        return sampleAlphaBilinear(latLon[1], latLon[0], rawPixels, gridWidth, gridHeight);
+            //Interpolated value
+            final float pollutionValue = pollutant.getMinVal() + ((((float)overlayValue) / MAX_PIXEL_VALUE) * (pollutant.getMaxVal() - pollutant.getMinVal()));
+            return (new DecimalFormat("0.0")).format(pollutionValue) + " " + pollutant.getUnits();
+        }
     }
 }

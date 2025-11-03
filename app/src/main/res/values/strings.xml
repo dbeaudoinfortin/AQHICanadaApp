@@ -30,6 +30,7 @@
     <string name="light_dark_mode">Light/Dark Mode:</string>
     <string name="background_transparency">Background Transparency:</string>
     <string name="observations_at">Observations as of</string>
+    <string name="observations_at_station">Observations as of %s at the %s station</string>
     <string name="updated_at">Updated at</string>
     <string name="widget_preview">Widget Preview</string>
     <string name="unknown_Location">Unknown</string>

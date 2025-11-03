@@ -120,7 +120,7 @@
         </LinearLayout>
             <!-- Floating timestamp -->
             <TextView
-                android:id="@+id/lblTimestamp"
+                android:id="@+id/txtMapTimestamp"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text=""

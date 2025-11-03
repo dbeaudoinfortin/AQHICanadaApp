@@ -4,8 +4,6 @@ import static android.view.View.GONE;
 import static android.view.View.INVISIBLE;
 import static android.view.View.VISIBLE;
 
-import static com.dbf.aqhi.map.OverlayTileProvider.MAX_PIXEL_VALUE;
-
 import android.Manifest;
 
 import android.annotation.SuppressLint;
@@ -46,6 +44,7 @@ import com.dbf.aqhi.R;
 import com.dbf.aqhi.Utils;
 import com.dbf.aqhi.api.datamart.Pollutant;
 import com.dbf.aqhi.api.weather.alert.Alert;
+import com.dbf.aqhi.data.spatial.ModelMetaData;
 import com.dbf.aqhi.data.spatial.SpatialData;
 import com.dbf.aqhi.data.spatial.SpatialDataService;
 import com.dbf.aqhi.map.CompositeTileProvider;
@@ -64,12 +63,14 @@ import com.dbf.heatmaps.data.DataRecord;
 
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
-import java.util.Collection;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import ovh.plrapps.mapview.MapView;
@@ -278,7 +279,7 @@ public class AQHIMainActivity extends AQHIActivity {
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 Pollutant newSelection = Pollutant.fromDisplayName(parent.getSelectedItem().toString());
                 if(null == selectedMapPollutant || !selectedMapPollutant.equals(newSelection)) {
-                    selectedMapPollutant = Pollutant.fromDisplayName(parent.getSelectedItem().toString());
+                    selectedMapPollutant = newSelection;
                     updateOverlayMapUI();
                 }
             }
@@ -360,13 +361,27 @@ public class AQHIMainActivity extends AQHIActivity {
         //UPDATE FORECAST
         Map<Date, Double> forecastData = getAQHIService().getForecastAQHI();
         LinearLayout dailyForecastList = findViewById(R.id.daily_forecast_list);
-        updateDailyList(forecastData, dailyForecastList, false);
+        TextView txtForecastUnknown = findViewById(R.id.txtForecastUnknown);
+        if(updateDailyList(forecastData, dailyForecastList, false)) {
+            dailyForecastList.setVisibility(VISIBLE);
+            txtForecastUnknown.setVisibility(GONE);
+        } else {
+            dailyForecastList.setVisibility(GONE);
+            txtForecastUnknown.setVisibility(VISIBLE);
+        }
         renderForecastHeatMap(forecastData);
 
         //UPDATE HISTORICAL
         Map<Date, Double> histData = getAQHIService().getHistoricalAQHI();
         LinearLayout dailyHistoricalList = findViewById(R.id.daily_historical_list);
-        updateDailyList(histData, dailyHistoricalList, true);
+        TextView txtHistoricalUnknown = findViewById(R.id.txtHistoricalUnknown);
+        if(updateDailyList(histData, dailyHistoricalList, true)) {
+            dailyHistoricalList.setVisibility(VISIBLE);
+            txtHistoricalUnknown.setVisibility(GONE);
+        } else {
+            dailyHistoricalList.setVisibility(GONE);
+            txtHistoricalUnknown.setVisibility(VISIBLE);
+        }
         renderHistoricalHeatMap(histData);
 
         //UPDATE ALERTS
@@ -384,21 +399,59 @@ public class AQHIMainActivity extends AQHIActivity {
         }
 
         //UPDATE POLLUTION VALUES
-        updatePollutionList();
+        TextView txtPollutionUnknown = findViewById(R.id.txtPollutionUnknown);
+        TextView txtListTimestamp = findViewById(R.id.txtListTimestamp);
+        LinearLayout pollutantList = findViewById(R.id.pollution_list);
+
+        ModelMetaData lastData = updatePollutionList(pollutantList);
+        if(null != lastData) {
+            txtListTimestamp.setText(String.format(this.getResources().getString(R.string.observations_at_station),
+                    utcDateToFriendly(lastData.getModelRunDate(), lastData.getModelRunHour()), recentStation));
+            txtListTimestamp.setVisibility(VISIBLE);
+            pollutantList.setVisibility(VISIBLE);
+            txtPollutionUnknown.setVisibility(GONE);
+        } else {
+            txtListTimestamp.setVisibility(GONE);
+            pollutantList.setVisibility(GONE);
+            txtPollutionUnknown.setVisibility(VISIBLE);
+        }
 
         //UPDATE POLLUTANT MAP
         updateOverlayMapUI();
     }
 
-    private void updatePollutionList() {
-        LinearLayout pollutantList = findViewById(R.id.pollution_list);
-
+    private ModelMetaData updatePollutionList(LinearLayout pollutantList) {
         //Clear any old values
         pollutantList.removeAllViews();
 
-        //TODO: Build pollutant list
-        //getSpatialDataService().
-        
+        Pair<Float, Float> latLon = getAQHIService().getStationLatLon(false);
+        if(null == latLon || null == latLon.first || null == latLon.second || latLon.first < -300 || latLon.second < -300)
+            return null;
+
+        final SpatialDataService sds = getSpatialDataService();
+        ModelMetaData lastData = null;
+        List<Pollutant> pollutants = new ArrayList<Pollutant>(sds.getLoadedPollutants());
+        Collections.sort(pollutants);
+        for(Pollutant pollutant : pollutants) {
+            if(pollutant.isSmoke()) continue; //I might add this later, for now the smoke data is confusing
+
+            final SpatialData data = sds.getSpatialData(pollutant);
+            if(null == data) continue; //avoid race condition
+
+            if(null == data.getGrib2() || null == data.getGrib2().getRawImage() || null == data.getGrib2().getRawImage().values) continue; //backwards compatibility
+
+            View itemView = LayoutInflater.from(this).inflate(R.layout.pollution_layout, pollutantList, false);
+            final TextView txtPollutant = itemView.findViewById(R.id.txtPollutant);
+            final TextView txtPollutantValue = itemView.findViewById(R.id.txtPollutantValue);
+            final TextView txtPollutantUnit = itemView.findViewById(R.id.txtPollutantUnit);
+
+            txtPollutant.setText(pollutant.getDisplayName()); //PM 2.5
+            txtPollutantUnit.setText(pollutant.getUnits()); //ppb
+            txtPollutantValue.setText((new DecimalFormat("0.0")).format(data.overlayValueLookup(latLon.first, latLon.second))); //Value
+            pollutantList.addView(itemView);
+            lastData = data.getModel();
+        }
+        return lastData; //TODO: be smarter about this, don't assume all pollutants have the same metadata
     }
 
     private void updateOverlayMapUI() {
@@ -409,11 +462,12 @@ public class AQHIMainActivity extends AQHIActivity {
         View touchMarker   = mapView.getMarkerLayout().getMarkerByTag(MAP_TOUCH_MARKER_TAG);
 
         //Update the list of available pollutants
-        Collection<String> pollutants = getSpatialDataService().getLoadedPollutants(); //Can't be null
+        List<Pollutant> pollutants = new ArrayList<Pollutant>(getSpatialDataService().getLoadedPollutants()); //Can't be null
+        Collections.sort(pollutants);
         Spinner pollutantList = findViewById(R.id.ddPollutant);
         ArrayAdapter<String> adapter = (ArrayAdapter<String>) pollutantList.getAdapter();
         adapter.clear();
-        adapter.addAll(pollutants);
+        adapter.addAll(pollutants.stream().map(Pollutant::getDisplayName).toList());
 
         if(pollutants.isEmpty()) {
             //No spatial data is available, hide the map
@@ -438,9 +492,9 @@ public class AQHIMainActivity extends AQHIActivity {
         //Update the station location stationMarker first, regardless of the selected pollution overlay
         updateOverlayMapMarker(mapView, stationMarker);
 
-        if(null == selectedMapPollutant || !pollutants.contains(selectedMapPollutant.getDisplayName())) {
+        if(null == selectedMapPollutant || !pollutants.contains(selectedMapPollutant)) {
             //We need to force a change to the selected pollutant
-            selectedMapPollutant = Pollutant.fromDisplayName(pollutants.iterator().next());
+            selectedMapPollutant = pollutants.iterator().next();
             //Deactivate the click listener to prevent it from firing another UI update
             AdapterView.OnItemSelectedListener listener = pollutantList.getOnItemSelectedListener();
             pollutantList.setOnItemSelectedListener(null);
@@ -474,9 +528,9 @@ public class AQHIMainActivity extends AQHIActivity {
         }
 
         if(dataHasChanged) {
-            TextView minTxt = findViewById(R.id.lblMapMin);
-            TextView maxTxt = findViewById(R.id.lblMapMax);
-            TextView mapTsText = findViewById(R.id.lblTimestamp);
+            TextView minTxt = findViewById(R.id.txtMapMin);
+            TextView maxTxt = findViewById(R.id.txtMapMax);
+            TextView mapTsText = findViewById(R.id.txtMapTimestamp);
 
             if(null == newSpatialData) {
                 mapTsText.setVisibility(GONE);
@@ -545,22 +599,8 @@ public class AQHIMainActivity extends AQHIActivity {
             marker.setTag(new Pair<Integer, Integer>(x,y));
         }
 
-
-        //The overlay value is the alpha transparency of the overlay
-        //Convert to the actual unit value
-        final int overlayValue = overlay.overlayLookup(x, y);
         TextView value = marker.findViewById(R.id.touch_value);
-        if(overlayValue >= MAX_PIXEL_VALUE) {
-            value.setText("≥" + pollutant.getMaxVal() + " " + pollutant.getUnits());
-        } else if (overlayValue < 0) {
-            //Outside the grid
-            value.setText("-- " + pollutant.getUnits());
-        } else if (overlayValue == 0) {
-            value.setText("≤" + pollutant.getMinVal() + " " + pollutant.getUnits());
-        } else {
-            final float pollutionValue = pollutant.getMinVal() + ((((float)overlayValue) / MAX_PIXEL_VALUE) * (pollutant.getMaxVal() - pollutant.getMinVal()));
-            value.setText((new DecimalFormat("0.0")).format(pollutionValue) + " " + pollutant.getUnits());
-        }
+        value.setText(overlay.overlayTextLookup(x, y, pollutant));
     }
 
     private void updateOverlayMapMarker(MapView mapView, View marker) {
@@ -577,16 +617,16 @@ public class AQHIMainActivity extends AQHIActivity {
             final Pair<Integer, Integer> xyCoordinates = MapTransformer.transformLatLon(latLon.first, latLon.second);
             if(null == marker) {
                 //This is the first time and we need to create the marker
-                ImageView newMarker = new ImageView(this);
-                newMarker.setTag(xyCoordinates);
-                newMarker.setImageResource(R.drawable.location_pin_selected);
-                mapView.getMarkerLayout().addMarker(newMarker, xyCoordinates.first, xyCoordinates.second, -0.5f, -0.8f, 0f, 0f, MAP_STATION_MARKER_TAG);
-                MarkerApiKt.moveToMarker(mapView, newMarker, 0.5f, false);
+                marker = new ImageView(this);
+                ((ImageView) marker).setImageResource(R.drawable.location_pin_selected);
+                mapView.getMarkerLayout().addMarker(marker, xyCoordinates.first, xyCoordinates.second, -0.5f, -0.8f, 0f, 0f, MAP_STATION_MARKER_TAG);
+                MarkerApiKt.moveToMarker(mapView, marker, 0.5f, false);
             } else if(null != marker.getTag() && !xyCoordinates.equals(marker.getTag())) {
                 //Only move the marker if the location changed, otherwise you annoy the user
                 mapView.getMarkerLayout().moveMarker(marker, xyCoordinates.first, xyCoordinates.second);
                 MarkerApiKt.moveToMarker(mapView, marker, 0.5f, false);
             }
+            marker.setTag(xyCoordinates);
         }
     }
 
@@ -675,16 +715,17 @@ public class AQHIMainActivity extends AQHIActivity {
         return Color.valueOf(aqhiRiskText.getCurrentTextColor());
     }
 
-    private void updateDailyList(Map<Date, Double> data, LinearLayout dailyList, boolean decimals) {
+    private boolean updateDailyList(Map<Date, Double> data, LinearLayout dailyList, boolean decimals) {
         //Clear any old values
         dailyList.removeAllViews();
 
-        if (null == data || data.isEmpty()) return;
+        if (null == data || data.isEmpty()) return false;
 
         final String decimalFormat = decimals ? AQHI_DIGIT_FORMAT : AQHI_NO_DIGIT_FORMAT;
         final SimpleDateFormat dateDisplayFormat = new SimpleDateFormat("MMM d", Locale.CANADA);//MAR 3
         final SimpleDateFormat dayDisplayFormat  = new SimpleDateFormat("E", Locale.CANADA);
 
+        AtomicBoolean hasData = new AtomicBoolean(false);
         data.entrySet().stream()
             .sorted(Map.Entry.comparingByKey())
             .collect(Collectors.toMap(
@@ -706,7 +747,9 @@ public class AQHIMainActivity extends AQHIActivity {
                 txtForecastRisk.setText(getRiskFactor(value.getValue())); //Low Risk
                 txtForecastValue.setText(this.formatAQHIValue(value.getValue(), decimalFormat));
                 dailyList.addView(itemView);
+                hasData.set(true);
             });
+        return hasData.get();
     }
 
     private void updateAlertList(LinearLayout alertList, List<Alert> alerts) {
