@@ -177,56 +177,55 @@
                     android:baselineAligned="false"
                     android:orientation="horizontal"
                     app:layout_constraintTop_toTopOf="@id/clCurrentAQHISection">
-                <LinearLayout
-                    android:id="@+id/llCurrentAQHIReading"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:paddingStart="0dp"
-                    android:paddingEnd="0dp"
-                    android:layout_gravity="center"
-                    app:layout_constraintTop_toTopOf="@id/clCurrentAQHISection">
+                    <LinearLayout
+                        android:id="@+id/llCurrentAQHIReading"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:paddingStart="0dp"
+                        android:paddingEnd="0dp"
+                        android:layout_gravity="center"
+                        app:layout_constraintTop_toTopOf="@id/clCurrentAQHISection">
 
-                    <TextView
-                        android:id="@+id/txtAQHIValue"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:fontFamily="@font/roboto"
-                        android:gravity="center"
-                        android:maxLines="1"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="0dp"
-                        android:text="0.00"
-                        android:textSize="38sp"
-                        android:textStyle="bold"
-                        tools:ignore="HardcodedText,SpUsage" />
-                    <TextView
-                        android:id="@+id/txtAQHIRisk"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center"
-                        android:fontFamily="@font/roboto"
-                        android:text="@string/low_risk"
-                        android:textSize="20sp"
-                        android:paddingTop="0dp"
-                        android:paddingBottom="4dp"/>
-                    <TextView
-                        android:id="@+id/txtTypicalAQHI"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center"
-                        android:fontFamily="@font/roboto"
-                        android:text="@string/typical"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="0dp"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:textSize="12sp"
-                        android:onClick="showTypicalAQHI"
-                        android:textColor="@color/main_activity_action_text"/>
-                </LinearLayout>
-
+                        <TextView
+                            android:id="@+id/txtAQHIValue"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/roboto"
+                            android:gravity="center"
+                            android:maxLines="1"
+                            android:paddingTop="4dp"
+                            android:paddingBottom="0dp"
+                            android:text="0.00"
+                            android:textSize="38sp"
+                            android:textStyle="bold"
+                            tools:ignore="HardcodedText,SpUsage" />
+                        <TextView
+                            android:id="@+id/txtAQHIRisk"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:fontFamily="@font/roboto"
+                            android:text="@string/low_risk"
+                            android:textSize="20sp"
+                            android:paddingTop="0dp"
+                            android:paddingBottom="4dp"/>
+                        <TextView
+                            android:id="@+id/txtTypicalAQHI"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:fontFamily="@font/roboto"
+                            android:text="@string/typical"
+                            android:paddingTop="4dp"
+                            android:paddingBottom="0dp"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:textSize="12sp"
+                            android:onClick="showTypicalAQHI"
+                            android:textColor="@color/main_activity_action_text"/>
+                    </LinearLayout>
 
                     <FrameLayout
                         android:layout_width="196dp"
@@ -293,32 +292,44 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="@id/aqhi_forecast_section" />
 
-                <TextView
-                    android:id="@+id/txtForecastUnknown"
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/aqhi_forecast_max_data_section"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="@font/roboto"
-                    android:gravity="center"
-                    android:maxLines="1"
                     android:padding="0dp"
-                    android:text="\?"
-                    android:textSize="38sp"
-                    android:textStyle="bold"
-                    app:layout_constraintStart_toStartOf="parent"
+                    android:layout_margin="0dp"
+                    android:layout_height="0dp"
                     app:layout_constraintTop_toBottomOf="@id/lblForecastMax"
-                    tools:ignore="HardcodedText,SpUsage" />
-
-
-                <LinearLayout
-                    android:id="@+id/daily_forecast_list"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="8dp"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/txtForecastUnknown">
-                </LinearLayout>
+                    app:layout_constraintEnd_toEndOf="parent" >
+
+                    <TextView
+                        android:id="@+id/txtForecastUnknown"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/roboto"
+                        android:gravity="center"
+                        android:maxLines="1"
+                        android:padding="0dp"
+                        android:text="\?"
+                        android:textSize="38sp"
+                        android:textStyle="bold"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        tools:ignore="HardcodedText,SpUsage" />
+
+                    <LinearLayout
+                        android:id="@+id/daily_forecast_list"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="8dp"
+                        android:visibility="gone"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent">
+                    </LinearLayout>
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
 
                 <TextView
                     android:id="@+id/lblForecastMap"
@@ -332,7 +343,7 @@
                     android:text="@string/hourly_forecast"
                     android:textStyle="bold"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/daily_forecast_list" />
+                    app:layout_constraintTop_toBottomOf="@id/aqhi_forecast_max_data_section" />
 
                 <ImageView
                     android:id="@+id/imgForecastHeatMap"
@@ -340,7 +351,6 @@
                     android:layout_height="wrap_content"
                     android:src="@drawable/outline_bar_chart_24"
                     android:contentDescription="@string/forecast_heat_map"
-                    app:tint="?attr/colorOnSurface"
                     app:layout_constraintTop_toBottomOf="@id/lblForecastMap"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
@@ -376,6 +386,7 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 android:background="@drawable/soft_border">
+
                 <TextView
                     android:id="@+id/lblHistoricalMax"
                     android:layout_width="wrap_content"
@@ -387,31 +398,43 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="@id/aqhi_historical_section" />
 
-                <TextView
-                    android:id="@+id/txtHistoricalUnknown"
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/aqhi_historical_max_data_section"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="@font/roboto"
-                    android:gravity="center"
-                    android:maxLines="1"
                     android:padding="0dp"
-                    android:text="\?"
-                    android:textSize="38sp"
-                    android:textStyle="bold"
-                    app:layout_constraintStart_toStartOf="parent"
+                    android:layout_margin="0dp"
+                    android:layout_height="0dp"
                     app:layout_constraintTop_toBottomOf="@id/lblHistoricalMax"
-                    tools:ignore="HardcodedText,SpUsage" />
-
-                <LinearLayout
-                    android:id="@+id/daily_historical_list"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="8dp"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/txtHistoricalUnknown">
-                </LinearLayout>
+                    app:layout_constraintEnd_toEndOf="parent" >
+
+                    <TextView
+                        android:id="@+id/txtHistoricalUnknown"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/roboto"
+                        android:gravity="center"
+                        android:maxLines="1"
+                        android:padding="0dp"
+                        android:text="\?"
+                        android:textSize="38sp"
+                        android:textStyle="bold"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        tools:ignore="HardcodedText,SpUsage" />
+
+                    <LinearLayout
+                        android:id="@+id/daily_historical_list"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="8dp"
+                        android:visibility="gone"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
 
                 <TextView
                     android:id="@+id/lblHistoricalMap"
@@ -425,7 +448,7 @@
                     android:text="@string/hourly_history"
                     android:textStyle="bold"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/daily_historical_list" />
+                    app:layout_constraintTop_toBottomOf="@id/aqhi_historical_max_data_section" />
 
                 <ImageView
                     android:id="@+id/imgHistoricalHeatMap"
@@ -435,8 +458,7 @@
                     android:contentDescription="@string/historical_trend_heatmap"
                     app:layout_constraintTop_toBottomOf="@id/lblHistoricalMap"
                     app:layout_constraintStart_toStartOf="parent"
-                    android:padding="8dp"
-                    app:tint="?attr/colorOnSurface" />
+                    android:padding="8dp" />
             </androidx.constraintlayout.widget.ConstraintLayout>
 
             <!-- Pollution Values -->
@@ -468,31 +490,44 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 android:background="@drawable/soft_border">
 
-                <TextView
-                    android:id="@+id/txtPollutionUnknown"
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/pollution_data_section"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="@font/roboto"
-                    android:gravity="center"
-                    android:maxLines="1"
                     android:padding="0dp"
-                    android:text="\?"
-                    android:textSize="38sp"
-                    android:textStyle="bold"
-                    app:layout_constraintStart_toStartOf="parent"
+                    android:layout_margin="0dp"
+                    android:layout_height="0dp"
                     app:layout_constraintTop_toTopOf="parent"
-                    tools:ignore="HardcodedText,SpUsage" />
-
-                <LinearLayout
-                    android:id="@+id/pollution_list"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="8dp"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/txtPollutionUnknown">
-                </LinearLayout>
+                    app:layout_constraintEnd_toEndOf="parent" >
+
+                    <TextView
+                        android:id="@+id/txtPollutionUnknown"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/roboto"
+                        android:gravity="center"
+                        android:maxLines="1"
+                        android:padding="0dp"
+                        android:text="\?"
+                        android:textSize="38sp"
+                        android:textStyle="bold"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        tools:ignore="HardcodedText,SpUsage" />
+
+                    <LinearLayout
+                        android:id="@+id/pollution_list"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="4dp"
+                        android:visibility="gone"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent">
+                    </LinearLayout>
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
 
                 <TextView
                     android:id="@+id/txtListTimestamp"
@@ -501,12 +536,14 @@
                     android:clickable="false"
                     android:focusable="false"
                     android:gravity="end"
-                    android:padding="4dp"
+                    android:paddingStart="4dp"
+                    android:paddingEnd="4dp"
+                    android:paddingBottom="4dp"
                     android:text=""
                     android:textColor="@android:color/darker_gray"
                     android:textSize="10sp"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/pollution_list" />
+                    app:layout_constraintTop_toBottomOf="@id/pollution_data_section" />
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -568,7 +605,6 @@
                         app:layout_constraintBottom_toBottomOf="parent"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintStart_toStartOf="parent"
-                        app:tint="?attr/colorOnSurface"
                         android:layout_height="100dp"
                         android:layout_width="0dp"/>
 
