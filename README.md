@@ -9,6 +9,7 @@ A no-nonsense Android app & widgets for displaying Canadian Air Quality Health I
 **Features:**
 - View the latest air quality readings from the nearest monitoring station to your location.
 - See AQHI forecasts for the next several days.
+- View historical AQHI readings from the last several days.
 - Receive alerts when ECCC issues warnings for your selected area.
 - Explore daily and hourly trends, including median “typical” values based on a 10-year analysis of air quality data.
 - View air pollution maps for NO2, NO, O3, SO2, PM 2.5, PM 10, and wildfire smoke.
@@ -18,13 +19,11 @@ A no-nonsense Android app & widgets for displaying Canadian Air Quality Health I
 
 ## Main App
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/525d4af8-b17d-491a-8696-4072c5be20ea" width="400" />
+  <img src="https://github.com/user-attachments/assets/2c9d14b9-afba-4777-b7d6-c958e48d1340" width="400" />
 </p>
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/19d1a29c-6dbe-410e-b981-72da76b51d73" width="400" />
-  <img src="https://github.com/user-attachments/assets/9ee88b49-10e0-45fe-89f5-d128f8934a15" width="400" />
-  <img src="https://github.com/user-attachments/assets/159ce2f9-c024-4efe-b952-3ecdc3d397ea" width="400" />
+  <img src="https://github.com/user-attachments/assets/93327c41-5d50-4762-9c72-824c4391fc5d" width="400" />
   <img src="https://github.com/user-attachments/assets/19365e74-b855-40aa-99f3-fbe53e3ecc8c" width="400" />
 </p>
 
