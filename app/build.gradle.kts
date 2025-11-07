@@ -12,8 +12,8 @@ android {
         applicationId = "com.dbf.aqhi"
         minSdk = 34
         targetSdk = 34
-        versionCode = 14
-        versionName = "1.1.4"
+        versionCode = 15
+        versionName = "1.1.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
@@ -30,7 +30,7 @@ android {
     externalNativeBuild {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
-            version = "3.26.4"
+            version = "4.1.2"
         }
     }
 

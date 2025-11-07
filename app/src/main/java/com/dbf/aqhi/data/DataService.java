@@ -62,4 +62,6 @@ public abstract class DataService {
     }
 
     public abstract void update();
+
+    public abstract boolean isUpdateRunning();
 }

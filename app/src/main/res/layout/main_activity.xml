@@ -513,7 +513,18 @@
                         android:textStyle="bold"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toTopOf="parent"
+                        android:visibility="gone"
                         tools:ignore="HardcodedText,SpUsage" />
+
+                    <ImageView
+                        android:id="@+id/imgPollutionLoading"
+                        android:src="@drawable/loading_dots_slow"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        android:gravity="center"
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:padding="6dp"/>
 
                     <LinearLayout
                         android:id="@+id/pollution_list"
@@ -542,6 +553,7 @@
                     android:text=""
                     android:textColor="@android:color/darker_gray"
                     android:textSize="10sp"
+                    android:visibility="gone"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/pollution_data_section" />
 
@@ -607,6 +619,16 @@
                         app:layout_constraintStart_toStartOf="parent"
                         android:layout_height="100dp"
                         android:layout_width="0dp"/>
+
+                    <ImageView
+                        android:id="@+id/imgMapLoading"
+                        android:src="@drawable/loading_dots_slow"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/imgMapPlaceholder"
+                        android:gravity="center"
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:padding="6dp"/>
 
                 </androidx.constraintlayout.widget.ConstraintLayout>
 

@@ -39,6 +39,7 @@ public class AQHIDataService extends DataService {
 
     private static final String LOG_TAG = "AQHIService";
     private static final Object GLOBAL_SYNC_OBJECT = new Object();
+    private static volatile boolean syncRunning = false;
 
     //Used for Gson conversion
     private static final Type gsonAQHIType = new TypeToken<Map<Date, Double>>(){}.getType();
@@ -144,58 +145,62 @@ public class AQHIDataService extends DataService {
 
         //This code is stateful, we don't want to run multiple updates at the same time
         synchronized (GLOBAL_SYNC_OBJECT) {
+            try {
+                syncRunning = true;
+                final boolean stationAuto = isStationAuto();
+                final String previousStationCode = sharedPreferences.getString(STATION_CODE_KEY, null);
+                String currentStationCode;
+                if (stationAuto) {
+                    //Station is determined automatically based on the user's location
+                    currentStationCode = determineCurrentLocation(previousStationCode, false);
+                } else {
+                    //Station is set manually by the user
+                    currentStationCode = this.getStationCode(true);
+                }
 
-            final boolean stationAuto = isStationAuto();
-            final String previousStationCode = sharedPreferences.getString(STATION_CODE_KEY, null);
-            String currentStationCode;
-            if (stationAuto) {
-                //Station is determined automatically based on the user's location
-                currentStationCode = determineCurrentLocation(previousStationCode, false);
-            } else {
-                //Station is set manually by the user
-                currentStationCode = this.getStationCode(true);
-            }
+                if (null == currentStationCode || !currentStationCode.equals(previousStationCode)) {
+                    //We have changed stations, all of our current data is invalid
+                    Log.i(LOG_TAG, "Station has changed. Old station: " + previousStationCode + " New station: " + currentStationCode);
+                    clearAllData();
+                }
 
-            if (null == currentStationCode || !currentStationCode.equals(previousStationCode)) {
-                //We have changed stations, all of our current data is invalid
-                Log.i(LOG_TAG, "Station has changed. Old station: " + previousStationCode + " New station: " + currentStationCode);
-                clearAllData();
-            }
-
-            if(!isInternetAvailable()) {
-                Log.i(LOG_TAG, "Network is down. Skipping AQHI update.");
-                return;
-            }
-            //Get the latest AQHI reading for the station.
-            //Get the latest AQHI reading for the station.
-            if (null != currentStationCode && fetchLatestAQHIData(currentStationCode)) {
-                Log.i(LOG_TAG, "Fresh data found for station " + currentStationCode);
-            } else if (stationAuto) {
-                //It's possible there is no data available for the station
-                //Some stations don't have data from time-to-time.
-                //In this case, we need to force a station list update and pick another closest station.
-                Log.i(LOG_TAG, "Could not fetch fresh data for station " + currentStationCode);
-                currentStationCode = determineCurrentLocation(previousStationCode, true);
-                if (currentStationCode == null) {
-                    //If the station is still null after forcing an update, then either the API is broken or the device is offline
-                    Log.w(LOG_TAG, "Cannot determine the closest station. Device may be offline.");
+                if(!isInternetAvailable()) {
+                    Log.i(LOG_TAG, "Network is down. Skipping AQHI update.");
                     return;
                 }
-
-                //We have a new, valid, station. Update the AQHI once more
-                if (fetchLatestAQHIData(currentStationCode)) {
+                //Get the latest AQHI reading for the station.
+                //Get the latest AQHI reading for the station.
+                if (null != currentStationCode && fetchLatestAQHIData(currentStationCode)) {
                     Log.i(LOG_TAG, "Fresh data found for station " + currentStationCode);
-                } else {
-                    //At this point, we may legitimately have no data.
-                    //For example, it's possible we were not able to update the station list and the current station has no data
-                    Log.e(LOG_TAG, "Could not fetch fresh data for station " + currentStationCode);
-                }
-            } else {
-                Log.i(LOG_TAG, "Could not fetch fresh data for manually set station: " + currentStationCode);
-            }
+                } else if (stationAuto) {
+                    //It's possible there is no data available for the station
+                    //Some stations don't have data from time-to-time.
+                    //In this case, we need to force a station list update and pick another closest station.
+                    Log.i(LOG_TAG, "Could not fetch fresh data for station " + currentStationCode);
+                    currentStationCode = determineCurrentLocation(previousStationCode, true);
+                    if (currentStationCode == null) {
+                        //If the station is still null after forcing an update, then either the API is broken or the device is offline
+                        Log.w(LOG_TAG, "Cannot determine the closest station. Device may be offline.");
+                        return;
+                    }
 
-            //Get the latest alerts
-            if (null != currentStationCode) fetchLatestAlertData();
+                    //We have a new, valid, station. Update the AQHI once more
+                    if (fetchLatestAQHIData(currentStationCode)) {
+                        Log.i(LOG_TAG, "Fresh data found for station " + currentStationCode);
+                    } else {
+                        //At this point, we may legitimately have no data.
+                        //For example, it's possible we were not able to update the station list and the current station has no data
+                        Log.e(LOG_TAG, "Could not fetch fresh data for station " + currentStationCode);
+                    }
+                } else {
+                    Log.i(LOG_TAG, "Could not fetch fresh data for manually set station: " + currentStationCode);
+                }
+
+                //Get the latest alerts
+                if (null != currentStationCode) fetchLatestAlertData();
+            } finally {
+                syncRunning = false;
+            }
         }
     }
 
@@ -916,5 +921,10 @@ public class AQHIDataService extends DataService {
 
     public GeoMetService getGeoMetService() {
         return geoMetService;
+    }
+
+    @Override
+    public boolean isUpdateRunning() {
+        return syncRunning;
     }
 }
