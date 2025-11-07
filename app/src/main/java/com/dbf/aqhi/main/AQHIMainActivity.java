@@ -15,7 +15,9 @@ import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Insets;
 import android.graphics.Typeface;
+import android.graphics.drawable.AnimatedImageDrawable;
 import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.text.Html;
 import android.util.Log;
@@ -398,22 +400,40 @@ public class AQHIMainActivity extends AQHIActivity {
             updateAlertList(alertList, alerts);
         }
 
+        updatePollutionUI(recentStation);
+    }
+
+    private void updatePollutionUI(String stationName) {
         //UPDATE POLLUTION VALUES
         TextView txtPollutionUnknown = findViewById(R.id.txtPollutionUnknown);
         TextView txtListTimestamp = findViewById(R.id.txtListTimestamp);
         LinearLayout pollutantList = findViewById(R.id.pollution_list);
+        ImageView imgPollutionLoading = findViewById(R.id.imgPollutionLoading);
 
         ModelMetaData lastData = updatePollutionList(pollutantList);
         if(null != lastData) {
+            //We have at least one entry to display
             txtListTimestamp.setText(String.format(this.getResources().getString(R.string.observations_at_station),
-                    utcDateToFriendly(lastData.getModelRunDate(), lastData.getModelRunHour()), recentStation));
+                    utcDateToFriendly(lastData.getModelRunDate(), lastData.getModelRunHour()), stationName));
             txtListTimestamp.setVisibility(VISIBLE);
             pollutantList.setVisibility(VISIBLE);
             txtPollutionUnknown.setVisibility(GONE);
+            imgPollutionLoading.setVisibility(GONE);
         } else {
             txtListTimestamp.setVisibility(GONE);
             pollutantList.setVisibility(GONE);
-            txtPollutionUnknown.setVisibility(VISIBLE);
+
+            AnimatedImageDrawable anim = (AnimatedImageDrawable)  imgPollutionLoading.getDrawable();
+            if(getSpatialDataService().isUpdateRunning()) {
+                txtPollutionUnknown.setVisibility(GONE);
+                imgPollutionLoading.setVisibility(VISIBLE);
+                anim.setRepeatCount(AnimatedImageDrawable.REPEAT_INFINITE);
+                anim.start();
+            } else {
+                txtPollutionUnknown.setVisibility(VISIBLE);
+                imgPollutionLoading.setVisibility(GONE);
+                anim.stop();
+            }
         }
 
         //UPDATE POLLUTANT MAP
@@ -460,6 +480,8 @@ public class AQHIMainActivity extends AQHIActivity {
         ImageView mapPlaceholder = findViewById(R.id.imgMapPlaceholder);
         View stationMarker = mapView.getMarkerLayout().getMarkerByTag(MAP_STATION_MARKER_TAG);
         View touchMarker   = mapView.getMarkerLayout().getMarkerByTag(MAP_TOUCH_MARKER_TAG);
+        ImageView imgMapLoading = findViewById(R.id.imgMapLoading);
+        AnimatedImageDrawable anim = (AnimatedImageDrawable)  imgMapLoading.getDrawable();
 
         //Update the list of available pollutants
         List<Pollutant> pollutants = new ArrayList<Pollutant>(getSpatialDataService().getLoadedPollutants()); //Can't be null
@@ -476,6 +498,15 @@ public class AQHIMainActivity extends AQHIActivity {
             pollutantList.setVisibility(GONE);
             mapLegend.setVisibility(GONE);
 
+            if(getSpatialDataService().isUpdateRunning()) {
+                imgMapLoading.setVisibility(VISIBLE);
+                anim.setRepeatCount(AnimatedImageDrawable.REPEAT_INFINITE);
+                anim.start();
+            } else {
+                imgMapLoading.setVisibility(GONE);
+                anim.stop();
+            }
+
             selectedMapPollutant = null;
             tileProvider.setOverlayTileProvider(null);
             if(null != stationMarker) mapView.getMarkerLayout().removeMarker(stationMarker);
@@ -488,6 +519,8 @@ public class AQHIMainActivity extends AQHIActivity {
         mapLegend.setVisibility(VISIBLE);
         pollutantList.setVisibility(VISIBLE);
         mapPlaceholder.setVisibility(GONE);
+        imgMapLoading.setVisibility(GONE);
+        anim.stop();
 
         //Update the station location stationMarker first, regardless of the selected pollution overlay
         updateOverlayMapMarker(mapView, stationMarker);

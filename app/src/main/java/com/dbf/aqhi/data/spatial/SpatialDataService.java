@@ -35,6 +35,7 @@ public class SpatialDataService extends DataService {
 
     //Prevents multiple simultaneous remote updates
     private static final Object UPDATE_SYNC_OBJECT = new Object();
+    private static volatile boolean syncRunning = false;
 
     //Keeps the file system cache in sync with shared preferences
     private static final Map<Pollutant, Object> POLLUTANT_SYNC_OBJECTS;
@@ -97,6 +98,11 @@ public class SpatialDataService extends DataService {
         }).start();
     }
 
+    @Override
+    public boolean isUpdateRunning() {
+        return syncRunning;
+    }
+
     /**
      * Updates the spatial data for all of the pollutants, if the most recent data isn't already present.
      * The data is stored on disk.
@@ -112,8 +118,13 @@ public class SpatialDataService extends DataService {
         //Load the data one-by-one so we don't run out of memory
         //This code is stateful, we don't want to run multiple updates at the same time
         synchronized (UPDATE_SYNC_OBJECT) {
-            for(Pollutant pollutant : Pollutant.values()){
-                updateSpatialData(pollutant);
+            try {
+                syncRunning = true;
+                for(Pollutant pollutant : Pollutant.values()){
+                    updateSpatialData(pollutant);
+                }
+            } finally {
+                syncRunning = false;
             }
         }
     }
