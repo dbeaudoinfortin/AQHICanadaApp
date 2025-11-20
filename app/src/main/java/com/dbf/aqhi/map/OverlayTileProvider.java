@@ -152,15 +152,15 @@ public class OverlayTileProvider {
             //Convert to the actual unit value
             final int overlayValue = overlay.pixelLookup(latLon[0], latLon[1]);
             if(overlayValue >= MAX_PIXEL_VALUE) {
-                return "≥" + pollutant.getMaxVal() + " " + pollutant.getUnits();
+                return "≥" + pollutant.getOverlayMaxVal() + " " + pollutant.getUnits();
             } else if (overlayValue < 0) {
                 return "-- " + pollutant.getUnits(); //Outside the grid
             } else if (overlayValue == 0) {
-                return "≤" + pollutant.getMinVal() + " " + pollutant.getUnits();
+                return "≤" + pollutant.getOverlayMinVal() + " " + pollutant.getUnits();
             }
 
             //Interpolated value
-            final float pollutionValue = pollutant.getMinVal() + ((((float)overlayValue) / MAX_PIXEL_VALUE) * (pollutant.getMaxVal() - pollutant.getMinVal()));
+            final float pollutionValue = pollutant.getOverlayMinVal() + ((((float)overlayValue) / MAX_PIXEL_VALUE) * (pollutant.getOverlayMaxVal() - pollutant.getOverlayMinVal()));
             return (new DecimalFormat("0.0")).format(pollutionValue) + " " + pollutant.getUnits();
         }
     }

@@ -60,7 +60,7 @@ public class Grib2Parser {
         //TODO:Support Reference value R
         //scale = (R + Y*2^E)*(10^-D)*unit_conversion_scale
         float scale = (float) (Math.pow(2,scaleMeta.getBinaryScaleE()) * Math.pow(10,-scaleMeta.getDecimalScaleD()) * pollutant.getUnitScale());
-        return Jpeg2000Decoder.decodeJpeg2000(bytes, sectionStart + 5, (int) (sectionLength-4), scale, pollutant.getMinVal(), pollutant.getMaxVal(), MAX_PIXEL_VALUE);
+        return Jpeg2000Decoder.decodeJpeg2000(bytes, sectionStart + 5, (int) (sectionLength-4), scale, pollutant.getOverlayMinVal(), pollutant.getOverlayMaxVal(), MAX_PIXEL_VALUE);
     }
 
     private static Grib2GridMetaData parseGridDef(byte[] bytes, int sectionStart) {

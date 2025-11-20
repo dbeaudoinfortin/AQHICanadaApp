@@ -11,8 +11,9 @@
     <color name="main_activity_header_background">#F2F2F2</color>
     <color name="main_activity_header_text">#953735</color>
     <color name="main_activity_action_text">#953735</color>
-    <color name="map_overlay_colour_1">#6B3A1E</color>
-    <color name="map_overlay_colour_2">#8000FF</color>
+    <color name="map_overlay_colour_1">#8000FF</color>
+    <color name="map_overlay_colour_2">#6B3A1E</color>
     <color name="map_overlay_colour_3">#FF6E00</color>
     <color name="map_overlay_colour_4">#1DF301</color>
+    <color name="map_overlay_colour_5">#850101</color>
 </resources>

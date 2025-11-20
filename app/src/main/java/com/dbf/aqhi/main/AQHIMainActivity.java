@@ -17,7 +17,6 @@ import android.graphics.Insets;
 import android.graphics.Typeface;
 import android.graphics.drawable.AnimatedImageDrawable;
 import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.text.Html;
 import android.util.Log;
@@ -299,7 +298,7 @@ public class AQHIMainActivity extends AQHIActivity {
         View imgScale = findViewById(R.id.imgScale);
         imgScale.setOnClickListener(view -> {
             mapScaleIndex++;
-            if(mapScaleIndex > 4) mapScaleIndex = 1;
+            if(mapScaleIndex > 5) mapScaleIndex = 1;
 
             int mapScaleGradient = getResources().getIdentifier("map_scale_" + mapScaleIndex, "drawable", getPackageName());
             int mapOverlayColour = getResources().getIdentifier("map_overlay_colour_" + mapScaleIndex, "color", getPackageName());
@@ -464,10 +463,40 @@ public class AQHIMainActivity extends AQHIActivity {
             final TextView txtPollutant = itemView.findViewById(R.id.txtPollutant);
             final TextView txtPollutantValue = itemView.findViewById(R.id.txtPollutantValue);
             final TextView txtPollutantUnit = itemView.findViewById(R.id.txtPollutantUnit);
+            final ImageView imgPollutantIcon = itemView.findViewById(R.id.imgPollutantIcon);
+            final TextView txtPollutantWarn = itemView.findViewById(R.id.txtPollutantWarn);
 
             txtPollutant.setText(pollutant.getDisplayName()); //PM 2.5
             txtPollutantUnit.setText(pollutant.getUnits()); //ppb
-            txtPollutantValue.setText((new DecimalFormat("0.0")).format(data.overlayValueLookup(latLon.first, latLon.second))); //Value
+
+            final float val = data.overlayValueLookup(latLon.first, latLon.second);
+            txtPollutantValue.setText((new DecimalFormat("0.0")).format(val)); //Value
+
+            if(pollutant.getLevel1() <= 0 || val <= 0.0) {
+                //We don't have a scale for this pollutant
+                imgPollutantIcon.setVisibility(GONE);
+                txtPollutantWarn.setText("");
+            } else if (val <= pollutant.getLevel1()) {
+                imgPollutantIcon.setVisibility(GONE);
+                txtPollutantWarn.setText("Low");
+            } else if (val <= pollutant.getLevel2()) {
+                imgPollutantIcon.setVisibility(VISIBLE);
+                imgPollutantIcon.setImageResource(R.drawable.alert_statement);
+                txtPollutantWarn.setText("Medium");
+            } else if (val <= pollutant.getLevel3()) {
+                imgPollutantIcon.setVisibility(VISIBLE);
+                imgPollutantIcon.setImageResource(R.drawable.alert_watch);
+                txtPollutantWarn.setText("High");
+            } else {
+                imgPollutantIcon.setVisibility(VISIBLE);
+                imgPollutantIcon.setImageResource(R.drawable.alert_warn);
+                txtPollutantWarn.setText("Very High");
+            }
+
+            //Register a click listener to show the details
+            int htmlTextId = getResources().getIdentifier("guidelines_" + pollutant.toString().toLowerCase(), "raw", getPackageName());
+            itemView.setOnClickListener(v -> this.showDialog(pollutant.getDisplayName() + " Guidelines", htmlTextId));
+
             pollutantList.addView(itemView);
             lastData = data.getModel();
         }
@@ -575,9 +604,9 @@ public class AQHIMainActivity extends AQHIActivity {
                 mapTsText.setVisibility(VISIBLE);
                 minTxt.setVisibility(VISIBLE);
                 maxTxt.setVisibility(VISIBLE);
-                minTxt.setText(""+ ((int) selectedMapPollutant.getMinVal()));
-                maxTxt.setText(((int) selectedMapPollutant.getMaxVal()) + " " + selectedMapPollutant.getUnits());
-                mapTsText.setText(this.getResources().getString(R.string.observations_at) + " " + utcDateToFriendly(newSpatialData.getModel().getModelRunDate(), newSpatialData.getModel().getModelRunHour()));
+                minTxt.setText(""+ ((int) selectedMapPollutant.getOverlayMinVal()));
+                maxTxt.setText(((int) selectedMapPollutant.getOverlayMaxVal()) + " " + selectedMapPollutant.getUnits());
+                mapTsText.setText(getResources().getString(R.string.observations_at) + " " + utcDateToFriendly(newSpatialData.getModel().getModelRunDate(), newSpatialData.getModel().getModelRunHour()));
                 int mapOverlayColour = getResources().getIdentifier("map_overlay_colour_" + mapScaleIndex, "color", getPackageName());
                 tileProvider.setOverlayTileProvider(new OverlayTileProvider(newSpatialData, getColor(mapOverlayColour)));
                 if(null != touchMarker) updateOverlayTouchMarker(mapView, null, null); //Do this last
@@ -791,30 +820,30 @@ public class AQHIMainActivity extends AQHIActivity {
         if (null == alerts || alerts.isEmpty()) return;
 
         alerts.forEach(alert -> {
-                    //Create the entry based on the layout
-                    View itemView = LayoutInflater.from(this).inflate(R.layout.alert_layout, alertList, false);
+            //Create the entry based on the layout
+            View itemView = LayoutInflater.from(this).inflate(R.layout.alert_layout, alertList, false);
 
-                    //Set the title of the alert
-                    final TextView txtAlert = itemView.findViewById(R.id.txtAlertTitle);
-                    txtAlert.setText(alert.getAlertBannerText());
+            //Set the title of the alert
+            final TextView txtAlert = itemView.findViewById(R.id.txtAlertTitle);
+            txtAlert.setText(alert.getAlertBannerText());
 
-                    //Set the correct icon
-                    final ImageView imgAlert = itemView.findViewById(R.id.imgAlertIcon);
-                    String level = alert.getType();
-                    if("watch".equals(level)) {
-                        imgAlert.setImageResource(R.drawable.alert_watch);
-                    } else if("warning".equals(level)) {
-                        imgAlert.setImageResource(R.drawable.alert_warn);
-                    } else {
-                        imgAlert.setImageResource(R.drawable.alert_statement);
-                    }
+            //Set the correct icon
+            final ImageView imgAlert = itemView.findViewById(R.id.imgAlertIcon);
+            String level = alert.getType();
+            if("watch".equals(level)) {
+                imgAlert.setImageResource(R.drawable.alert_watch);
+            } else if("warning".equals(level)) {
+                imgAlert.setImageResource(R.drawable.alert_warn);
+            } else {
+                imgAlert.setImageResource(R.drawable.alert_statement);
+            }
 
-                    //Register a click listener to show the details
-                    itemView.setOnClickListener(v -> this.showDialog(alert.getAlertBannerText(),null, "<p><b>" + alert.getIssueTimeText() + "</b></p>" + alert.getText().replace("\n","<br>") ,null, null));
+            //Register a click listener to show the details
+            itemView.setOnClickListener(v -> this.showDialog(alert.getAlertBannerText(),null, "<p><b>" + alert.getIssueTimeText() + "</b></p>" + alert.getText().replace("\n","<br>") ,null, null));
 
-                    //Add the entry to the list
-                    alertList.addView(itemView);
-                });
+            //Add the entry to the list
+            alertList.addView(itemView);
+        });
     }
 
     private String getRiskFactor(Double aqhi) {

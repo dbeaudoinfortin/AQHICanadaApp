@@ -56,6 +56,7 @@ public abstract class AQHIActivity extends Activity implements AQHIFeature {
         if(null != additionalHTML && !additionalHTML.isEmpty()) {
             contents += additionalHTML;
         }
+
         messageTextView.setText(Html.fromHtml(contents, Html.FROM_HTML_MODE_LEGACY, imageGetter, tagHandler));
         messageTextView.setMovementMethod(LinkMovementMethod.getInstance());
         int padding = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, getResources().getDisplayMetrics());
@@ -77,7 +78,7 @@ public abstract class AQHIActivity extends Activity implements AQHIFeature {
             return IOUtils.toString(getResources().openRawResource(resourceID), Charset.defaultCharset());
         } catch (Exception e) {
             Log.e(LOG_TAG, "Failed to load content.\n" + StackTraceCompactor.getCompactStackTrace(e));
-            return "<p>Failed to content.</p>";
+            return "<p>Failed to load content.</p>";
         }
     }
 
