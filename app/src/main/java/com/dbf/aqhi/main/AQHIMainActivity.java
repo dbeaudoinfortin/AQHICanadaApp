@@ -34,10 +34,12 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 
 import com.dbf.aqhi.AQHIActivity;
@@ -232,6 +234,28 @@ public class AQHIMainActivity extends AQHIActivity {
 
     @SuppressLint("ClickableViewAccessibility")
     private void initOverlayMapUI() {
+
+        //Manually set the height when horizontally rotated
+        final ConstraintLayout mapContainer = findViewById(R.id.mapContainer);
+        final ConstraintLayout mapLegendContainer = findViewById(R.id.mapLegendContainer);
+        final ScrollView bodyScroll = findViewById(R.id.body_outer_scroll);
+
+        mapContainer.addOnLayoutChangeListener((View v, int left, int top, int right, int bottom,
+                                                int oldLeft, int oldTop, int oldRight, int oldBottom) -> {
+            ConstraintLayout.LayoutParams layoutParams = (ConstraintLayout.LayoutParams) mapContainer.getLayoutParams();
+            if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
+                //Set the height to the space between the header and footer
+                //Minimum of 200 pixels, just in case the layout is weird
+                layoutParams.height = Math.max(200, bodyScroll.getHeight() - mapLegendContainer.getHeight() - 50);
+                layoutParams.dimensionRatio = null;
+            } else {
+                //Set the height equal to the width
+                layoutParams.height = 0;
+                layoutParams.dimensionRatio = "W,1:1";
+            }
+            mapContainer.setLayoutParams(layoutParams);
+        });
+
         //Create the map, regardless if we have overlay data or not.
         //Overlays will be applied in the updateUI() method.
         tileProvider = new CompositeTileProvider(getMapTileProvider());
