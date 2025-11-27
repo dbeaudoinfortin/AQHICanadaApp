@@ -90,9 +90,9 @@ public class AQHIWidgetProviderLarge extends AQHIWidgetProvider {
             views.setViewVisibility(R.id.imgAlert, VISIBLE);
             //Set the image to the highest alert setting
             if (lightDarkMode == AppCompatDelegate.MODE_NIGHT_YES) {
-                views.setImageViewResource(R.id.imgAlert,R.drawable.alert_statement_white);
+                views.setImageViewResource(R.id.imgAlert,R.drawable.alert_statement_light);
             } else {
-                views.setImageViewResource(R.id.imgAlert,R.drawable.alert_statement);
+                views.setImageViewResource(R.id.imgAlert,R.drawable.alert_statement_dark);
             }
             for(Alert alert: alerts) {
                 String level = alert.getType();

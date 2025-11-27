@@ -266,7 +266,7 @@ public class AQHIMainActivity extends AQHIActivity {
         mapView.configure(config);
 
         final GestureDetector tapDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
-            @Override public boolean onSingleTapUp(MotionEvent e) {
+            @Override public boolean onSingleTapUp(@NonNull MotionEvent e) {
                 final float scale = 1/mapView.getScale();
                 final int scrollX = mapView.getScrollX();
                 final int scrollY = mapView.getScrollY();
@@ -387,7 +387,7 @@ public class AQHIMainActivity extends AQHIActivity {
         Map<Date, Double> forecastData = getAQHIService().getForecastAQHI();
         LinearLayout dailyForecastList = findViewById(R.id.daily_forecast_list);
         TextView txtForecastUnknown = findViewById(R.id.txtForecastUnknown);
-        if(updateDailyList(forecastData, dailyForecastList, false)) {
+        if(updateDailyList(forecastData, dailyForecastList, false, "Forecast")) {
             dailyForecastList.setVisibility(VISIBLE);
             txtForecastUnknown.setVisibility(GONE);
         } else {
@@ -400,7 +400,7 @@ public class AQHIMainActivity extends AQHIActivity {
         Map<Date, Double> histData = getAQHIService().getHistoricalAQHI();
         LinearLayout dailyHistoricalList = findViewById(R.id.daily_historical_list);
         TextView txtHistoricalUnknown = findViewById(R.id.txtHistoricalUnknown);
-        if(updateDailyList(histData, dailyHistoricalList, true)) {
+        if(updateDailyList(histData, dailyHistoricalList, true, "History")) {
             dailyHistoricalList.setVisibility(VISIBLE);
             txtHistoricalUnknown.setVisibility(GONE);
         } else {
@@ -496,25 +496,31 @@ public class AQHIMainActivity extends AQHIActivity {
             final float val = data.overlayValueLookup(latLon.first, latLon.second);
             txtPollutantValue.setText((new DecimalFormat("0.0")).format(val)); //Value
 
-            if(pollutant.getLevel1() <= 0 || val <= 0.0) {
+            if(pollutant == Pollutant.NO && val >= 100.0) {
+                //Special case for NO
+                imgPollutantIcon.setVisibility(VISIBLE);
+                imgPollutantIcon.setImageResource(R.drawable.alert_statement);
+                txtPollutantWarn.setText("");
+            }
+            else if(pollutant.getLevel1() <= 0 || val <= 0.0) {
                 //We don't have a scale for this pollutant
                 imgPollutantIcon.setVisibility(GONE);
                 txtPollutantWarn.setText("");
             } else if (val <= pollutant.getLevel1()) {
                 imgPollutantIcon.setVisibility(GONE);
-                txtPollutantWarn.setText("Low");
+                txtPollutantWarn.setText(R.string.low);
             } else if (val <= pollutant.getLevel2()) {
                 imgPollutantIcon.setVisibility(VISIBLE);
                 imgPollutantIcon.setImageResource(R.drawable.alert_statement);
-                txtPollutantWarn.setText("Medium");
+                txtPollutantWarn.setText(R.string.medium);
             } else if (val <= pollutant.getLevel3()) {
                 imgPollutantIcon.setVisibility(VISIBLE);
                 imgPollutantIcon.setImageResource(R.drawable.alert_watch);
-                txtPollutantWarn.setText("High");
+                txtPollutantWarn.setText(R.string.high);
             } else {
                 imgPollutantIcon.setVisibility(VISIBLE);
                 imgPollutantIcon.setImageResource(R.drawable.alert_warn);
-                txtPollutantWarn.setText("Very High");
+                txtPollutantWarn.setText(R.string.very_high);
             }
 
             //Register a click listener to show the details
@@ -669,8 +675,8 @@ public class AQHIMainActivity extends AQHIActivity {
             x = coordinates.first;
             y = coordinates.second;
         } else {
-            x = (int) Math.round(sceneX);
-            y = (int) Math.round(sceneY);
+            x = Math.round(sceneX);
+            y = Math.round(sceneY);
 
             if (marker == null) {
                 marker = getLayoutInflater().inflate(R.layout.overlay_map_marker, mapView, false);
@@ -801,26 +807,36 @@ public class AQHIMainActivity extends AQHIActivity {
         return Color.valueOf(aqhiRiskText.getCurrentTextColor());
     }
 
-    private boolean updateDailyList(Map<Date, Double> data, LinearLayout dailyList, boolean decimals) {
+    private boolean updateDailyList(Map<Date, Double> data, LinearLayout dailyList, boolean decimals, String title) {
         //Clear any old values
         dailyList.removeAllViews();
 
         if (null == data || data.isEmpty()) return false;
 
         final String decimalFormat = decimals ? AQHI_DIGIT_FORMAT : AQHI_NO_DIGIT_FORMAT;
-        final SimpleDateFormat dateDisplayFormat = new SimpleDateFormat("MMM d", Locale.CANADA);//MAR 3
-        final SimpleDateFormat dayDisplayFormat  = new SimpleDateFormat("E", Locale.CANADA);
+        final SimpleDateFormat dateDisplayFormat = new SimpleDateFormat("MMM d", Locale.CANADA); //Mar 3
+        final SimpleDateFormat dayDisplayFormat  = new SimpleDateFormat("E", Locale.CANADA); //Mon
+        final SimpleDateFormat dayFullDisplayFormat  = new SimpleDateFormat("EEEE", Locale.CANADA); //Monday
+        final SimpleDateFormat hourlyFullDisplayFormat  = new SimpleDateFormat("hh:mm a", Locale.CANADA); //2:00 p.m.
 
         AtomicBoolean hasData = new AtomicBoolean(false);
         data.entrySet().stream()
             .sorted(Map.Entry.comparingByKey())
             .collect(Collectors.toMap(
-                    entry -> dateDisplayFormat.format(entry.getKey()),
-                    entry -> Map.entry(entry.getKey(), entry.getValue()),
-                    (entry1, entry2) -> entry1.getValue() >= entry2.getValue() ? entry1 : entry2,
+                    dataEntry -> dateDisplayFormat.format(dataEntry.getKey()),
+                    dataEntry -> Map.entry(dataEntry.getKey(), new Pair<Double, List<Map.Entry<Date, Double>>>(dataEntry.getValue(), new ArrayList<>(List.of(dataEntry)))),
+                    (entry1, entry2) -> {
+                            if(entry1.getValue().first >= entry2.getValue().first) {
+                                entry1.getValue().second.addAll(entry2.getValue().second);
+                                return entry1;
+                            } else {
+                                entry2.getValue().second.addAll(entry1.getValue().second);
+                                return entry2;
+                            }
+                        },
                     LinkedHashMap::new
-            )).forEach((day, value) -> {
-                View itemView = LayoutInflater.from(this)
+            )).forEach((day, dailyData) -> {
+                final View itemView = LayoutInflater.from(this)
                         .inflate(R.layout.forecast_layout, dailyList, false);
 
                 final TextView txtDay = itemView.findViewById(R.id.txtDay);
@@ -828,14 +844,38 @@ public class AQHIMainActivity extends AQHIActivity {
                 final TextView txtForecastRisk = itemView.findViewById(R.id.txtForecastRisk);
                 final TextView txtForecastValue = itemView.findViewById(R.id.txtForecastValue);
 
-                txtDay.setText(dayDisplayFormat.format(value.getKey()));    //MON
-                txtMonth.setText(dateDisplayFormat.format(value.getKey())); //MAR 3
-                txtForecastRisk.setText(getRiskFactor(value.getValue())); //Low Risk
-                txtForecastValue.setText(this.formatAQHIValue(value.getValue(), decimalFormat));
+                final Date   date = dailyData.getKey();
+                final Double maxValue = dailyData.getValue().first;
+
+                txtDay.setText(dayDisplayFormat.format(date));//Mon
+                txtMonth.setText(day); //Mar 3
+                txtForecastRisk.setText(getRiskFactor(maxValue)); //Low Risk
+                txtForecastValue.setText(formatAQHIValue(maxValue, decimalFormat));
+
+                //Build all the hourly values for the day here in chronological order
+                StringBuilder hourlyRows = new StringBuilder();
+                dailyData.getValue().second.forEach(entry->{
+                    addAQHIHourlyTableEntry(hourlyRows,entry.getKey(), entry.getValue(), hourlyFullDisplayFormat, decimalFormat);
+                });
+
+                final String dayOfWeek = dayFullDisplayFormat.format(date);
+                final String dialogTitle = dayOfWeek + " AQHI " + title;
+                final String dialogContent = loadDialogContent(R.raw.hourly_list).replace("{{date}}", dayOfWeek + " " + day).replace("{{rows}}", hourlyRows.toString());
+                itemView.setOnClickListener(v -> showDialog(dialogTitle, dialogContent));
                 dailyList.addView(itemView);
                 hasData.set(true);
             });
         return hasData.get();
+    }
+
+    private void addAQHIHourlyTableEntry(StringBuilder sb, Date date, Double value, SimpleDateFormat dateFormat, String decimalFormat) {
+        sb.append("<li><span>&nbsp;");
+        sb.append(dateFormat.format(date));
+        sb.append("</span> <span>—</span> <span>");
+        sb.append(formatAQHIValue(value, decimalFormat));
+        sb.append("&nbsp;");
+        sb.append(getRiskFactor(value));
+        sb.append("</span></li>");
     }
 
     private void updateAlertList(LinearLayout alertList, List<Alert> alerts) {
@@ -863,7 +903,7 @@ public class AQHIMainActivity extends AQHIActivity {
             }
 
             //Register a click listener to show the details
-            itemView.setOnClickListener(v -> this.showDialog(alert.getAlertBannerText(),null, "<p><b>" + alert.getIssueTimeText() + "</b></p>" + alert.getText().replace("\n","<br>") ,null, null));
+            itemView.setOnClickListener(v -> this.showDialog(alert.getAlertBannerText(), "<p><b>" + alert.getIssueTimeText() + "</b></p>" + alert.getText().replace("\n","<br>")));
 
             //Add the entry to the list
             alertList.addView(itemView);
@@ -948,6 +988,7 @@ public class AQHIMainActivity extends AQHIActivity {
                         .withShowXAxisLabels(true)
                         .withShowYAxisLabels(true)
                         .withAxisLabelFontColour(getSystemDefaultTextColor())
+                        .withAxisTitleFontColour(getSystemDefaultTextColor())
                         .withAxisTitleFontSize(44f*fontScale)
                         .withAxisLabelFontSize(38f*fontScale)
                         .withAxisLabelPadding(15)

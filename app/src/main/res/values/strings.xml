@@ -45,4 +45,8 @@
     <string name="alerts">Alerts</string>
     <string name="aqhi_emoji">AQHI Emoji</string>
     <string name="map">Pollution Map</string>
+    <string name="low">Low</string>
+    <string name="medium">Medium</string>
+    <string name="high">High</string>
+    <string name="very_high">Very High</string>
 </resources>

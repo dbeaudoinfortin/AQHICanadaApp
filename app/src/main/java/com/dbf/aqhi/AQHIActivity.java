@@ -46,6 +46,10 @@ public abstract class AQHIActivity extends Activity implements AQHIFeature {
         showDialog(title, resourceID, null, null, null);
     }
 
+    protected void showDialog(String title, String html) {
+        showDialog(title, null, html, null, null);
+    }
+
     protected void showDialog(String title, Integer resourceID, String additionalHTML, Html.ImageGetter imageGetter, Html.TagHandler tagHandler){
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(title);
@@ -57,7 +61,7 @@ public abstract class AQHIActivity extends Activity implements AQHIFeature {
             contents += additionalHTML;
         }
 
-        messageTextView.setText(Html.fromHtml(contents, Html.FROM_HTML_MODE_LEGACY, imageGetter, tagHandler));
+        messageTextView.setText(Html.fromHtml(contents, Html.FROM_HTML_MODE_LEGACY + Html.FROM_HTML_SEPARATOR_LINE_BREAK_LIST_ITEM, imageGetter, tagHandler));
         messageTextView.setMovementMethod(LinkMovementMethod.getInstance());
         int padding = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, getResources().getDisplayMetrics());
         messageTextView.setPadding(padding, padding, padding, padding);
