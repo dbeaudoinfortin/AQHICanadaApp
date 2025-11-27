@@ -12,8 +12,8 @@ android {
         applicationId = "com.dbf.aqhi"
         minSdk = 34
         targetSdk = 34
-        versionCode = 18
-        versionName = "1.1.8"
+        versionCode = 19
+        versionName = "1.1.9"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {

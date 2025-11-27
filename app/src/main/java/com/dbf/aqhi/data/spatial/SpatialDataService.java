@@ -129,21 +129,26 @@ public class SpatialDataService extends DataService {
         }
     }
 
+    public SpatialData getSpatialData(Pollutant pollutant) {
+        return getSpatialData(pollutant, true);
+    }
+
     /**
      * Retrieves pre-download spatial data, if it exists and not stale.
      * The meta data is retrieved from shared preferences and the image data is retrieved from the
      * Android file system cache.
      *
      * @param pollutant
+     * @param includePixels
      * @return SpatialData
      */
-    public SpatialData getSpatialData(Pollutant pollutant) {
+    public SpatialData getSpatialData(Pollutant pollutant, boolean includePixels) {
         synchronized (POLLUTANT_SYNC_OBJECTS.get(pollutant)) {
             SpatialData spatialData = getSpatialMetaData(pollutant);
             if(null == spatialData) return null;
 
             //Image data is stored in the filesystem cache
-            RawImage rawImage = getCachedData(pollutant);
+            RawImage rawImage = getCachedData(pollutant, includePixels);
             if(null == rawImage) {
                 //Cache was cleared by the system or is too old
                 //We need to also delete the metadata
@@ -378,9 +383,10 @@ public class SpatialDataService extends DataService {
             //Save to cache
             try (DataOutputStream dos =
                          new DataOutputStream(
-                                 new GZIPOutputStream(
-                                         new BufferedOutputStream(
-                                                 new FileOutputStream(cacheFile), FILE_CACHE_BUFFER_SIZE), FILE_CACHE_BUFFER_SIZE))) {
+                                 new BufferedOutputStream(
+                                     new GZIPOutputStream(
+                                             new BufferedOutputStream(
+                                                     new FileOutputStream(cacheFile), FILE_CACHE_BUFFER_SIZE), FILE_CACHE_BUFFER_SIZE), FILE_CACHE_BUFFER_SIZE))) {
                 dos.writeInt(rawImg.width);
                 dos.writeInt(rawImg.height);
                 dos.writeInt(rawImg.pixels.length);
@@ -400,7 +406,7 @@ public class SpatialDataService extends DataService {
      * @param pollutant
      * @return RawImage data
      */
-    private RawImage getCachedData(Pollutant pollutant) {
+    private RawImage getCachedData(Pollutant pollutant, boolean includePixels) {
         final File cacheFile = new File(cacheDir, pollutant.getDatamartForecastName());
 
         Log.i(LOG_TAG, "Reading data from cache file " + cacheFile.getAbsolutePath() + ".");
@@ -413,11 +419,13 @@ public class SpatialDataService extends DataService {
                 return null;
             }
 
+            //Note: we are double-buffing to improve performance by reducing excessive calls to the ZIP library
             try (DataInputStream dis =
                          new DataInputStream(
-                                 new GZIPInputStream(
+                                 new BufferedInputStream(
+                                    new GZIPInputStream(
                                          new BufferedInputStream(
-                                                 new FileInputStream(cacheFile), FILE_CACHE_BUFFER_SIZE),FILE_CACHE_BUFFER_SIZE))) {
+                                                 new FileInputStream(cacheFile), FILE_CACHE_BUFFER_SIZE), FILE_CACHE_BUFFER_SIZE), FILE_CACHE_BUFFER_SIZE))) {
                 final int width = dis.readInt();
                 final int height = dis.readInt();
                 final int dataLength = dis.readInt();
@@ -426,13 +434,21 @@ public class SpatialDataService extends DataService {
                     Log.e(LOG_TAG, "Invalid image data contained in cache file " + cacheFile.getAbsolutePath());
                     return null;
                 }
-                final byte[] pixels = dis.readNBytes(dataLength);
+
+                byte[] pixels = null;
+                if(includePixels) {
+                    pixels = dis.readNBytes(dataLength);
+                } else {
+                    dis.skipBytes(dataLength);
+                }
+
                 float[] values = new float[dataLength];
                 try {
                     for (int i = 0; i < dataLength; i++) {
                         values[i] = dis.readFloat();
                     }
                 } catch (EOFException e) {
+                    Log.w(LOG_TAG, "EOF reached while reading cache file " + cacheFile.getAbsolutePath() + ".\n" + StackTraceCompactor.getCompactStackTrace(e));
                     //Backwards compatibility if raw values are not present
                     values = null;
                 }

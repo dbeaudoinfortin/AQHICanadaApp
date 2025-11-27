@@ -478,7 +478,7 @@ public class AQHIMainActivity extends AQHIActivity {
         for(Pollutant pollutant : pollutants) {
             if(pollutant.isSmoke()) continue; //I might add this later, for now the smoke data is confusing
 
-            final SpatialData data = sds.getSpatialData(pollutant);
+            final SpatialData data = sds.getSpatialData(pollutant, false);
             if(null == data) continue; //avoid race condition
 
             if(null == data.getGrib2() || null == data.getGrib2().getRawImage() || null == data.getGrib2().getRawImage().values) continue; //backwards compatibility
