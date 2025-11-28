@@ -58,16 +58,60 @@ static OPJ_BOOL mem_seek_fn(OPJ_OFF_T p_nb_bytes, void* p_user_data) {
     return OPJ_TRUE;
 }
 
+static jclass    rawImage_class = NULL;
+static jmethodID rawImage_constructor  = NULL;
+
+JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved) {
+    (void)reserved;
+    JNIEnv* env = NULL;
+
+    if ((*vm)->GetEnv(vm, (void**)&env, JNI_VERSION_1_6) != JNI_OK) {
+        return JNI_ERR;
+    }
+
+    jclass rawImage_class_local = (*env)->FindClass(env, "com/dbf/aqhi/jpeg/RawImage");
+    if (!rawImage_class_local) {
+        LOG_ERROR("Could not find RawImage class.");
+        return JNI_ERR;
+    }
+
+    //Make it a global reference
+    rawImage_class = (jclass)(*env)->NewGlobalRef(env, rawImage_class_local);
+    (*env)->DeleteLocalRef(env, rawImage_class_local);
+    if (!rawImage_class) return JNI_ERR;
+
+    rawImage_constructor = (*env)->GetMethodID(env, rawImage_class, "<init>", "(II[B[F)V");
+    if (!rawImage_constructor) {
+        LOG_ERROR("Could not find RawImage constructor.");
+        return JNI_ERR;
+    }
+
+    return JNI_VERSION_1_6;
+}
+
+JNIEXPORT void JNICALL JNI_OnUnload(JavaVM* vm, void* reserved) {
+    (void)reserved;
+    JNIEnv* env = NULL;
+    if ((*vm)->GetEnv(vm, (void**)&env, JNI_VERSION_1_6) != JNI_OK) return;
+
+    if (rawImage_class) {
+        (*env)->DeleteGlobalRef(env, rawImage_class);
+        rawImage_class = NULL;
+    }
+    rawImage_constructor = NULL;
+}
+
 JNIEXPORT jobject JNICALL
 Java_com_dbf_aqhi_jpeg_Jpeg2000Decoder_decodeJpeg2000(
         JNIEnv *env, jclass clazz, jobject data, jint offset, jint length, jfloat data_scale, jfloat min_val, jfloat max_val, jint max_alpha) {
 
-    LOG_INFO("Stating JPEG2000 image decompression.");
+    LOG_INFO("Starting JPEG2000 image decompression.");
 
     //Extract the data from a Java direct ByteBuffer
     const unsigned char* data_addr_base = (unsigned char*)(*env)->GetDirectBufferAddress(env, data);
     const unsigned char* jpeg2000_data = data_addr_base + offset;
     const OPJ_SIZE_T jpeg2000_len = (OPJ_SIZE_T) length;
+    const OPJ_SIZE_T stream_chunk_size = 64 * 1024; //64k
 
     //Initialize memory stream structure
     memory_stream_t mem = {
@@ -76,6 +120,7 @@ Java_com_dbf_aqhi_jpeg_Jpeg2000Decoder_decodeJpeg2000(
         .pos = 0
     };
 
+    //OpenJpeg objects
     opj_stream_t *l_stream = NULL;
     opj_codec_t* l_codec = NULL;
     opj_image_t* l_image = NULL;
@@ -90,7 +135,7 @@ Java_com_dbf_aqhi_jpeg_Jpeg2000Decoder_decodeJpeg2000(
     opj_set_default_decoder_parameters(&parameters);
 
     //Create memory stream for input
-    if (!(l_stream = opj_stream_create(jpeg2000_len, OPJ_TRUE))) {
+    if (!(l_stream = opj_stream_create(stream_chunk_size, OPJ_TRUE))) {
         LOG_ERROR("Failed to create OpenJPEG stream.");
         goto cleanup;
     }
@@ -177,18 +222,7 @@ Java_com_dbf_aqhi_jpeg_Jpeg2000Decoder_decodeJpeg2000(
     }
 
     //Manually invoke the constructor of the output object (RawImage type)
-    jclass raw_image_cls = (*env)->FindClass(env, "com/dbf/aqhi/jpeg/RawImage");
-    if (!raw_image_cls) {
-        LOG_ERROR("Could not find RawImage class.");
-        goto cleanup;
-    }
-
-    jmethodID constructor = (*env)->GetMethodID(env, raw_image_cls, "<init>", "(II[B[F)V");
-    if (!constructor) {
-        LOG_ERROR("Could not find DecodedImage constructor");
-        goto cleanup;
-    }
-    decoded_img = (*env)->NewObject(env, raw_image_cls, constructor, width, height, pixel_array, value_array);
+    decoded_img = (*env)->NewObject(env, rawImage_class, rawImage_constructor, width, height, pixel_array, value_array);
 
     //End of processing
     cleanup:

@@ -505,7 +505,7 @@ public class SpatialDataService extends DataService {
         loadedPollutants = new LinkedHashSet<Pollutant>();
 
         long currentTime = System.currentTimeMillis();
-        for(Pollutant pollutant : Pollutant.values()){
+        for(Pollutant pollutant : Pollutant.values){
             long ts = sharedPreferences.getLong(SPATIAL_DATA_TS_KEY + "_" + pollutant, Integer.MIN_VALUE);
             if(currentTime - ts > DATA_VALIDITY_DURATION) continue;
 
