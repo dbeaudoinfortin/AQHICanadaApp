@@ -23,15 +23,39 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 public class SpatialDataService extends DataService {
 
     private static final String LOG_TAG = "SpatialDataService";
+
+    //Maximum number of concurrent network calls
+    private static final int CONCURRENT_THREADS = 4;
+
+    //Global executor for concurrent network calls
+    private static final ExecutorService spatialUpdateExecutor = Executors.newFixedThreadPool(
+        CONCURRENT_THREADS,
+        new ThreadFactory() {
+            private final AtomicInteger n = new AtomicInteger(1);
+            @Override public Thread newThread(Runnable r) {
+                Thread t = new Thread(r, "Spatial Data Update Thread " + n.getAndIncrement());
+                t.setPriority(Thread.MIN_PRIORITY); //prioritize other updates
+                t.setDaemon(true);
+                return t;
+            }
+        }
+    );
 
     //Prevents multiple simultaneous remote updates
     private static final Object UPDATE_SYNC_OBJECT = new Object();
@@ -63,7 +87,7 @@ public class SpatialDataService extends DataService {
     static {
         //Don't need a concurrent map since it will never be modified afterwards
         POLLUTANT_SYNC_OBJECTS = new HashMap<>();
-        for (Pollutant pollutant : Pollutant.values()) {
+        for (Pollutant pollutant : Pollutant.values) {
             POLLUTANT_SYNC_OBJECTS.put(pollutant, new Object());
         }
     }
@@ -90,6 +114,10 @@ public class SpatialDataService extends DataService {
         //We want to perform these calls not on the main thread
         new Thread(() -> {
             try {
+                if(!isInternetAvailable()) {
+                    Log.i(LOG_TAG, "Network is down. Skipping spatial update.");
+                    return; //Don't call onUpdate() if the internet is down
+                }
                 updateSync();
                 onUpdate();
             } catch (Throwable t) { //Catch all
@@ -109,20 +137,18 @@ public class SpatialDataService extends DataService {
      * The update is executed synchronously and may take several minutes to complete depending on the internet connection quality.
      */
     private void updateSync() {
-
-        if(!isInternetAvailable()) {
-            Log.i(LOG_TAG, "Network is down. Skipping spatial update.");
-            return;
-        }
-
         //Load the data one-by-one so we don't run out of memory
         //This code is stateful, we don't want to run multiple updates at the same time
         synchronized (UPDATE_SYNC_OBJECT) {
             try {
                 syncRunning = true;
-                for(Pollutant pollutant : Pollutant.values()){
-                    updateSpatialData(pollutant);
-                }
+                CompletableFuture.allOf(
+                        Arrays.stream(Pollutant.values)
+                                .map(pollutant -> CompletableFuture.runAsync(() -> updateSpatialData(pollutant), spatialUpdateExecutor))
+                                .toArray(CompletableFuture[]::new)
+                ).join(); //Wait for everything to complete
+            } catch (CompletionException e) {
+                Log.e(LOG_TAG, "Failed to update spatial data.\n" + StackTraceCompactor.getCompactStackTrace(e));
             } finally {
                 syncRunning = false;
             }
@@ -185,7 +211,7 @@ public class SpatialDataService extends DataService {
                 //Metadata is stored in the shared preferences DB
                 return gson.fromJson(spatialString, gsonSpatialDataType);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "Failed to read the saved spatial data for " + pollutant + ": " + spatialString, e);
+                Log.e(LOG_TAG, "Failed to read the saved spatial data for " + pollutant + ": " + spatialString + "\n" + StackTraceCompactor.getCompactStackTrace(e));
                 //No point keeping this bad data
                 clearSpatialMetaData(pollutant);
                 return null;

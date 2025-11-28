@@ -37,16 +37,16 @@ static OPJ_SIZE_T mem_read_fn(void* p_buffer, OPJ_SIZE_T p_nb_bytes, void* p_use
 
 static OPJ_OFF_T mem_skip_fn(OPJ_OFF_T p_nb_bytes, void* p_user_data) {
     memory_stream_t* mem = (memory_stream_t*)p_user_data;
-    OPJ_OFF_T newpos = (OPJ_OFF_T)mem->pos + p_nb_bytes;
+    OPJ_OFF_T new_pos = (OPJ_OFF_T)mem->pos + p_nb_bytes;
 
-    if (newpos < 0) {
-        newpos = 0;
-    } else if ((OPJ_SIZE_T)newpos > mem->len) {
-        newpos = (OPJ_OFF_T)mem->len;
+    if (new_pos < 0) {
+        new_pos = 0;
+    } else if ((OPJ_SIZE_T)new_pos > mem->len) {
+        new_pos = (OPJ_OFF_T)mem->len;
     }
 
-    OPJ_OFF_T skipped = newpos - (OPJ_OFF_T)mem->pos;
-    mem->pos = (OPJ_SIZE_T)newpos;
+    OPJ_OFF_T skipped = new_pos - (OPJ_OFF_T)mem->pos;
+    mem->pos = (OPJ_SIZE_T)new_pos;
     return skipped;
 }
 
@@ -58,21 +58,16 @@ static OPJ_BOOL mem_seek_fn(OPJ_OFF_T p_nb_bytes, void* p_user_data) {
     return OPJ_TRUE;
 }
 
-//TODO: Improve performance. Setup and decompression is about 41ms.
 JNIEXPORT jobject JNICALL
 Java_com_dbf_aqhi_jpeg_Jpeg2000Decoder_decodeJpeg2000(
-        JNIEnv *env, jclass clazz, jbyteArray data, jint offset, jint length, jfloat data_scale, jfloat min_val, jfloat max_val, jint max_alpha) {
+        JNIEnv *env, jclass clazz, jobject data, jint offset, jint length, jfloat data_scale, jfloat min_val, jfloat max_val, jint max_alpha) {
 
     LOG_INFO("Stating JPEG2000 image decompression.");
 
-    //Get pointer to array elements to avoid copying the entire array
-    jbyte* all_data = (*env)->GetPrimitiveArrayCritical(env, data, NULL);
-    if (all_data == NULL) {
-        return NULL; //Not sure how this is possible
-    }
-
-    const unsigned char* jpeg2000_data = (const unsigned char*)(all_data + offset);
-    OPJ_SIZE_T jpeg2000_len = (OPJ_SIZE_T)length;
+    //Extract the data from a Java direct ByteBuffer
+    const unsigned char* data_addr_base = (unsigned char*)(*env)->GetDirectBufferAddress(env, data);
+    const unsigned char* jpeg2000_data = data_addr_base + offset;
+    const OPJ_SIZE_T jpeg2000_len = (OPJ_SIZE_T) length;
 
     //Initialize memory stream structure
     memory_stream_t mem = {
@@ -130,13 +125,10 @@ Java_com_dbf_aqhi_jpeg_Jpeg2000Decoder_decodeJpeg2000(
         goto cleanup;
     }
 
-    (*env)->ReleasePrimitiveArrayCritical(env, data, all_data, JNI_ABORT);
-
     if (!opj_end_decompress(l_codec, l_stream)) {
         LOG_WARN("Failed to deinitialize the decompressor.");
     }
 
-    all_data = NULL;
     if (!l_image || l_image->numcomps == 0) {
         LOG_ERROR("No image data found.");
         goto cleanup;
@@ -163,13 +155,13 @@ Java_com_dbf_aqhi_jpeg_Jpeg2000Decoder_decodeJpeg2000(
              l_image->numcomps, precision, is_signed, factor, min_val_img, max_val_img, width, height, pixel_cnt);
 
     //Allocate and fill the output pixel array
-    jbyteArray pixel_array = (*env)->NewByteArray(env, pixel_cnt);
+    jbyteArray pixel_array  = (*env)->NewByteArray(env, pixel_cnt);
     jfloatArray value_array = (*env)->NewFloatArray(env, pixel_cnt);
     if (!pixel_array || !value_array) {
         LOG_ERROR("Failed to allocate output arrays.");
         goto cleanup;
     }
-    outPixels = (jbyte*)(*env) ->GetByteArrayElements (env, pixel_array, NULL);
+    outPixels = (jbyte*)(*env)->GetByteArrayElements (env, pixel_array, NULL);
     outVals  = (jfloat*)(*env)->GetFloatArrayElements(env, value_array, NULL);
 
     //Use first image component only (greyscale)
@@ -203,7 +195,6 @@ Java_com_dbf_aqhi_jpeg_Jpeg2000Decoder_decodeJpeg2000(
     if (l_image) opj_image_destroy(l_image);
     if (l_codec) opj_destroy_codec(l_codec);
     if (l_stream) opj_stream_destroy(l_stream);
-    if (all_data)  (*env)->ReleasePrimitiveArrayCritical(env, data, all_data, JNI_ABORT);
     if (outPixels) (*env)->ReleaseByteArrayElements(env, pixel_array, outPixels, 0);
     if (outVals)   (*env)->ReleaseFloatArrayElements(env, value_array, outVals, 0);
 

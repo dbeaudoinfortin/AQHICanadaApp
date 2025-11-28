@@ -12,11 +12,12 @@ public abstract class APIService {
     private static final String LOG_TAG = "APIService";
 
     private static final long HTTP_TIMEOUT = 60000; //1 minute in Milliseconds
-    private static final int  HTTP_TRIES = 3;
+    private static final int  HTTP_TRIES = 2;
 
     protected static final Gson gson = new Gson();
 
     protected static final OkHttpClient client = new OkHttpClient.Builder()
+            .retryOnConnectionFailure(true)
             .addInterceptor(new RetryInterceptor(HTTP_TRIES, LOG_TAG))
             .callTimeout(HTTP_TIMEOUT, MILLISECONDS)
             .build();

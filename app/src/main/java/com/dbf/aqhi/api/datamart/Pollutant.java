@@ -91,4 +91,6 @@ public enum Pollutant {
         }
         throw new IllegalArgumentException("Unknown pollutant name: " + name);
     }
+
+    public static final Pollutant[] values = Pollutant.values();
 }
