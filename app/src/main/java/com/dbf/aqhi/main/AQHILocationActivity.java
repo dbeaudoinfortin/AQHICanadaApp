@@ -110,7 +110,7 @@ public class AQHILocationActivity extends AQHIActivity {
 
         //Create the map, do this before updating the UI!
         mapView = findViewById(R.id.mapView);
-        mapView.configure(getMapViewConfiguration());
+        mapView.configure(getMapConfiguration());
         MarkerTapListener tapper = (view, x, y) -> {
             final String stationID = ((MarkerView) view).getMarkerName();
             if (null == stationID || stationID.isEmpty()) return;
@@ -340,13 +340,6 @@ public class AQHILocationActivity extends AQHIActivity {
             markers.put(markerName, pinView);
         }
         return pinView;
-    }
-
-    private MapViewConfiguration getMapViewConfiguration() {
-        MapViewConfiguration config = getMapConfiguration();
-        config.setMaxScale(3);
-        config.setMinimumScaleMode(MinimumScaleMode.FILL);
-        return config;
     }
 
     @Override

@@ -79,7 +79,6 @@ import java.util.stream.Collectors;
 import ovh.plrapps.mapview.MapView;
 import ovh.plrapps.mapview.MapViewConfiguration;
 import ovh.plrapps.mapview.api.MarkerApiKt;
-import ovh.plrapps.mapview.api.MinimumScaleMode;
 
 public class AQHIMainActivity extends AQHIActivity {
     private static final String LOG_TAG = "AQHIMainActivity";
@@ -261,8 +260,6 @@ public class AQHIMainActivity extends AQHIActivity {
         tileProvider = new CompositeTileProvider(getMapTileProvider());
         MapView mapView = findViewById(R.id.mapView);
         MapViewConfiguration config = getMapConfiguration(tileProvider);
-        config.setMaxScale(3);
-        config.setMinimumScaleMode(MinimumScaleMode.FILL);
         mapView.configure(config);
 
         final GestureDetector tapDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
@@ -641,7 +638,6 @@ public class AQHIMainActivity extends AQHIActivity {
                 tileProvider.setOverlayTileProvider(new OverlayTileProvider(newSpatialData, getColor(mapOverlayColour)));
                 if(null != touchMarker) updateOverlayTouchMarker(mapView, null, null); //Do this last
             }
-
             mapView.redrawTiles();
         }
     }
@@ -854,9 +850,7 @@ public class AQHIMainActivity extends AQHIActivity {
 
                 //Build all the hourly values for the day here in chronological order
                 StringBuilder hourlyRows = new StringBuilder();
-                dailyData.getValue().second.forEach(entry->{
-                    addAQHIHourlyTableEntry(hourlyRows,entry.getKey(), entry.getValue(), hourlyFullDisplayFormat, decimalFormat);
-                });
+                dailyData.getValue().second.forEach(entry-> addAQHIHourlyTableEntry(hourlyRows,entry.getKey(), entry.getValue(), hourlyFullDisplayFormat, decimalFormat));
 
                 final String dayOfWeek = dayFullDisplayFormat.format(date);
                 final String dialogTitle = dayOfWeek + " AQHI " + title;

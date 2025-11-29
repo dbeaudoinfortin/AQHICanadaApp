@@ -3,6 +3,7 @@ package com.dbf.aqhi;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.graphics.Color;
+import android.graphics.ColorFilter;
 import android.text.Html;
 import android.text.method.LinkMovementMethod;
 import android.util.Log;
@@ -12,6 +13,7 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.TextView;
 
+import androidx.annotation.Nullable;
 import androidx.work.ExistingWorkPolicy;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
@@ -26,6 +28,8 @@ import java.nio.charset.Charset;
 import java.util.concurrent.TimeUnit;
 
 import ovh.plrapps.mapview.MapViewConfiguration;
+import ovh.plrapps.mapview.api.MinimumScaleMode;
+import ovh.plrapps.mapview.core.TileOptionsProvider;
 import ovh.plrapps.mapview.core.TileStreamProvider;
 
 public abstract class AQHIActivity extends Activity implements AQHIFeature {
@@ -54,7 +58,7 @@ public abstract class AQHIActivity extends Activity implements AQHIFeature {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(title);
 
-        // Create a TextView to show the message
+        //Create a TextView to show the message
         TextView messageTextView = new TextView(this);
         String contents = resourceID==null ? "" : loadDialogContent(resourceID);
         if(null != additionalHTML && !additionalHTML.isEmpty()) {
@@ -102,7 +106,18 @@ public abstract class AQHIActivity extends Activity implements AQHIFeature {
     }
 
     protected MapViewConfiguration getMapConfiguration(TileStreamProvider tileStreamProvider) {
-        return new MapViewConfiguration(MAP_LEVEL_COUNT, MAP_WIDTH, MAP_HEIGHT, MAP_TILE_SIZE, tileStreamProvider);
+        MapViewConfiguration config = new MapViewConfiguration(MAP_LEVEL_COUNT, MAP_WIDTH, MAP_HEIGHT, MAP_TILE_SIZE, tileStreamProvider);
+        config.setMaxScale(3);
+        config.setMinimumScaleMode(MinimumScaleMode.FILL);
+        config.highFidelityColors();
+        config.setWorkerCount(Runtime.getRuntime().availableProcessors()*2); //Overprovision for faster tile loading
+        config.setTileOptionsProvider(new TileOptionsProvider() {
+            @Override
+            public float getAlphaTick() {
+                return 0.1f;    //Slightly faster fade-in animation
+            }
+        });
+        return config;
     }
 
     protected TileStreamProvider getMapTileProvider()
